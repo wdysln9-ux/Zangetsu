@@ -30,6 +30,24 @@ void main() {
       ),
       'This is not Indonesian.',
     );
+    expect(
+      SubtitleTranslateService.naturalizeIndonesian(
+        'Saya tidak tahu bagaimana cara melakukannya, tetapi saya ingin mencoba.',
+      ),
+      'Aku nggak tahu gimana cara melakukannya, tapi aku pengen mencoba.',
+    );
+    expect(
+      SubtitleTranslateService.naturalizeIndonesian(
+        'Jika Anda sedang di sini, tunggu saja.',
+      ),
+      'Kalau kamu lagi di sini, tunggu aja.',
+    );
+    expect(
+      SubtitleTranslateService.naturalizeIndonesian(
+        'Engkau terlihat seperti orang yang berbeda.',
+      ),
+      'Kamu terlihat kayak orang yang berbeda.',
+    );
   });
 
   test('reads the translated text out of a real response', () {
