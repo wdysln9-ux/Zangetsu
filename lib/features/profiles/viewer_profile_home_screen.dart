@@ -215,7 +215,10 @@ class ViewerProfileHomeScreen extends StatelessWidget {
                         const SizedBox(height: 24),
                         Divider(height: 1, color: AppColors.hairline),
                         const SizedBox(height: 14),
-                        const HistoryScreen(showBack: false),
+                        SizedBox(
+                          height: 620,
+                          child: const HistoryScreen(showBack: false),
+                        ),
                       ],
                     ),
                   ),
