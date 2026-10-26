@@ -572,7 +572,6 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
   /// reading the same would be indistinguishable), so say so rather than
   /// failing silently.
   Future<void> _createCategory(BuildContext context) async {
-    final parentFolder = _showingFolder ? _categoryFilter : null;
     final controller = TextEditingController();
     final name = await showDialog<String>(
       context: context,
@@ -613,12 +612,8 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
       return;
     }
     setState(() {
-      if (parentFolder != null) {
-        _folderStack.add(parentFolder);
-      } else {
-        _folderStack.clear();
-      }
       _categoryFilter = made.id;
+      _openedBuiltInStatus = null;
       _showingFolder = true;
     });
   }
@@ -909,7 +904,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                     .toList();
             final title = status == null
                 ? category!.name
-                : labelFor(status, reading: _kind != ContentMode.streaming);
+                : labelFor(status, reading: _kind.isReading);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1050,7 +1045,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
     List<MyListEntry> entries,
   ) {
     final members = entries.where((e) => e.status == status).toList();
-    final title = labelFor(status, reading: _kind != ContentMode.streaming);
+    final title = labelFor(status, reading: _kind.isReading);
     final color = switch (status) {
       WatchStatus.watching => const Color(0xFFF04449),
       WatchStatus.planning => const Color(0xFFAA59F5),
