@@ -131,7 +131,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                   const SizedBox(height: 22),
                   Row(
                     children: [
-                      const Icon(Icons.play_circle_outline,
+                      Icon(Icons.play_circle_outline,
                           color: AppColors.accent, size: 20),
                       const SizedBox(width: 8),
                       Text('Episode',
@@ -214,7 +214,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                                       ),
                                     ),
                                     if (selected)
-                                      const Positioned(
+                                      Positioned(
                                         left: 8,
                                         top: 8,
                                         child: Icon(Icons.play_circle_fill,
@@ -239,7 +239,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.info_outline,
+                        Icon(Icons.info_outline,
                             color: AppColors.accent),
                         const SizedBox(width: 10),
                         Expanded(
