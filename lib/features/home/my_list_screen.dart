@@ -611,7 +611,10 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
       );
       return;
     }
-    setState(() => _categoryFilter = made.id); // land on the new tab
+    setState(() {
+      _categoryFilter = made.id;
+      _showingFolder = true;
+    });
   }
 
   /// Rename or delete a category (long-press its tab). Deleting keeps every
@@ -857,36 +860,228 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
 
   // ── My List body ───────────────────────────────────────────────────────────
 
+  // Folder-first library layout. The existing categories remain the source of
+  // truth, so this changes presentation without migrating or losing saved titles.
+  bool _showingFolder = false;
+
   Widget _myListBody(BuildContext context) {
     return BlocBuilder<MyListCubit, List<MyListEntry>>(
       builder: (context, entries) {
         if (entries.isEmpty) _shuffleAction = null;
-        final child = entries.isEmpty
-            ? _empty(context)
-            : _grid(
-                context,
-                entries,
-                onTap: (item) => _openItem(context, item),
-                onMore: (entry) =>
-                    showListStatusSheet(context, item: entry.item),
-              );
+        final modeEntries = entries
+            .where((e) => _kind.matchesProvider(e.item.type))
+            .toList();
+        if (_showingFolder && _categoryFilter != null) {
+          final folder = (_cats?.all() ?? const <ListCategory>[])
+              .where((c) => c.id == _categoryFilter)
+              .firstOrNull;
+          if (folder == null) {
+            _showingFolder = false;
+            _categoryFilter = null;
+          } else {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 0, 16, 8),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => setState(() {
+                          _showingFolder = false;
+                          _categoryFilter = null;
+                        }),
+                        icon: const Icon(Icons.arrow_back_rounded),
+                      ),
+                      Expanded(
+                        child: Text(folder.name, style: AppText.title,
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ),
+                      Text('${_categoryCount(modeEntries, folder)} anime',
+                          style: AppText.caption),
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert_rounded),
+                        onSelected: (_) => _manageCategory(context, folder),
+                        itemBuilder: (_) => [
+                          PopupMenuItem(value: 'manage',
+                              child: Text(context.l10n.rename)),
+                          PopupMenuItem(value: 'delete',
+                              child: Text(context.l10n.deleteCategory)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: _grid(
+                    context,
+                    entries,
+                    onTap: (item) => _openItem(context, item),
+                    onMore: (entry) =>
+                        showListStatusSheet(context, item: entry.item),
+                  ),
+                ),
+              ],
+            );
+          }
+        }
+        final folders = (_cats?.all() ?? const <ListCategory>[])
+            .where(_categoryFitsKind(modeEntries))
+            .toList()
+          ..sort((a, b) => a.position.compareTo(b.position));
         return RefreshIndicator(
           color: AppColors.accent,
           backgroundColor: AppColors.surface,
           onRefresh: () => sl<MyListStore>().pullFromCloud(),
-          child: entries.isEmpty
-              ? ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  children: [
-                    SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.6,
-                      child: child,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text('Folder', style: AppText.title.copyWith(fontSize: 18)),
+                  ),
+                  TextButton.icon(
+                    onPressed: _cats == null ? null : () => _createCategory(context),
+                    icon: const Icon(Icons.add_rounded, size: 18),
+                    label: Text(context.l10n.newCategory),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              if (folders.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 48),
+                  child: Center(
+                    child: Text(
+                      entries.isEmpty
+                          ? context.l10n.noTitlesInThisList
+                          : 'Belum ada folder. Buat folder baru untuk mengelompokkan anime.',
+                      textAlign: TextAlign.center,
+                      style: AppText.body.copyWith(color: AppColors.textSecondary),
                     ),
-                  ],
+                  ),
                 )
-              : child,
+              else
+                for (final folder in folders)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _folderCard(context, folder, modeEntries),
+                  ),
+            ],
+          ),
         );
       },
+    );
+  }
+
+  Widget _folderCard(
+    BuildContext context,
+    ListCategory folder,
+    List<MyListEntry> entries,
+  ) {
+    final members = entries
+        .where((e) => _cats?.isIn(e.item, folder.id) ?? false)
+        .toList();
+    final covers = members.take(3).map((e) => e.item.cover)
+        .whereType<String>().where((url) => url.isNotEmpty).toList();
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => setState(() {
+          _categoryFilter = folder.id;
+          _statusFilter = null;
+          _customListFilter = null;
+          _showingFolder = true;
+        }),
+        child: Container(
+          height: 100,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.hairline),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 78,
+                height: 76,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    for (var i = covers.length - 1; i >= 0; i--)
+                      Positioned(
+                        left: i * 12.0,
+                        top: 3,
+                        bottom: 3,
+                        child: Container(
+                          width: 47,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(9),
+                            border: Border.all(color: AppColors.surface, width: 2),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2)),
+                            ],
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: CachedNetworkImage(
+                            imageUrl: covers[i],
+                            fit: BoxFit.cover,
+                            errorWidget: (_, _, _) => Container(
+                              color: AppColors.surface2,
+                              child: const Icon(Icons.movie_outlined, size: 18),
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (covers.isEmpty)
+                      Container(
+                        width: 58,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface2,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.folder_outlined, size: 28),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(folder.name, maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: AppText.body.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 5),
+                    Text('${members.length} anime',
+                      style: AppText.caption.copyWith(color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'Opsi folder',
+                icon: Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
+                onSelected: (value) {
+                  if (value == 'manage') _manageCategory(context, folder);
+                  if (value == 'delete') _manageCategory(context, folder);
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(value: 'manage', child: Text(context.l10n.rename)),
+                  PopupMenuItem(value: 'delete', child: Text(context.l10n.deleteCategory)),
+                ],
+              ),
+              Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
