@@ -140,7 +140,7 @@ class ViewerProfileHomeScreen extends StatelessWidget {
                 children: [
                   _cover(context, profile),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 124),
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 124),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -210,16 +210,12 @@ class ViewerProfileHomeScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 26),
+                        const SizedBox(height: 20),
                         _stats(saved.length, inProgress, completed),
-                        const SizedBox(height: 30),
+                        const SizedBox(height: 24),
                         Divider(height: 1, color: AppColors.hairline),
-                        const SizedBox(height: 22),
-                        const SizedBox(height: 8),
-                        SizedBox(
-                          height: 620,
-                          child: const HistoryScreen(showBack: false),
-                        ),
+                        const SizedBox(height: 14),
+                        const HistoryScreen(showBack: false, embedded: true),
                       ],
                     ),
                   ),
