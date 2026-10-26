@@ -1109,8 +1109,8 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
         covers.add(availableCovers[i % availableCovers.length]);
       }
     }
-    const posterWidth = 42.0;
-    const posterHeight = 64.0;
+    const posterWidth = 34.0;
+    const posterHeight = 58.0;
     return Material(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(16),
@@ -1118,8 +1118,8 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
         borderRadius: BorderRadius.circular(16),
         onTap: onOpen,
         child: Container(
-          height: 78,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.hairline),
@@ -1127,22 +1127,21 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
           child: Row(
             children: [
               SizedBox(
-                width: 66,
+                width: 55,
                 height: posterHeight,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
                     if (covers.isNotEmpty)
-                      for (var i = 2; i >= 0; i--)
+                      for (var i = 0; i < 3; i++)
                         Positioned(
-                          left: i * 9.0,
-                          top: 1,
-                          bottom: 1,
+                          left: i * 8.0,
+                          top: i * 4.0,
                           child: Container(
                             width: posterWidth,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: AppColors.surface, width: 1.5),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: AppColors.surface, width: 1.2),
                               boxShadow: const [
                                 BoxShadow(color: Colors.black38, blurRadius: 3,
                                     offset: Offset(0, 1)),
@@ -1195,7 +1194,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                             overflow: TextOverflow.ellipsis,
                             style: AppText.body.copyWith(
                               color: AppColors.textPrimary,
-                              fontSize: 16,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1207,7 +1206,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                       '${members.length} anime',
                       style: AppText.caption.copyWith(
                         color: AppColors.textSecondary,
-                        fontSize: 13,
+                        fontSize: 11.5,
                       ),
                     ),
                   ],
@@ -1216,9 +1215,9 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
               if (menu && category != null)
                 PopupMenuButton<String>(
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 40),
                   tooltip: 'Opsi folder',
-                  icon: Icon(Icons.more_vert_rounded, size: 19,
+                  icon: Icon(Icons.more_vert_rounded, size: 18,
                       color: AppColors.textSecondary),
                   onSelected: (_) => _manageCategory(context, category),
                   itemBuilder: (_) => [
@@ -1226,9 +1225,11 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                     PopupMenuItem(value: 'delete', child: Text(context.l10n.deleteCategory)),
                   ],
                 ),
-              if (!menu)
-                Icon(Icons.chevron_right_rounded, size: 20,
+              if (!menu) ...[
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right_rounded, size: 18,
                     color: AppColors.textTertiary),
+              ],
             ],
           ),
         ),
