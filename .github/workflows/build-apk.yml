@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "preview/**"
+      - ".github/workflows/preview-pages.yml"
   workflow_dispatch:
 
 permissions:
