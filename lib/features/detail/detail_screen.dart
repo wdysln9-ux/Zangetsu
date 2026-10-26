@@ -60,6 +60,7 @@ import 'chapter_meta.dart';
 import '../../core/tv/tv_episode_range_chips.dart';
 import 'episode_filter.dart';
 import '../player/player_lifecycle.dart';
+import '../player/episode_watch_page.dart';
 import 'trailer_route_lifecycle.dart';
 import '../../core/models/media_item.dart';
 import '../../core/models/media_extras.dart';
@@ -2619,8 +2620,24 @@ class _DetailViewState extends State<_DetailView>
             trackerProgress: _trackerProgress,
             nextAiringEpisode: _nextAiringEpisode,
             nextAiringAt: _nextAiringAt,
-            onOpen: (fullIndex) =>
-                _openPlayer(eps, fullIndex, detail, category),
+            onOpen: (fullIndex) {
+              if (isReading) {
+                _openPlayer(eps, fullIndex, detail, category);
+                return;
+              }
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => EpisodeWatchPage(
+                    showTitle: detail.title,
+                    episodes: eps,
+                    startIndex: fullIndex,
+                    cover: coverUrl,
+                    onPlay: (index) =>
+                        _openPlayer(eps, index, detail, category),
+                  ),
+                ),
+              );
+            },
             // Reading has no player to pick, but it does have the marking
             // rows — gating the whole menu on the player is what hid them.
             onEpisodeMenu: (fullIndex) =>
