@@ -11,6 +11,27 @@ import 'package:watch_app/core/playback/subtitle_translate_service.dart';
 void main() {
   const parse = SubtitleTranslateService.parseTranslatedBody;
 
+  test('Indonesian subtitle style uses aku/kamu and natural possessives', () {
+    expect(
+      SubtitleTranslateService.naturalizeIndonesian(
+        'Saya tidak tahu apakah Anda akan membantu saya.',
+      ),
+      'Aku tidak tahu apakah kamu akan membantu aku.',
+    );
+    expect(
+      SubtitleTranslateService.naturalizeIndonesian(
+        'Aku akan memberikan ini kepada Anda.',
+      ),
+      'Aku akan memberikan ini kepadamu.',
+    );
+    expect(
+      SubtitleTranslateService.naturalizeIndonesian(
+        'This is not Indonesian.',
+      ),
+      'This is not Indonesian.',
+    );
+  });
+
   test('reads the translated text out of a real response', () {
     // Captured from the live endpoint.
     const body =
