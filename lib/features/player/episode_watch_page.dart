@@ -32,7 +32,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
   late int _selected = widget.startIndex.clamp(
     0,
     widget.episodes.isEmpty ? 0 : widget.episodes.length - 1,
-  );
+  ).toInt();
 
   Episode? get _episode =>
       widget.episodes.isEmpty ? null : widget.episodes[_selected];
