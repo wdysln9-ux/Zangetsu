@@ -1100,8 +1100,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
     required bool menu,
     ListCategory? category,
   }) {
-    // Keep three visible layers like the reference even for folders with only
-    // one or two saved titles, repeating the available covers when necessary.
+    // Three overlapping portrait covers, matching the compact library reference.
     final availableCovers = members.take(3).map((e) => e.item.cover)
         .whereType<String>().where((url) => url.isNotEmpty).toList();
     final covers = <String>[];
@@ -1110,25 +1109,25 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
         covers.add(availableCovers[i % availableCovers.length]);
       }
     }
-    const posterWidth = 31.0;
-    const posterHeight = 48.0;
+    const posterWidth = 42.0;
+    const posterHeight = 64.0;
     return Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(15),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
         onTap: onOpen,
         child: Container(
-          height: 66,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          height: 78,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.hairline),
           ),
           child: Row(
             children: [
               SizedBox(
-                width: 48,
+                width: 66,
                 height: posterHeight,
                 child: Stack(
                   clipBehavior: Clip.none,
@@ -1136,7 +1135,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                     if (covers.isNotEmpty)
                       for (var i = 2; i >= 0; i--)
                         Positioned(
-                          left: i * 7.0,
+                          left: i * 9.0,
                           top: 1,
                           bottom: 1,
                           child: Container(
@@ -1145,7 +1144,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(color: AppColors.surface, width: 1.5),
                               boxShadow: const [
-                                BoxShadow(color: Colors.black26, blurRadius: 3,
+                                BoxShadow(color: Colors.black38, blurRadius: 3,
                                     offset: Offset(0, 1)),
                               ],
                             ),
@@ -1155,7 +1154,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                               fit: BoxFit.cover,
                               errorWidget: (_, _, _) => Container(
                                 color: AppColors.surface2,
-                                child: const Icon(Icons.movie_outlined, size: 13),
+                                child: const Icon(Icons.movie_outlined, size: 15),
                               ),
                             ),
                           ),
@@ -1167,7 +1166,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                           color: AppColors.surface2,
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Icon(Icons.folder_outlined, size: 18),
+                        child: const Icon(Icons.folder_outlined, size: 20),
                       ),
                   ],
                 ),
@@ -1190,15 +1189,27 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                         ),
                         const SizedBox(width: 6),
                         Expanded(
-                          child: Text(title, maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppText.body.copyWith(fontWeight: FontWeight.w600)),
+                          child: Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.body.copyWith(
+                              color: AppColors.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 1),
-                    Text('${members.length} anime',
-                        style: AppText.caption.copyWith(color: AppColors.textSecondary)),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${members.length} anime',
+                      style: AppText.caption.copyWith(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -1207,7 +1218,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
                   tooltip: 'Opsi folder',
-                  icon: Icon(Icons.more_vert_rounded, size: 18,
+                  icon: Icon(Icons.more_vert_rounded, size: 19,
                       color: AppColors.textSecondary),
                   onSelected: (_) => _manageCategory(context, category),
                   itemBuilder: (_) => [
@@ -1215,14 +1226,16 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                     PopupMenuItem(value: 'delete', child: Text(context.l10n.deleteCategory)),
                   ],
                 ),
-              Icon(Icons.chevron_right_rounded, size: 19,
-                  color: AppColors.textTertiary),
+              if (!menu)
+                Icon(Icons.chevron_right_rounded, size: 20,
+                    color: AppColors.textTertiary),
             ],
           ),
         ),
       ),
     );
   }
+
 
   // ── Tracker body (refresh + load/empty/error) ─────────────────────────────
 
