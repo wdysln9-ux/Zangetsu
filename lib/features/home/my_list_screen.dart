@@ -935,60 +935,70 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                     ],
                   ),
                 ),
+                if (otherFolders.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                    child: Text('Folder lain',
+                        style: AppText.body.copyWith(fontWeight: FontWeight.w600)),
+                  ),
+                  SizedBox(
+                    height: otherFolders.length > 3 ? 240 : otherFolders.length * 78.0,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: otherFolders.length,
+                      itemBuilder: (context, index) {
+                        final childFolder = otherFolders[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _folderCard(
+                            context,
+                            childFolder,
+                            modeEntries,
+                            compact: true,
+                            onOpen: () => setState(() {
+                              _folderStack.add(folder.id);
+                              _categoryFilter = childFolder.id;
+                              _statusFilter = null;
+                              _customListFilter = null;
+                              _showingFolder = true;
+                            }),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Text('Anime dalam folder',
+                      style: AppText.body.copyWith(fontWeight: FontWeight.w600)),
+                ),
                 Expanded(
                   child: RefreshIndicator(
                     color: AppColors.accent,
                     backgroundColor: AppColors.surface,
                     onRefresh: () => sl<MyListStore>().pullFromCloud(),
-                    child: ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(16, 2, 16, 18),
-                      children: [
-                        if (otherFolders.isNotEmpty) ...[
-                          Text('Folder lain',
-                              style: AppText.body.copyWith(fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 8),
-                          for (final childFolder in otherFolders)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: _folderCard(
-                                context,
-                                childFolder,
-                                modeEntries,
-                                compact: true,
-                                onOpen: () => setState(() {
-                                  _folderStack.add(folder.id);
-                                  _categoryFilter = childFolder.id;
-                                  _statusFilter = null;
-                                  _customListFilter = null;
-                                  _showingFolder = true;
-                                }),
+                    child: folderEntries.isEmpty
+                        ? ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 28),
+                                child: Center(
+                                  child: Text('Belum ada anime di folder ini',
+                                      style: AppText.body.copyWith(
+                                        color: AppColors.textSecondary)),
+                                ),
                               ),
-                            ),
-                          const SizedBox(height: 10),
-                        ],
-                        Text('Anime dalam folder',
-                            style: AppText.body.copyWith(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        if (folderEntries.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 28),
-                            child: Center(
-                              child: Text('Belum ada anime di folder ini',
-                                  style: AppText.body.copyWith(
-                                    color: AppColors.textSecondary)),
-                            ),
+                            ],
                           )
-                        else
-                          _grid(
+                        : _grid(
                             context,
                             folderEntries,
                             onTap: (item) => _openItem(context, item),
                             onMore: (entry) =>
                                 showListStatusSheet(context, item: entry.item),
                           ),
-                      ],
-                    ),
                   ),
                 ),
               ],
