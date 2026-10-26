@@ -572,6 +572,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
   /// reading the same would be indistinguishable), so say so rather than
   /// failing silently.
   Future<void> _createCategory(BuildContext context) async {
+    final parentFolder = _showingFolder ? _categoryFilter : null;
     final controller = TextEditingController();
     final name = await showDialog<String>(
       context: context,
@@ -612,6 +613,11 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
       return;
     }
     setState(() {
+      if (parentFolder != null) {
+        _folderStack.add(parentFolder);
+      } else {
+        _folderStack.clear();
+      }
       _categoryFilter = made.id;
       _showingFolder = true;
     });
