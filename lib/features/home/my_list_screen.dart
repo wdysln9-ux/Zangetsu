@@ -1139,6 +1139,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                           top: i * 4.0,
                           child: Container(
                             width: posterWidth,
+                            height: posterHeight - i * 4.0,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(color: AppColors.surface, width: 1.2),
