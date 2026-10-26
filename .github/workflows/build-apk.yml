@@ -35,6 +35,20 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Configure these four GitHub Actions secrets once to keep the APK
+      # signature stable across builds, so Android can update in place.
+      - name: Configure persistent Android signing key
+        if: ${{ env.ANDROID_KEYSTORE_BASE64 != '' }}
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/release-keystore.jks
+          printf 'storePassword=%s\\nkeyPassword=%s\\nkeyAlias=%s\\nstoreFile=release-keystore.jks\\n' \\
+            "$ANDROID_KEYSTORE_PASSWORD" "$ANDROID_KEY_PASSWORD" "$ANDROID_KEY_ALIAS" > android/key.properties
+
       - name: Build arm64 release APK
         run: flutter build apk --release --target-platform android-arm64
 
