@@ -1109,9 +1109,10 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
         covers.add(availableCovers[i % availableCovers.length]);
       }
     }
-    // Slightly smaller stacked posters; folder card dimensions stay unchanged.
+    // Keep all three posters identical in size, staggered from top-left
+    // to bottom-right like the reference folder cards.
     const posterWidth = 30.0;
-    const posterHeight = 52.0;
+    const posterHeight = 54.0;
     return Material(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(16),
@@ -1119,8 +1120,8 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
         borderRadius: BorderRadius.circular(16),
         onTap: onOpen,
         child: Container(
-          height: 64,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+          height: 72,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.hairline),
@@ -1129,7 +1130,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
             children: [
               SizedBox(
                 width: 55,
-                height: posterHeight,
+                height: posterHeight + 8,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
@@ -1140,7 +1141,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                           top: i * 4.0,
                           child: Container(
                             width: posterWidth,
-                            height: posterHeight - i * 4.0,
+                            height: posterHeight,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(color: AppColors.surface, width: 1.2),
@@ -1196,7 +1197,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                             overflow: TextOverflow.ellipsis,
                             style: AppText.body.copyWith(
                               color: AppColors.textPrimary,
-                              fontSize: 14,
+                              fontSize: 15.5,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1208,18 +1209,16 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                       '${members.length} anime',
                       style: AppText.caption.copyWith(
                         color: AppColors.textSecondary,
-                        fontSize: 11.5,
+                        fontSize: 12.5,
                       ),
                     ),
                   ],
                 ),
               ),
               if (menu && category != null)
-                Transform.translate(
-                  offset: const Offset(4, 0),
-                  child: PopupMenuButton<String>(
+                PopupMenuButton<String>(
                     padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 32, minHeight: 40),
+                    constraints: const BoxConstraints.tightFor(width: 36, height: 40),
                     tooltip: 'Opsi folder',
                     icon: Icon(Icons.more_vert_rounded, size: 18,
                         color: AppColors.textSecondary),
@@ -1229,10 +1228,9 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                       PopupMenuItem(value: 'delete', child: Text(context.l10n.deleteCategory)),
                     ],
                   ),
-                ),
               if (!menu) ...[
                 const SizedBox(width: 8),
-                Icon(Icons.chevron_right_rounded, size: 18,
+                Icon(Icons.chevron_right_rounded, size: 22,
                     color: AppColors.textTertiary),
               ],
             ],
