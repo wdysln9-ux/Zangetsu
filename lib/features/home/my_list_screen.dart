@@ -1109,8 +1109,9 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
         covers.add(availableCovers[i % availableCovers.length]);
       }
     }
-    const posterWidth = 34.0;
-    const posterHeight = 58.0;
+    // Slightly smaller stacked posters; folder card dimensions stay unchanged.
+    const posterWidth = 30.0;
+    const posterHeight = 52.0;
     return Material(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(16),
@@ -1214,17 +1215,20 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                 ),
               ),
               if (menu && category != null)
-                PopupMenuButton<String>(
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 40),
-                  tooltip: 'Opsi folder',
-                  icon: Icon(Icons.more_vert_rounded, size: 18,
-                      color: AppColors.textSecondary),
+                Transform.translate(
+                  offset: const Offset(4, 0),
+                  child: PopupMenuButton<String>(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 40),
+                    tooltip: 'Opsi folder',
+                    icon: Icon(Icons.more_vert_rounded, size: 18,
+                        color: AppColors.textSecondary),
                   onSelected: (_) => _manageCategory(context, category),
-                  itemBuilder: (_) => [
-                    PopupMenuItem(value: 'manage', child: Text(context.l10n.rename)),
-                    PopupMenuItem(value: 'delete', child: Text(context.l10n.deleteCategory)),
-                  ],
+                    itemBuilder: (_) => [
+                      PopupMenuItem(value: 'manage', child: Text(context.l10n.rename)),
+                      PopupMenuItem(value: 'delete', child: Text(context.l10n.deleteCategory)),
+                    ],
+                  ),
                 ),
               if (!menu) ...[
                 const SizedBox(width: 8),
