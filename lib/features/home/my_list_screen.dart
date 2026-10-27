@@ -1217,13 +1217,14 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
               ),
               if (menu && category != null)
                 PopupMenuButton<String>(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints.tightFor(width: 36, height: 40),
-                    tooltip: 'Opsi folder',
-                    icon: Icon(Icons.more_vert_rounded, size: 18,
-                        color: AppColors.textSecondary),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+                  tooltip: 'Opsi folder',
+                  onTap: () {},
+                  icon: Icon(Icons.more_vert_rounded, size: 18,
+                      color: AppColors.textSecondary),
                   onSelected: (_) => _manageCategory(context, category),
-                    itemBuilder: (_) => [
+                  itemBuilder: (_) => [
                       PopupMenuItem(value: 'manage', child: Text(context.l10n.rename)),
                       PopupMenuItem(value: 'delete', child: Text(context.l10n.deleteCategory)),
                     ],
