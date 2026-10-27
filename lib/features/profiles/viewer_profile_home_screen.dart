@@ -18,10 +18,12 @@ import '../settings/settings_screen.dart';
 import '../settings/donate_screen.dart';
 import 'viewer_profile_editor_screen.dart';
 import 'viewer_profiles_screen.dart';
-import '../history/history_screen.dart';
 
 class ViewerProfileHomeScreen extends StatelessWidget {
   const ViewerProfileHomeScreen({super.key});
+
+  static const _zoroGifUrl =
+      'https://custom-doodle.com/wp-content/uploads/doodle/auto-draft/one-piece-dancing-roronoa-zoro-doodle.gif';
 
   ViewerProfileStore get _profiles => sl<ViewerProfileStore>();
 
@@ -140,7 +142,7 @@ class ViewerProfileHomeScreen extends StatelessWidget {
                 children: [
                   _cover(context, profile),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 124),
+                    padding: const EdgeInsets.fromLTRB(20, 18, 20, 124),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -210,15 +212,12 @@ class ViewerProfileHomeScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 26),
                         _stats(saved.length, inProgress, completed),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 30),
                         Divider(height: 1, color: AppColors.hairline),
-                        const SizedBox(height: 14),
-                        SizedBox(
-                          height: 620,
-                          child: const HistoryScreen(showBack: false),
-                        ),
+                        const SizedBox(height: 22),
+                        _comingSoonCard(),
                       ],
                     ),
                   ),
@@ -422,6 +421,32 @@ class ViewerProfileHomeScreen extends StatelessWidget {
     ],
   );
 
+  Widget _comingSoonCard() => Center(
+    key: const ValueKey('zoro-coming-soon-section'),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        CachedNetworkImage(
+          key: const ValueKey('zoro-coming-soon-gif'),
+          imageUrl: _zoroGifUrl,
+          cacheManager: AppImageCache.cacheManagerOrDefault,
+          width: 148,
+          height: 148,
+          fit: BoxFit.contain,
+          fadeInDuration: const Duration(milliseconds: 240),
+          placeholder: (_, _) => const SizedBox(width: 148, height: 148),
+          errorWidget: (_, _, _) => const SizedBox.shrink(),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'More features are on their way with Zoro… he just got lost again.',
+          textAlign: TextAlign.center,
+          style: AppText.body.copyWith(color: AppColors.textSecondary),
+        ),
+      ],
+    ),
+  );
 
   Widget _stat(String value, String label) => Expanded(
     child: Column(
