@@ -88,10 +88,7 @@ class NavPrefs extends ChangeNotifier {
     if (raw is! List || raw.isEmpty) return defaultTabs;
     final out = <DockTab>[];
     for (final name in raw) {
-      final storedTab = DockTab.values.where((t) => t.name == name).firstOrNull;
-      // History now lives inside the Profile page. Migrate older dock layouts
-      // that had a standalone History destination to Sources instead.
-      final tab = storedTab == DockTab.history ? DockTab.sources : storedTab;
+      final tab = DockTab.values.where((t) => t.name == name).firstOrNull;
       if (tab != null && !out.contains(tab)) out.add(tab);
     }
     return _sanitize(out);
