@@ -1219,8 +1219,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                 PopupMenuButton<String>(
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints.tightFor(width: 40, height: 40),
-                  tooltip: 'Opsi folder',
-                  onTap: () {},
+                  tooltip: '',
                   icon: Icon(Icons.more_vert_rounded, size: 18,
                       color: AppColors.textSecondary),
                   onSelected: (_) => _manageCategory(context, category),
