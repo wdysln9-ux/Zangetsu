@@ -2716,63 +2716,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     ),
                   ),
 
-                  // Portrait details live inside the player below the video.
-                  // Keep this below the video and above the video-only touch layer.
-                  if (_portraitMode && !sl<AppMode>().isTv)
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      top: MediaQuery.sizeOf(context).height * 0.36,
-                      bottom: 0,
-                      child: ColoredBox(
-                        color: Colors.black,
-                        child: ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-                          children: [
-                            if ((widget.showTitle ?? '').trim().isNotEmpty)
-                              Text(widget.showTitle!, maxLines: 2, overflow: TextOverflow.ellipsis,
-                                style: AppText.body.copyWith(color: AppColors.accent, fontSize: 15, fontWeight: FontWeight.w700)),
-                            const SizedBox(height: 8),
-                            Text(_c.currentEpisode.title.trim().isEmpty ? 'Episode ${state.currentIndex + 1}' : _c.currentEpisode.title,
-                              style: AppText.title.copyWith(color: Colors.white, fontSize: 22)),
-                            const SizedBox(height: 12),
-                            Row(children: [
-                              IconButton(tooltip: 'Kembali', onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back, color: Colors.white)),
-                              const Spacer(),
-                              IconButton(tooltip: 'Kecepatan', onPressed: _openSpeedSheet, icon: const Icon(Icons.speed_rounded, color: Colors.white)),
-                              IconButton(tooltip: 'Audio dan subtitle', onPressed: _openAudioSubsSheet, icon: const Icon(Icons.subtitles_rounded, color: Colors.white)),
-                              IconButton(tooltip: 'Layar penuh', onPressed: _toggleOrientation, icon: const Icon(Icons.fullscreen_rounded, color: Colors.white)),
-                            ]),
-                            if ((_c.currentEpisode.description ?? '').trim().isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Text('Deskripsi episode', style: AppText.title.copyWith(color: Colors.white, fontSize: 18)),
-                              const SizedBox(height: 8),
-                              Text(_c.currentEpisode.description!.trim(), style: AppText.body.copyWith(color: Colors.white70, height: 1.5)),
-                            ],
-                            if (state.currentIndex + 1 < _c.episodes.length) ...[
-                              const SizedBox(height: 26),
-                              Text('Episode berikutnya', style: AppText.title.copyWith(color: Colors.white, fontSize: 18)),
-                              const SizedBox(height: 12),
-                              InkWell(
-                                onTap: () => _c.playNext(),
-                                child: Row(children: [
-                                  ClipRRect(borderRadius: BorderRadius.circular(7), child: SizedBox(width: 112, height: 64,
-                                    child: (_c.episodes[state.currentIndex + 1].thumbnail ?? '').isNotEmpty
-                                      ? CachedNetworkImage(imageUrl: _c.episodes[state.currentIndex + 1].thumbnail!, fit: BoxFit.cover,
-                                          errorWidget: (_, _, _) => const ColoredBox(color: Color(0xFF292929)))
-                                      : const ColoredBox(color: Color(0xFF292929)))),
-                                  const SizedBox(width: 12),
-                                  Expanded(child: Text(_c.episodes[state.currentIndex + 1].title, maxLines: 2, overflow: TextOverflow.ellipsis,
-                                    style: AppText.body.copyWith(color: Colors.white, fontSize: 15))),
-                                  const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
-                                ]),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-
                   // 2. Input layer — D-pad on TV; touch gestures on phone.
                   // On TV: PlayerTvControls owns the Focus/key-handler + bottom bar.
                   // On phone: existing gesture surface (unchanged).
@@ -2826,8 +2769,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                     )
                   else
-                    // Phone: gestures are confined to the video region in portrait,
-                    // leaving the episode details below it free to scroll and tap.
                     // Phone: drags + long-press live on a bottom layer; taps live on
                     // three zones stacked ABOVE it. Keeping tap off the drag detector
                     // is the fix — a tap no longer competes with (and loses to) a pan
@@ -2839,9 +2780,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       left: 0,
                       right: 0,
                       top: 0,
-                      bottom: _portraitMode && !sl<AppMode>().isTv
-                          ? MediaQuery.sizeOf(context).height * 0.64
-                          : 0,
+                      bottom: 0,
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
