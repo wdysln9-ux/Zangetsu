@@ -2642,9 +2642,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
               onPointerMove: _onPointerMove,
               onPointerUp: _onPointerUp,
               onPointerCancel: _onPointerUp,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
+              child: _portraitMode && !sl<AppMode>().isTv
+                  ? Column(
+                      children: [
+                        Expanded(
+                          flex: 4,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
                   // 1. The video. NoVideoControls disables media_kit's built-in
                   // controls (which include their own buffering spinner + gestures)
                   // so ONLY our custom Netflix overlay shows — fixes the duplicate
@@ -2715,122 +2720,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       },
                     ),
                   ),
-
-                  // Portrait watch page: video remains in this player, with
-                  // episode information laid out below it like the supplied reference.
-                  if (_portraitMode && !sl<AppMode>().isTv)
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      top: MediaQuery.sizeOf(context).height * 0.36,
-                      bottom: 0,
-                      child: ColoredBox(
-                        color: Colors.black,
-                        child: ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-                          children: [
-                            if ((widget.showTitle ?? '').trim().isNotEmpty)
-                              Text(
-                                widget.showTitle!,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppText.body.copyWith(
-                                  color: AppColors.accent,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _c.currentEpisode.title.trim().isEmpty
-                                  ? 'Episode ${state.currentIndex + 1}'
-                                  : _c.currentEpisode.title,
-                              style: AppText.title.copyWith(
-                                color: Colors.white,
-                                fontSize: 22,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                IconButton(
-                                  tooltip: 'Kembali',
-                                  onPressed: () => Navigator.of(context).maybePop(),
-                                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                                ),
-                                const Spacer(),
-                                IconButton(
-                                  tooltip: 'Kecepatan',
-                                  onPressed: _openSpeedSheet,
-                                  icon: const Icon(Icons.speed_rounded, color: Colors.white),
-                                ),
-                                IconButton(
-                                  tooltip: 'Audio dan subtitle',
-                                  onPressed: _openAudioSubsSheet,
-                                  icon: const Icon(Icons.subtitles_rounded, color: Colors.white),
-                                ),
-                                IconButton(
-                                  tooltip: 'Layar penuh',
-                                  onPressed: _toggleOrientation,
-                                  icon: const Icon(Icons.fullscreen_rounded, color: Colors.white),
-                                ),
-                              ],
-                            ),
-                            if ((_c.currentEpisode.description ?? '').trim().isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                'Deskripsi episode',
-                                style: AppText.title.copyWith(color: Colors.white, fontSize: 18),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                _c.currentEpisode.description!.trim(),
-                                style: AppText.body.copyWith(color: Colors.white70, height: 1.5),
-                              ),
-                            ],
-                            if (state.currentIndex + 1 < _c.episodes.length) ...[
-                              const SizedBox(height: 26),
-                              Text(
-                                'Episode berikutnya',
-                                style: AppText.title.copyWith(color: Colors.white, fontSize: 18),
-                              ),
-                              const SizedBox(height: 12),
-                              InkWell(
-                                onTap: () => _c.playNext(),
-                                child: Row(
-                                  children: [
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(7),
-                                      child: SizedBox(
-                                        width: 112,
-                                        height: 64,
-                                        child: (_c.episodes[state.currentIndex + 1].thumbnail ?? '').isNotEmpty
-                                            ? CachedNetworkImage(
-                                                imageUrl: _c.episodes[state.currentIndex + 1].thumbnail!,
-                                                fit: BoxFit.cover,
-                                                errorWidget: (_, _, _) => const ColoredBox(color: Color(0xFF292929)),
-                                              )
-                                            : const ColoredBox(color: Color(0xFF292929)),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        _c.episodes[state.currentIndex + 1].title,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: AppText.body.copyWith(color: Colors.white, fontSize: 15),
-                                      ),
-                                    ),
-                                    const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
 
                   // 2. Input layer — D-pad on TV; touch gestures on phone.
                   // On TV: PlayerTvControls owns the Focus/key-handler + bottom bar.
@@ -3415,6 +3304,59 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     },
                   ),
                 ],
+              ),
+            ),
+            Expanded(
+              flex: 6,
+              child: ColoredBox(
+                color: Colors.black,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
+                  children: [
+                    if ((widget.showTitle ?? '').trim().isNotEmpty)
+                      Text(widget.showTitle!, maxLines: 2, overflow: TextOverflow.ellipsis,
+                        style: AppText.body.copyWith(color: AppColors.accent, fontSize: 15, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 6),
+                    Text(_c.currentEpisode.title.trim().isEmpty ? 'Episode ${state.currentIndex + 1}' : _c.currentEpisode.title,
+                      style: AppText.title.copyWith(color: Colors.white, fontSize: 22)),
+                    Row(children: [
+                      IconButton(tooltip: 'Kembali', onPressed: () => Navigator.of(context).maybePop(), icon: const Icon(Icons.arrow_back, color: Colors.white)),
+                      const Spacer(),
+                      IconButton(tooltip: 'Kecepatan', onPressed: _openSpeedSheet, icon: const Icon(Icons.speed_rounded, color: Colors.white)),
+                      IconButton(tooltip: 'Audio dan subtitle', onPressed: _openAudioSubsSheet, icon: const Icon(Icons.subtitles_rounded, color: Colors.white)),
+                      IconButton(tooltip: 'Layar penuh', onPressed: _toggleOrientation, icon: const Icon(Icons.fullscreen_rounded, color: Colors.white)),
+                    ]),
+                    if ((_c.currentEpisode.description ?? '').trim().isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text('Deskripsi episode', style: AppText.title.copyWith(color: Colors.white, fontSize: 18)),
+                      const SizedBox(height: 6),
+                      Text(_c.currentEpisode.description!.trim(), style: AppText.body.copyWith(color: Colors.white70, height: 1.5)),
+                    ],
+                    if (state.currentIndex + 1 < _c.episodes.length) ...[
+                      const SizedBox(height: 22),
+                      Text('Episode berikutnya', style: AppText.title.copyWith(color: Colors.white, fontSize: 18)),
+                      const SizedBox(height: 10),
+                      InkWell(onTap: () => _c.playNext(), child: Row(children: [
+                        ClipRRect(borderRadius: BorderRadius.circular(7), child: SizedBox(width: 112, height: 64,
+                          child: (_c.episodes[state.currentIndex + 1].thumbnail ?? '').isNotEmpty
+                            ? CachedNetworkImage(imageUrl: _c.episodes[state.currentIndex + 1].thumbnail!, fit: BoxFit.cover,
+                              errorWidget: (_, _, _) => const ColoredBox(color: Color(0xFF292929)))
+                            : const ColoredBox(color: Color(0xFF292929)))),
+                        const SizedBox(width: 12),
+                        Expanded(child: Text(_c.episodes[state.currentIndex + 1].title, maxLines: 2, overflow: TextOverflow.ellipsis,
+                          style: AppText.body.copyWith(color: Colors.white, fontSize: 15))),
+                        const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 28),
+                      ])),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        )
+        : Stack(
+            fit: StackFit.expand,
+            children: [                ],
               ),
             );
           },
