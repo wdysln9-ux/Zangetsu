@@ -1111,8 +1111,8 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
     }
     // Keep all three posters identical in size, staggered from top-left
     // to bottom-right like the reference folder cards.
-    const posterWidth = 30.0;
-    const posterHeight = 54.0;
+    const posterWidth = 34.0;
+    const posterHeight = 44.0;
     return Material(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(16),
@@ -1129,16 +1129,16 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
           child: Row(
             children: [
               SizedBox(
-                width: 55,
-                height: posterHeight + 8,
+                width: 62,
+                height: posterHeight + 4,
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
                     if (covers.isNotEmpty)
                       for (var i = 0; i < 3; i++)
                         Positioned(
-                          left: i * 8.0,
-                          top: i * 4.0,
+                          left: i * 10.0,
+                          top: i * 2.0,
                           child: Container(
                             width: posterWidth,
                             height: posterHeight,
