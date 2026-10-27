@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
@@ -290,6 +291,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       .distinct();
 
   bool _controlsVisible = true;
+  bool _cinematicLighting = true;
   bool _holding = false; // long-press 2x active
 
   /// The speed to go back to when a hold ends. Captured at the start of the
@@ -2645,6 +2647,35 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
+                  // Cinematic ambient lighting: a low-resolution visual backdrop
+                  // made from the current episode artwork, blurred behind the video.
+                  // This stays outside the native video surface and is inexpensive
+                  // compared with decoding an extra live video stream.
+                  if (_cinematicLighting)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: Opacity(
+                          opacity: 0.58,
+                          child: ImageFiltered(
+                            imageFilter: ImageFilter.blur(sigmaX: 42, sigmaY: 42),
+                            child: Transform.scale(
+                              scale: 1.22,
+                              child: CachedNetworkImage(
+                                imageUrl: (_c.currentEpisode.thumbnail?.trim().isNotEmpty ?? false)
+                                    ? _c.currentEpisode.thumbnail!.trim()
+                                    : (widget.cover ?? ''),
+                                httpHeaders: widget.coverHeaders,
+                                fit: BoxFit.cover,
+                                errorWidget: (c, u, e) =>
+                                    const ColoredBox(color: Colors.black),
+                                placeholder: (c, u) =>
+                                    const ColoredBox(color: Colors.black),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   // 1. The video. NoVideoControls disables media_kit's built-in
                   // controls (which include their own buffering spinner + gestures)
                   // so ONLY our custom Netflix overlay shows — fixes the duplicate
@@ -3123,6 +3154,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           enhanceActive:
                               sl<PlaybackPrefs>().videoShaderStyle != 'off',
                           onColorProfile: _openColorProfileSheet,
+                          cinematicLightingActive: _cinematicLighting,
+                          onCinematicLighting: () {
+                            setState(() => _cinematicLighting = !_cinematicLighting);
+                            _bumpControls();
+                          },
                         ),
                       ),
                     )
