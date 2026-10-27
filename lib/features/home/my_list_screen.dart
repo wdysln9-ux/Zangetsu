@@ -1129,7 +1129,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
           child: Row(
             children: [
               SizedBox(
-                width: 62,
+                width: 57,
                 height: posterHeight + 4,
                 child: Stack(
                   clipBehavior: Clip.none,
@@ -1137,7 +1137,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                     if (covers.isNotEmpty)
                       for (var i = 0; i < 3; i++)
                         Positioned(
-                          left: i * 10.0,
+                          left: i * 8.5,
                           top: i * 2.0,
                           child: Container(
                             width: posterWidth,
