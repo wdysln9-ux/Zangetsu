@@ -2625,21 +2625,8 @@ class _DetailViewState extends State<_DetailView>
                 _openPlayer(eps, fullIndex, detail, category);
                 return;
               }
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => EpisodeWatchPage(
-                    showTitle: detail.title,
-                    episodes: eps,
-                    startIndex: fullIndex,
-                    cover: coverUrl,
-                    onPlay: (index) =>
-                        _openPlayer(eps, index, detail, category),
-                    onSave: () => _openListSheet(detail),
-                    onDownload: (episode) =>
-                        _downloadSingle(episode, detail, category),
-                  ),
-                ),
-              );
+              // Open the player directly; do not show the extra episode landing page.
+              _openPlayer(eps, fullIndex, detail, category);
             },
             // Reading has no player to pick, but it does have the marking
             // rows — gating the whole menu on the player is what hid them.
