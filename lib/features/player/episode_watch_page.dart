@@ -91,7 +91,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                     child: IconButton(
                       tooltip: 'Putar episode',
                       onPressed: ep == null ? null : () => widget.onPlay(_selected),
-                      icon: const Icon(Icons.play_arrow_rounded,
+                      icon: Icon(Icons.play_arrow_rounded,
                           color: colors.onPrimary, size: 34),
                     ),
                   ),
@@ -192,7 +192,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: selected
-                                      ? AppColors.accent
+                                      ? colors.primary
                                       : colors.outlineVariant,
                                   width: selected ? 2 : 1,
                                 ),
