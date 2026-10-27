@@ -15,6 +15,8 @@ class EpisodeWatchPage extends StatefulWidget {
     required this.episodes,
     required this.startIndex,
     required this.onPlay,
+    required this.onSave,
+    required this.onDownload,
     this.cover,
   });
 
@@ -23,6 +25,8 @@ class EpisodeWatchPage extends StatefulWidget {
   final int startIndex;
   final String? cover;
   final ValueChanged<int> onPlay;
+  final VoidCallback onSave;
+  final ValueChanged<Episode> onDownload;
 
   @override
   State<EpisodeWatchPage> createState() => _EpisodeWatchPageState();
@@ -128,6 +132,36 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                         color: Colors.white70,
                         fontSize: 16,
                       )),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: widget.onSave,
+                          icon: const Icon(Icons.bookmark_add_outlined),
+                          label: const Text('Simpan'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Color(0xFF444444)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: ep == null ? null : () => widget.onDownload(ep),
+                          icon: const Icon(Icons.download_outlined),
+                          label: const Text('Unduh'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Color(0xFF444444)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 22),
                   Row(
                     children: [
