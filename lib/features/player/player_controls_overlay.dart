@@ -39,6 +39,8 @@ class _ControlsOverlay extends StatelessWidget {
     required this.onEnhance,
     required this.enhanceActive,
     required this.onColorProfile,
+    required this.cinematicLightingActive,
+    required this.onCinematicLighting,
     this.visible = true,
   });
 
@@ -84,6 +86,8 @@ class _ControlsOverlay extends StatelessWidget {
   final VoidCallback onEnhance; // opens the video-enhancement (upscaler) picker
   final bool enhanceActive; // an upscaling preset is currently on
   final VoidCallback onColorProfile; // opens the colour-profile picker
+  final bool cinematicLightingActive;
+  final VoidCallback onCinematicLighting;
   final bool visible; // drives the bars' slide-in (top drops, bottom rises)
 
   /// Overflow panel that slides in from the RIGHT (like the episodes panel) —
@@ -159,6 +163,18 @@ class _ControlsOverlay extends StatelessWidget {
                         onTap: () {
                           Navigator.pop(ctx);
                           onEnhance();
+                        },
+                      ),
+                      _MoreRow(
+                        icon: cinematicLightingActive
+                            ? Icons.wb_twilight_rounded
+                            : Icons.wb_twilight_outlined,
+                        label: cinematicLightingActive
+                            ? 'Cinematic lighting: On'
+                            : 'Cinematic lighting: Off',
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          onCinematicLighting();
                         },
                       ),
                       _MoreRow(
