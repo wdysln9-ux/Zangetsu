@@ -5,9 +5,7 @@ import '../../core/models/episode.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 
-/// A non-fullscreen episode landing page. Playback is launched only when the
-/// viewer presses Play; the selected episode and neighbouring episodes remain
-/// visible here first.
+/// Streaming-style episode page with a video header, show actions and episode rail.
 class EpisodeWatchPage extends StatefulWidget {
   const EpisodeWatchPage({
     super.key,
@@ -62,7 +60,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
         ? ep!.thumbnail!.trim()
         : (widget.cover ?? '');
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF080808),
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
@@ -104,26 +102,18 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                     ),
                   ),
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: Container(
-                      height: 3,
-                      color: AppColors.accent,
-                    ),
-                  ),
+
                 ],
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 32),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   Text(widget.showTitle,
                       style: AppText.title.copyWith(
                         color: Colors.white,
-                        fontSize: 22,
+                        fontSize: 21,
                         fontWeight: FontWeight.w700,
                       )),
                   const SizedBox(height: 5),
@@ -132,7 +122,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                         color: Colors.white70,
                         fontSize: 16,
                       )),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
                       Expanded(
@@ -142,7 +132,8 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                           label: const Text('Simpan'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF444444)),
+                            side: const BorderSide(color: Color(0xFF3A3A3A)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
@@ -197,7 +188,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                             width: 190,
                             child: DecoratedBox(
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
                                   color: selected
                                       ? AppColors.accent
@@ -206,7 +197,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                                 ),
                               ),
                               child: ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(7),
                                 child: Stack(
                                   fit: StackFit.expand,
                                   children: [
@@ -267,8 +258,8 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF111111),
-                      borderRadius: BorderRadius.circular(16),
+                      color: const Color(0xFF151515),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: const Color(0xFF292929)),
                     ),
                     child: Row(
@@ -299,6 +290,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.accent,
                         foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                     ),
