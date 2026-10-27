@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/models/episode.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 
 /// Streaming-style episode page with a video header, show actions and episode rail.
@@ -55,12 +54,14 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final ep = _episode;
     final image = ep?.thumbnail?.trim().isNotEmpty == true
         ? ep!.thumbnail!.trim()
         : (widget.cover ?? '');
     return Scaffold(
-      backgroundColor: const Color(0xFF080808),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         bottom: false,
         child: CustomScrollView(
@@ -72,7 +73,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                   AspectRatio(
                     aspectRatio: 16 / 9,
                     child: image.isEmpty
-                        ? const ColoredBox(color: Color(0xFF171717))
+                        ? ColoredBox(color: colors.surfaceContainerHighest)
                         : CachedNetworkImage(
                             imageUrl: image,
                             fit: BoxFit.cover,
@@ -91,7 +92,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                       tooltip: 'Putar episode',
                       onPressed: ep == null ? null : () => widget.onPlay(_selected),
                       icon: const Icon(Icons.play_arrow_rounded,
-                          color: Colors.white, size: 34),
+                          color: colors.onPrimary, size: 34),
                     ),
                   ),
                   Positioned(
@@ -99,7 +100,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                     left: 4,
                     child: IconButton(
                       onPressed: () => Navigator.of(context).maybePop(),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      icon: Icon(Icons.arrow_back, color: colors.onSurface),
                     ),
                   ),
 
@@ -112,14 +113,14 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                 delegate: SliverChildListDelegate([
                   Text(widget.showTitle,
                       style: AppText.title.copyWith(
-                        color: Colors.white,
+                        color: colors.onSurface,
                         fontSize: 21,
                         fontWeight: FontWeight.w700,
                       )),
                   const SizedBox(height: 5),
                   Text(ep == null ? '' : _label(ep, _selected),
                       style: AppText.body.copyWith(
-                        color: Colors.white70,
+                        color: colors.onSurfaceVariant,
                         fontSize: 16,
                       )),
                   const SizedBox(height: 16),
@@ -131,8 +132,8 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                           icon: const Icon(Icons.bookmark_add_outlined),
                           label: const Text('Simpan'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF3A3A3A)),
+                            foregroundColor: colors.onSurface,
+                            side: BorderSide(color: colors.outline),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
@@ -146,7 +147,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                           label: const Text('Unduh'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
-                            side: const BorderSide(color: Color(0xFF444444)),
+                            side: BorderSide(color: colors.outline),
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                         ),
@@ -157,15 +158,15 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                   Row(
                     children: [
                       Icon(Icons.play_circle_outline,
-                          color: AppColors.accent, size: 20),
+                          color: colors.primary, size: 20),
                       const SizedBox(width: 8),
                       Text('Episode',
                           style: AppText.title.copyWith(
-                              color: Colors.white, fontSize: 19)),
+                              color: colors.onSurface, fontSize: 19)),
                       const SizedBox(width: 8),
                       Text('${widget.episodes.length} eps',
                           style: AppText.body.copyWith(
-                              color: Colors.white60, fontSize: 14)),
+                              color: colors.onSurfaceVariant, fontSize: 14)),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -192,7 +193,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                                 border: Border.all(
                                   color: selected
                                       ? AppColors.accent
-                                      : const Color(0xFF292929),
+                                      : colors.outlineVariant,
                                   width: selected ? 2 : 1,
                                 ),
                               ),
@@ -233,7 +234,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                         style: AppText.body.copyWith(
-                                            color: Colors.white,
+                                            color: colors.onSurface,
                                             fontSize: 13,
                                             fontWeight: FontWeight.w600),
                                       ),
@@ -243,7 +244,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                                         left: 8,
                                         top: 8,
                                         child: Icon(Icons.play_circle_fill,
-                                            color: AppColors.accent, size: 22),
+                                            color: colors.primary, size: 22),
                                       ),
                                   ],
                                 ),
@@ -258,14 +259,14 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF151515),
+                      color: colors.surfaceContainerLow,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF292929)),
+                      border: Border.all(color: colors.outlineVariant),
                     ),
                     child: Row(
                       children: [
                         Icon(Icons.info_outline,
-                            color: AppColors.accent),
+                            color: colors.primary),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
@@ -273,7 +274,7 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                                 ? ep!.description!.trim()
                                 : 'Pilih episode yang ingin ditonton, lalu tekan tombol putar.',
                             style: AppText.body.copyWith(
-                                color: Colors.white70, height: 1.45),
+                                color: colors.onSurfaceVariant, height: 1.45),
                           ),
                         ),
                       ],
@@ -288,8 +289,8 @@ class _EpisodeWatchPageState extends State<EpisodeWatchPage> {
                       icon: const Icon(Icons.play_arrow_rounded),
                       label: const Text('Putar episode'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.accent,
-                        foregroundColor: Colors.white,
+                        backgroundColor: colors.primary,
+                        foregroundColor: colors.onPrimary,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
