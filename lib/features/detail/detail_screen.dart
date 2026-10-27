@@ -2634,6 +2634,9 @@ class _DetailViewState extends State<_DetailView>
                     cover: coverUrl,
                     onPlay: (index) =>
                         _openPlayer(eps, index, detail, category),
+                    onSave: () => _openListSheet(detail),
+                    onDownload: (episode) =>
+                        _downloadSingle(episode, detail, category),
                   ),
                 ),
               );
