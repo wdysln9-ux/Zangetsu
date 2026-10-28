@@ -1651,8 +1651,8 @@ class _EpisodeRow extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        heading,
+                      AutoTranslatedText(
+                        text: heading,
                         style: AppText.body.copyWith(
                           color: titleColor,
                           fontWeight: isResume
