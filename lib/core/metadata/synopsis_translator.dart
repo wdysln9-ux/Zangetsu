@@ -19,11 +19,20 @@ class SynopsisTranslator {
     ),
   );
 
-  Future<String?> translateToIndonesian(String raw) async {
+  Future<String?> translateToIndonesian(String raw) =>
+      _translate(raw, cachePrefix: 'synopsis_id_');
+
+  Future<String?> translateTextToIndonesian(String raw) =>
+      _translate(raw, cachePrefix: 'text_id_');
+
+  Future<String?> _translate(
+    String raw, {
+    required String cachePrefix,
+  }) async {
     final text = raw.trim();
     if (text.isEmpty) return null;
 
-    final key = 'synopsis_id_${sha256.convert(utf8.encode(text))}';
+    final key = '$cachePrefix${sha256.convert(utf8.encode(text))}';
     try {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString(key);
@@ -56,7 +65,7 @@ class SynopsisTranslator {
       return null;
     } catch (_) {
       // Translation is optional: never let a translation/cache failure break
-      // opening the anime detail page.
+      // opening a page.
       return null;
     }
   }
