@@ -68,6 +68,7 @@ import '../../core/models/media_extras.dart';
 import '../../core/models/person.dart';
 import '../home/search_screen.dart';
 import '../people/person_page.dart';
+import '../studio/studio_page.dart';
 import '../../core/models/video_source.dart';
 import '../../core/models/provider_info.dart';
 import '../../core/models/watch_status.dart';
