@@ -18,6 +18,7 @@ import '../../core/ui/poster_card.dart';
 import '../../core/ui/poster_palette.dart';
 import '../../core/ui/mobile_hero_art.dart';
 import '../../core/metadata/synopsis.dart';
+import '../../core/metadata/synopsis_translator.dart';
 import '../../core/mode/content_mode_cubit.dart';
 import '../../core/zmode/metadata_filters.dart';
 import '../../core/zmode/zmode_module.dart';
