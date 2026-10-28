@@ -207,8 +207,8 @@ class _PersonPageState extends State<PersonPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              text,
+            AutoTranslatedText(
+              text: text,
               maxLines: _bioExpanded ? null : 4,
               overflow: _bioExpanded ? null : TextOverflow.ellipsis,
               style: AppText.body,
