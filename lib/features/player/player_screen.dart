@@ -39,6 +39,7 @@ import '../../core/playback/subtitle_search_service.dart';
 import '../../core/playback/watch_history.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
+import '../../core/ui/auto_translated_text.dart';
 import '../../core/ui/app_dialog.dart';
 import '../../core/ui/episode_unavailable_dialog.dart';
 import '../../core/ui/badge.dart';
