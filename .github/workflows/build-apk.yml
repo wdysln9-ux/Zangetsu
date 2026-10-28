@@ -1,4 +1,5 @@
 name: Build Android APK
+# Feature branches run the same arm64 release build for validation.
 
 on:
   push:
