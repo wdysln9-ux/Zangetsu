@@ -1762,8 +1762,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
       } else if (!mainState.playing && _ambientPlayer.state.playing) {
         await _ambientPlayer.pause();
       }
-      final drift = (_ambientPlayer.state.position - mainState.position).abs();
-      if (drift > const Duration(milliseconds: 1400)) {
+      final driftMs = (_ambientPlayer.state.position - mainState.position).inMilliseconds.abs();
+      if (driftMs > 1400) {
         await _ambientPlayer.seek(mainState.position);
       }
       if (_ambientPlayer.state.rate != mainState.rate) {
