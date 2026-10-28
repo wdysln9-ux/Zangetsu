@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:media_kit/media_kit.dart' show Track;
+import 'package:media_kit/media_kit.dart' show Media, Player, PlayerConfiguration, Track;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -290,6 +291,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
       .distinct();
 
   bool _controlsVisible = true;
+  bool _cinematicLighting = false;
+  double _cinematicBrightness = 0;
+  double _cinematicBlur = 12;
+  double _cinematicZoom = 1.22;
+  double _cinematicVignette = 0;
   bool _holding = false; // long-press 2x active
 
   /// The speed to go back to when a hold ends. Captured at the start of the
@@ -460,6 +466,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void initState() {
     super.initState();
+    _loadCinematicLightingPrefs();
     // Refresh the "enhancement shaders downloaded?" flag so the in-player picker
     // gates correctly (they're fetched on demand from Settings). Fire-and-forget.
     unawaited(ShaderPresets.refreshDownloaded());
@@ -1696,6 +1703,71 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _bumpControls();
   }
 
+  Future<void> _loadCinematicLightingPrefs() async {
+    final prefs = sl<PlaybackPrefs>();
+    if (!mounted) return;
+    setState(() {
+      _cinematicLighting = prefs.cinematicLightingEnabled;
+      _cinematicBrightness = prefs.cinematicBrightness.clamp(-1.0, 1.0).toDouble();
+      _cinematicBlur = prefs.cinematicBlur.clamp(0.0, 24.0).toDouble();
+      _cinematicZoom = prefs.cinematicZoom.clamp(1.0, 1.8).toDouble();
+      _cinematicVignette = prefs.cinematicVignette.clamp(0.0, 1.0).toDouble();
+    });
+  }
+
+  void _toggleCinematicLighting() => _openCinematicLightingSheet();
+
+  void _openCinematicLightingSheet() {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, refreshDialog) => Dialog(
+          backgroundColor: const Color(0xFF17171D),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 680),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Row(children: [
+                  Expanded(child: Text('Cinematic lighting',
+                    style: AppText.title.copyWith(fontSize: 22,
+                      fontWeight: FontWeight.w700, color: Colors.white))),
+                  Text(_cinematicLighting ? 'ON' : 'OFF',
+                    style: AppText.body.copyWith(color: Colors.white70)),
+                  Switch(value: _cinematicLighting, onChanged: (value) {
+                    setState(() => _cinematicLighting = value);
+                    unawaited(sl<PlaybackPrefs>().setCinematicLightingEnabled(value));
+                    refreshDialog(() {});
+                    _bumpControls();
+                  }),
+                ]),
+                const SizedBox(height: 12),
+                _CinematicSlider(label: 'Kecerahan', value: _cinematicBrightness,
+                  min: -1, max: 1, displayValue: _cinematicBrightness.toStringAsFixed(1),
+                  onChanged: (value) { setState(() => _cinematicBrightness = value); unawaited(sl<PlaybackPrefs>().setCinematicBrightness(value)); refreshDialog(() {}); }),
+                _CinematicSlider(label: 'Blur', value: _cinematicBlur,
+                  min: 0, max: 24, displayValue: _cinematicBlur.toStringAsFixed(0),
+                  onChanged: (value) { setState(() => _cinematicBlur = value); unawaited(sl<PlaybackPrefs>().setCinematicBlur(value)); refreshDialog(() {}); }),
+                _CinematicSlider(label: 'Zoom', value: _cinematicZoom,
+                  min: 1, max: 1.8, displayValue: '${_cinematicZoom.toStringAsFixed(2)}x',
+                  onChanged: (value) { setState(() => _cinematicZoom = value); unawaited(sl<PlaybackPrefs>().setCinematicZoom(value)); refreshDialog(() {}); }),
+                _CinematicSlider(label: 'Vignette', value: _cinematicVignette,
+                  min: 0, max: 1, displayValue: _cinematicVignette.toStringAsFixed(1),
+                  onChanged: (value) { setState(() => _cinematicVignette = value); unawaited(sl<PlaybackPrefs>().setCinematicVignette(value)); refreshDialog(() {}); }),
+                Align(alignment: Alignment.centerRight,
+                  child: TextButton(onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text('Selesai'))),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _toggleLock() {
     setState(() {
       _locked = !_locked;
@@ -2154,7 +2226,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   void _openSpeedSheet() {
-    const rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0];
+    const rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 3.84, 4.0, 5.0];
     final current = _c.player.state.rate;
     // Chips, not a list. Six rows at 52px each came to 388 — on a 393px-tall
     // landscape phone that's the entire screen, so you were picking a speed
@@ -2645,6 +2717,56 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
+                  // Ambient layer reuses the current video texture. The main
+                  // video viewport below must have a transparent fill so this
+                  // blurred layer remains visible outside the actual video frame.
+                  if (_cinematicLighting && _c.state.active != null)
+                    Positioned.fill(
+                      child: IgnorePointer(
+                        child: ClipRect(
+                          child: Opacity(
+                            opacity: 0.52,
+                            child: ImageFiltered(
+                              imageFilter: ImageFilter.blur(
+                                sigmaX: _cinematicBlur, sigmaY: _cinematicBlur,
+                              ),
+                              child: Transform.scale(
+                                scale: _cinematicZoom,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Video(
+                                      controller: _c.videoController,
+                                      controls: NoVideoControls,
+                                      fit: BoxFit.cover,
+                                    ),
+                                    if (_cinematicBrightness < 0)
+                                      ColoredBox(color: Colors.black.withValues(
+                                        alpha: -_cinematicBrightness * 0.65,
+                                      ))
+                                    else if (_cinematicBrightness > 0)
+                                      ColoredBox(color: Colors.white.withValues(
+                                        alpha: _cinematicBrightness * 0.35,
+                                      )),
+                                    if (_cinematicVignette > 0)
+                                      DecoratedBox(decoration: BoxDecoration(
+                                        gradient: RadialGradient(
+                                          colors: [
+                                            Colors.transparent,
+                                            Colors.black.withValues(alpha: _cinematicVignette),
+                                          ],
+                                          stops: const [0.35, 1],
+                                          radius: 0.85,
+                                        ),
+                                      )),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   // 1. The video. NoVideoControls disables media_kit's built-in
                   // controls (which include their own buffering spinner + gestures)
                   // so ONLY our custom Netflix overlay shows — fixes the duplicate
@@ -2662,6 +2784,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             controller: _c.videoController,
                             controls: NoVideoControls,
                             fit: _fits[_fitIndex].$1,
+                            // A black fill here covers the ambient layer entirely.
+                            fill: Colors.transparent,
                             subtitleViewConfiguration: _subtitleConfig(),
                           ),
                         ),
@@ -3123,6 +3247,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           enhanceActive:
                               sl<PlaybackPrefs>().videoShaderStyle != 'off',
                           onColorProfile: _openColorProfileSheet,
+                          cinematicLightingActive: _cinematicLighting,
+                          onCinematicLighting: _toggleCinematicLighting,
                         ),
                       ),
                     )
@@ -3346,3 +3472,34 @@ class _PlayerScreenState extends State<PlayerScreen> {
 // Hides the Video widget behind it and provides a seek bar + play/pause / ±10s
 // / Stop casting controls bound to CastController's live position/duration.
 // ─────────────────────────────────────────────────────────────────────────────
+
+
+class _CinematicSlider extends StatelessWidget {
+  const _CinematicSlider({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.displayValue,
+    required this.onChanged,
+  });
+
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final String displayValue;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(child: Text(label, style: AppText.body.copyWith(color: Colors.white70))),
+        Text(displayValue, style: AppText.body.copyWith(color: Colors.white54)),
+      ]),
+      Slider(value: value.clamp(min, max), min: min, max: max, onChanged: onChanged),
+    ]),
+  );
+}

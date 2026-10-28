@@ -1,9 +1,11 @@
 name: Build Android APK
+# Feature branches run the same arm64 release build for validation.
 
 on:
   push:
     branches:
       - main
+      - feat/cinematic-ambient-lighting
     paths-ignore:
       - "preview/**"
       - ".github/workflows/preview-pages.yml"

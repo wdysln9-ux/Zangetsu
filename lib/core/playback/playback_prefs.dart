@@ -258,6 +258,27 @@ class PlaybackPrefs {
       (_box.get('defaultSpeed', defaultValue: 1.0) as num).toDouble();
   Future<void> setDefaultSpeed(double value) => _box.put('defaultSpeed', value);
 
+  /// Persisted Cinematic Lighting preferences for the in-app video player.
+  bool get cinematicLightingEnabled =>
+      _box.get('cinematicLightingEnabled', defaultValue: false) as bool;
+  double get cinematicBrightness =>
+      (_box.get('cinematicBrightness', defaultValue: 0.0) as num).toDouble();
+  double get cinematicBlur =>
+      (_box.get('cinematicBlur', defaultValue: 12.0) as num).toDouble();
+  double get cinematicZoom =>
+      (_box.get('cinematicZoom', defaultValue: 1.22) as num).toDouble();
+  double get cinematicVignette =>
+      (_box.get('cinematicVignette', defaultValue: 0.0) as num).toDouble();
+
+  Future<void> setCinematicLightingEnabled(bool value) =>
+      _box.put('cinematicLightingEnabled', value);
+  Future<void> setCinematicBrightness(double value) =>
+      _box.put('cinematicBrightness', value);
+  Future<void> setCinematicBlur(double value) => _box.put('cinematicBlur', value);
+  Future<void> setCinematicZoom(double value) => _box.put('cinematicZoom', value);
+  Future<void> setCinematicVignette(double value) =>
+      _box.put('cinematicVignette', value);
+
   /// How many seconds a single seek (forward/back) jumps.
   int get seekSeconds =>
       (_box.get('seekSeconds', defaultValue: 10) as num).toInt();
