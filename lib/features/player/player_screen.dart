@@ -1827,6 +1827,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final title = (episode.metaTitle?.trim().isNotEmpty ?? false)
         ? episode.metaTitle!.trim()
         : episode.title.trim();
+    final episodeNumber = episode.number == null
+        ? null
+        : episode.number == episode.number!.truncateToDouble()
+            ? episode.number!.toInt().toString()
+            : episode.number!.toString();
+    final episodeHeading = [
+      if (episodeNumber != null) 'Episode $episodeNumber',
+      if (title.isNotEmpty) title,
+    ].join(' · ');
     final description = episode.description?.trim();
 
     _bumpControls();
@@ -1868,7 +1877,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ),
                 const SizedBox(height: 5),
                 AutoTranslatedText(
-                  text: title.isEmpty ? 'Ringkasan episode' : title,
+                  text: episodeHeading.isEmpty
+                      ? 'Episode tidak diketahui'
+                      : episodeHeading,
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 13,
