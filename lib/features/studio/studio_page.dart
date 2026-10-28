@@ -38,7 +38,9 @@ class _StudioPageState extends State<StudioPage> {
           id
           name
           isAnimationStudio
-          media(sort: POPULARITY_DESC, type: ANIME, isAdult: false, perPage: 30) {
+          siteUrl
+          favourites
+          media(sort: POPULARITY_DESC, type: ANIME, isAdult: false, page: 1, perPage: 30) {
             nodes {
               id
               idMal
@@ -117,6 +119,50 @@ class _StudioPageState extends State<StudioPage> {
                       style: AppText.caption.copyWith(color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 18),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Informasi studio', style: AppText.headline.copyWith(fontSize: 16)),
+                          const SizedBox(height: 12),
+                          _StudioInfoRow(
+                            icon: Icons.category_outlined,
+                            label: 'Jenis',
+                            value: studio['isAnimationStudio'] == true
+                                ? 'Studio animasi'
+                                : 'Perusahaan produksi',
+                          ),
+                          const SizedBox(height: 10),
+                          _StudioInfoRow(
+                            icon: Icons.favorite_border,
+                            label: 'Favorit AniList',
+                            value: studio['favourites'] is int
+                                ? (studio['favourites'] as int).toString()
+                                : 'Tidak tersedia',
+                          ),
+                          const SizedBox(height: 10),
+                          _StudioInfoRow(
+                            icon: Icons.movie_outlined,
+                            label: 'Anime ditampilkan',
+                            value: '${anime.length} judul populer',
+                          ),
+                          if (studio['siteUrl'] is String) ...[
+                            const SizedBox(height: 12),
+                            SelectableText(
+                              studio['siteUrl'] as String,
+                              style: AppText.caption.copyWith(color: AppColors.accent),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     Text('Anime populer', style: AppText.headline),
                     const SizedBox(height: 4),
                     Text(
@@ -201,5 +247,32 @@ class _StudioPageState extends State<StudioPage> {
         );
       },
     ),
+  );
+}
+
+class _StudioInfoRow extends StatelessWidget {
+  const _StudioInfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(icon, size: 18, color: AppColors.accent),
+      const SizedBox(width: 10),
+      Expanded(
+        child: Text(label, style: AppText.body.copyWith(color: AppColors.textSecondary)),
+      ),
+      const SizedBox(width: 8),
+      Flexible(
+        child: Text(value, textAlign: TextAlign.end, style: AppText.body),
+      ),
+    ],
   );
 }
