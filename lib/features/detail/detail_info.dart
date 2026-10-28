@@ -65,18 +65,51 @@ class _CreditLine extends StatelessWidget {
 // Details tab (which shows the full synopsis). No inline expand.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _Description extends StatefulWidget {
+class _Description extends StatelessWidget {
   const _Description({required this.text, required this.onReadMore});
   final String text;
   final VoidCallback onReadMore;
 
   @override
-  State<_Description> createState() => _DescriptionState();
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: onReadMore,
+          behavior: HitTestBehavior.opaque,
+          child: _SynopsisTranslation(text: text, maxLines: 3),
+        ),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: onReadMore,
+          child: Text(
+            context.l10n.readMore,
+            style: AppText.caption.copyWith(
+              color: AppColors.accent,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-class _DescriptionState extends State<_Description> {
+/// Automatically translates the synopsis while keeping the source text intact.
+class _SynopsisTranslation extends StatefulWidget {
+  const _SynopsisTranslation({required this.text, this.maxLines});
+  final String text;
+  final int? maxLines;
+
+  @override
+  State<_SynopsisTranslation> createState() => _SynopsisTranslationState();
+}
+
+class _SynopsisTranslationState extends State<_SynopsisTranslation> {
   String? _translated;
   bool _showOriginal = false;
+  bool _loading = true;
 
   @override
   void initState() {
@@ -85,58 +118,69 @@ class _DescriptionState extends State<_Description> {
   }
 
   @override
-  void didUpdateWidget(covariant _Description oldWidget) {
+  void didUpdateWidget(covariant _SynopsisTranslation oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text) {
       _translated = null;
       _showOriginal = false;
+      _loading = true;
       _loadTranslation();
     }
   }
 
   Future<void> _loadTranslation() async {
     final result = await SynopsisTranslator.instance.translateToIndonesian(widget.text);
-    if (mounted && result != null && result != widget.text) {
-      setState(() => _translated = result);
-    }
+    if (!mounted) return;
+    setState(() {
+      _translated = result != widget.text ? result : null;
+      _loading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final shownText = !_showOriginal && _translated != null ? _translated! : widget.text;
+    final translated = _translated;
+    final shownText = !_showOriginal && translated != null ? translated : widget.text;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        GestureDetector(
-          onTap: widget.onReadMore,
-          behavior: HitTestBehavior.opaque,
-          child: Text(shownText, style: AppText.body, maxLines: 3, overflow: TextOverflow.ellipsis),
+        Text(
+          shownText,
+          style: AppText.body,
+          maxLines: widget.maxLines,
+          overflow: widget.maxLines == null ? null : TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 6),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GestureDetector(
-              onTap: widget.onReadMore,
-              child: Text(context.l10n.readMore, style: AppText.caption.copyWith(color: AppColors.accent, fontWeight: FontWeight.w700)),
-            ),
-            if (_translated != null) ...[
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () => setState(() => _showOriginal = !_showOriginal),
-                child: Text(_showOriginal ? 'Terjemahan' : 'Asli', style: AppText.caption.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
-              ),
-            ] else ...[
-              const SizedBox(width: 8),
-              const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5)),
+        if (translated != null || _loading) ...[
+          const SizedBox(height: 5),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_loading)
+                const SizedBox(
+                  width: 10,
+                  height: 10,
+                  child: CircularProgressIndicator(strokeWidth: 1.5),
+                ),
+              if (_loading && translated != null) const SizedBox(width: 8),
+              if (translated != null)
+                GestureDetector(
+                  onTap: () => setState(() => _showOriginal = !_showOriginal),
+                  child: Text(
+                    _showOriginal ? 'Terjemahan' : 'Asli',
+                    style: AppText.caption.copyWith(
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
             ],
-          ],
-        ),
+          ),
+        ],
       ],
     );
   }
 }
-
 // ─────────────────────────────────────────────────────────────────────────────
 // One of the 5 outlined icon actions.
 // ─────────────────────────────────────────────────────────────────────────────
