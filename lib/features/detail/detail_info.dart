@@ -65,38 +65,74 @@ class _CreditLine extends StatelessWidget {
 // Details tab (which shows the full synopsis). No inline expand.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _Description extends StatelessWidget {
+class _Description extends StatefulWidget {
   const _Description({required this.text, required this.onReadMore});
-
   final String text;
-
-  /// Jumps to the Details tab (full synopsis) — no inline expansion.
   final VoidCallback onReadMore;
 
   @override
+  State<_Description> createState() => _DescriptionState();
+}
+
+class _DescriptionState extends State<_Description> {
+  String? _translated;
+  bool _showOriginal = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTranslation();
+  }
+
+  @override
+  void didUpdateWidget(covariant _Description oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _translated = null;
+      _showOriginal = false;
+      _loadTranslation();
+    }
+  }
+
+  Future<void> _loadTranslation() async {
+    final result = await SynopsisTranslator.instance.translateToIndonesian(widget.text);
+    if (mounted && result != null && result != widget.text) {
+      setState(() => _translated = result);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onReadMore,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            text,
-            style: AppText.body,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            context.l10n.readMore,
-            style: AppText.caption.copyWith(
-              color: AppColors.accent,
-              fontWeight: FontWeight.w700,
+    final shownText = !_showOriginal && _translated != null ? _translated! : widget.text;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: widget.onReadMore,
+          behavior: HitTestBehavior.opaque,
+          child: Text(shownText, style: AppText.body, maxLines: 3, overflow: TextOverflow.ellipsis),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: widget.onReadMore,
+              child: Text(context.l10n.readMore, style: AppText.caption.copyWith(color: AppColors.accent, fontWeight: FontWeight.w700)),
             ),
-          ),
-        ],
-      ),
+            if (_translated != null) ...[
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => setState(() => _showOriginal = !_showOriginal),
+                child: Text(_showOriginal ? 'Terjemahan' : 'Asli', style: AppText.caption.copyWith(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+              ),
+            ] else ...[
+              const SizedBox(width: 8),
+              const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 1.5)),
+            ],
+          ],
+        ),
+      ],
     );
   }
 }
