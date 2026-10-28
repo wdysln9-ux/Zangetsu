@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feat/cinematic-ambient-lighting
     paths-ignore:
       - "preview/**"
       - ".github/workflows/preview-pages.yml"
