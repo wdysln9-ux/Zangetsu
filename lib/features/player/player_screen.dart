@@ -292,8 +292,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   bool _controlsVisible = true;
   bool _cinematicLighting = false;
-  late final Player _ambientPlayer = Player(configuration: PlayerConfiguration());
-  late final VideoController _ambientVideoController = VideoController(_ambientPlayer);
+  Player? _ambientPlayer;
+  VideoController? _ambientVideoController;
   Timer? _ambientSyncTimer;
   bool _ambientReady = false;
   bool _ambientOpening = false;
@@ -1298,7 +1298,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
     _hideTimer?.cancel();
     _ambientSyncTimer?.cancel();
-    unawaited(_ambientPlayer.dispose());
+    if (_ambientPlayer != null) unawaited(_ambientPlayer!.dispose());
     _showTimer?.cancel();
     _seekLabelTimer?.cancel();
     _seekDebounceTimer?.cancel();
@@ -1711,7 +1711,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     setState(() => _cinematicLighting = enabled);
     if (!enabled) {
       _ambientSyncTimer?.cancel();
-      try { await _ambientPlayer.pause(); } catch (_) {}
+      try { await _ambientPlayer?.pause(); } catch (_) {}
     } else {
       await _openAmbientBackground(_c.state.active);
     }
@@ -1725,15 +1725,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
       return;
     }
     _ambientOpening = true;
+    final ambientPlayer = _ambientPlayer ??= Player(configuration: PlayerConfiguration());
+    _ambientVideoController ??= VideoController(ambientPlayer);
     try {
-      await _ambientPlayer.open(
+      await ambientPlayer.open(
         Media(source.url, httpHeaders: source.headers ?? const <String, String>{}),
         play: true,
       );
-      await _ambientPlayer.setVolume(0);
-      await _ambientPlayer.setRate(_c.player.state.rate);
-      await _ambientPlayer.seek(_c.player.state.position);
-      if (!_c.player.state.playing) await _ambientPlayer.pause();
+      await ambientPlayer.setVolume(0);
+      await ambientPlayer.setRate(_c.player.state.rate);
+      await ambientPlayer.seek(_c.player.state.position);
+      if (!_c.player.state.playing) await ambientPlayer.pause();
       _ambientUrl = source.url;
       if (mounted) setState(() => _ambientReady = true);
       _ambientSyncTimer?.cancel();
@@ -1749,7 +1751,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Future<void> _syncAmbientPlayback() async {
-    if (!_cinematicLighting || !_ambientReady || _ambientOpening || !mounted) return;
+    final ambientPlayer = _ambientPlayer;
+    if (!_cinematicLighting || !_ambientReady || _ambientOpening || !mounted || ambientPlayer == null) return;
     try {
       final mainState = _c.player.state;
       final active = _c.state.active;
@@ -1757,17 +1760,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
         await _openAmbientBackground(active);
         return;
       }
-      if (mainState.playing && !_ambientPlayer.state.playing) {
-        await _ambientPlayer.play();
+      if (mainState.playing && !ambientPlayer.state.playing) {
+        await ambientPlayer.play();
       } else if (!mainState.playing && _ambientPlayer.state.playing) {
-        await _ambientPlayer.pause();
+        await ambientPlayer.pause();
       }
-      final driftMs = (_ambientPlayer.state.position - mainState.position).inMilliseconds.abs();
+      final driftMs = (ambientPlayer.state.position - mainState.position).inMilliseconds.abs();
       if (driftMs > 1400) {
-        await _ambientPlayer.seek(mainState.position);
+        await ambientPlayer.seek(mainState.position);
       }
-      if (_ambientPlayer.state.rate != mainState.rate) {
-        await _ambientPlayer.setRate(mainState.rate);
+      if (ambientPlayer.state.rate != mainState.rate) {
+        await ambientPlayer.setRate(mainState.rate);
       }
     } catch (_) {}
   }
@@ -2737,7 +2740,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               child: Transform.scale(
                                 scale: 1.22,
                                 child: Video(
-                                  controller: _ambientVideoController,
+                                  controller: _ambientVideoController!,
                                   controls: NoVideoControls,
                                   fit: BoxFit.cover,
                                 ),
