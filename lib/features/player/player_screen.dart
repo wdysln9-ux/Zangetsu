@@ -1822,6 +1822,89 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
   }
 
+  void _showEpisodeSummary() {
+    final episode = _c.currentEpisode;
+    final title = (episode.metaTitle?.trim().isNotEmpty ?? false)
+        ? episode.metaTitle!.trim()
+        : episode.title.trim();
+    final description = episode.description?.trim();
+
+    _bumpControls();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: const Color(0xFF17151C),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: SizedBox(
+          width: 640,
+          height: 360,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(28, 20, 28, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 48,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                AutoTranslatedText(
+                  text: title.isEmpty ? 'Ringkasan episode' : title,
+                  style: const TextStyle(
+                    color: Color(0xFFB28AFF),
+                    fontSize: 25,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 20),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: (description != null && description.isNotEmpty)
+                        ? AutoTranslatedText(
+                            text: description,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 17,
+                              height: 1.45,
+                            ),
+                          )
+                        : const Text(
+                            'Deskripsi episode tidak tersedia di metadata untuk episode ini.',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 16,
+                              height: 1.45,
+                            ),
+                          ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: const Text('Tutup'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _captureScreenshot() async {
     // Instant camera-flash feedback. It's a Flutter overlay (not in the mpv
     // frame), so it never corrupts the captured image.
@@ -3250,6 +3333,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           onColorProfile: _openColorProfileSheet,
                           cinematicLightingActive: _cinematicLighting,
                           onCinematicLighting: _toggleCinematicLighting,
+                          onEpisodeSummary: _showEpisodeSummary,
                         ),
                       ),
                     )
