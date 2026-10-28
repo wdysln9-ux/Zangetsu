@@ -292,12 +292,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   bool _controlsVisible = true;
   bool _cinematicLighting = false;
-  Player? _ambientPlayer;
-  VideoController? _ambientVideoController;
-  Timer? _ambientSyncTimer;
-  bool _ambientReady = false;
-  bool _ambientOpening = false;
-  String? _ambientUrl;
   bool _holding = false; // long-press 2x active
 
   /// The speed to go back to when a hold ends. Captured at the start of the
@@ -1297,8 +1291,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
       sl<PlaybackResolver>().abortSweeps();
     }
     _hideTimer?.cancel();
-    _ambientSyncTimer?.cancel();
-    if (_ambientPlayer != null) unawaited(_ambientPlayer!.dispose());
     _showTimer?.cancel();
     _seekLabelTimer?.cancel();
     _seekDebounceTimer?.cancel();
@@ -1706,73 +1698,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _bumpControls();
   }
 
-  Future<void> _toggleCinematicLighting() async {
-    final enabled = !_cinematicLighting;
-    setState(() => _cinematicLighting = enabled);
-    if (!enabled) {
-      _ambientSyncTimer?.cancel();
-      try { await _ambientPlayer?.pause(); } catch (_) {}
-    } else {
-      await _openAmbientBackground(_c.state.active);
-    }
+  void _toggleCinematicLighting() {
+    // Reuse the main player's decoded video texture. This avoids opening and
+    // decoding the same network stream a second time on low-end devices.
+    setState(() => _cinematicLighting = !_cinematicLighting);
     _bumpControls();
-  }
-
-  Future<void> _openAmbientBackground(VideoSource? source) async {
-    if (!_cinematicLighting || source == null || !mounted || _ambientOpening) return;
-    if (_ambientUrl == source.url && _ambientReady) {
-      await _syncAmbientPlayback();
-      return;
-    }
-    _ambientOpening = true;
-    final ambientPlayer = _ambientPlayer ??= Player(configuration: PlayerConfiguration());
-    _ambientVideoController ??= VideoController(ambientPlayer);
-    try {
-      await ambientPlayer.setVolume(0);
-      await ambientPlayer.open(
-        Media(source.url, httpHeaders: source.headers ?? const <String, String>{}),
-        play: true,
-      );
-      await ambientPlayer.setRate(_c.player.state.rate);
-      await ambientPlayer.seek(_c.player.state.position);
-      if (!_c.player.state.playing) await ambientPlayer.pause();
-      _ambientUrl = source.url;
-      if (mounted) setState(() => _ambientReady = true);
-      _ambientSyncTimer?.cancel();
-      _ambientSyncTimer = Timer.periodic(const Duration(seconds: 2), (_) {
-        unawaited(_syncAmbientPlayback());
-      });
-    } catch (e, st) {
-      AppLogger.instance.logError(e, st);
-      if (mounted) setState(() => _ambientReady = false);
-    } finally {
-      _ambientOpening = false;
-    }
-  }
-
-  Future<void> _syncAmbientPlayback() async {
-    final ambientPlayer = _ambientPlayer;
-    if (!_cinematicLighting || !_ambientReady || _ambientOpening || !mounted || ambientPlayer == null) return;
-    try {
-      final mainState = _c.player.state;
-      final active = _c.state.active;
-      if (active != null && active.url != _ambientUrl) {
-        await _openAmbientBackground(active);
-        return;
-      }
-      if (mainState.playing && !ambientPlayer.state.playing) {
-        await ambientPlayer.play();
-      } else if (!mainState.playing && ambientPlayer.state.playing) {
-        await ambientPlayer.pause();
-      }
-      final driftMs = (ambientPlayer.state.position - mainState.position).inMilliseconds.abs();
-      if (driftMs > 1400) {
-        await ambientPlayer.seek(mainState.position);
-      }
-      if (ambientPlayer.state.rate != mainState.rate) {
-        await ambientPlayer.setRate(mainState.rate);
-      }
-    } catch (_) {}
   }
 
   void _toggleLock() {
@@ -2637,9 +2567,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
             if (state.error != null && !_c.everStarted) {
               _handleDeadEnd(state.error!);
             }
-            if (_cinematicLighting && state.active != null && state.active!.url != _ambientUrl) {
-              unawaited(_openAmbientBackground(state.active));
-            }
           },
           builder: (context, state) {
             // Inside the PiP window: render ONLY the video — no overlay, no
@@ -2729,18 +2656,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 children: [
                   // Live cinematic background: the same stream is decoded by a
                   // muted secondary player, enlarged and blurred behind the main video.
-                  if (_cinematicLighting && _ambientReady)
+                  if (_cinematicLighting && _c.state.active != null)
                     Positioned.fill(
                       child: IgnorePointer(
                         child: ClipRect(
                           child: Opacity(
                             opacity: 0.68,
                             child: ImageFiltered(
-                              imageFilter: ImageFilter.blur(sigmaX: 38, sigmaY: 38),
+                              imageFilter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
                               child: Transform.scale(
                                 scale: 1.22,
                                 child: Video(
-                                  controller: _ambientVideoController!,
+                                  controller: _c.videoController,
                                   controls: NoVideoControls,
                                   fit: BoxFit.cover,
                                 ),
@@ -2749,7 +2676,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                         ),
                       ),
-                    ),
                   // 1. The video. NoVideoControls disables media_kit's built-in
                   // controls (which include their own buffering spinner + gestures)
                   // so ONLY our custom Netflix overlay shows — fixes the duplicate
