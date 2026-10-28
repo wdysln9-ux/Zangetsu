@@ -2676,6 +2676,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                         ),
                       ),
+                    ),
                   // 1. The video. NoVideoControls disables media_kit's built-in
                   // controls (which include their own buffering spinner + gestures)
                   // so ONLY our custom Netflix overlay shows — fixes the duplicate
