@@ -293,7 +293,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool _controlsVisible = true;
   bool _cinematicLighting = false;
   double _cinematicBrightness = 0;
-  double _cinematicBlur = 28;
+  double _cinematicBlur = 12;
   double _cinematicZoom = 1.22;
   double _cinematicVignette = 0;
   bool _holding = false; // long-press 2x active
@@ -1735,7 +1735,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   min: -1, max: 1, displayValue: _cinematicBrightness.toStringAsFixed(1),
                   onChanged: (value) { setState(() => _cinematicBrightness = value); refreshDialog(() {}); }),
                 _CinematicSlider(label: 'Blur', value: _cinematicBlur,
-                  min: 0, max: 50, displayValue: _cinematicBlur.toStringAsFixed(0),
+                  min: 0, max: 24, displayValue: _cinematicBlur.toStringAsFixed(0),
                   onChanged: (value) { setState(() => _cinematicBlur = value); refreshDialog(() {}); }),
                 _CinematicSlider(label: 'Zoom', value: _cinematicZoom,
                   min: 1, max: 1.8, displayValue: '${_cinematicZoom.toStringAsFixed(2)}x',
@@ -2711,7 +2711,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       child: IgnorePointer(
                         child: ClipRect(
                           child: Opacity(
-                            opacity: 0.68,
+                            opacity: 0.52,
                             child: ImageFiltered(
                               imageFilter: ImageFilter.blur(
                                 sigmaX: _cinematicBlur, sigmaY: _cinematicBlur,
