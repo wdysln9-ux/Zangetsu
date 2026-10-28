@@ -1762,7 +1762,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       }
       if (mainState.playing && !ambientPlayer.state.playing) {
         await ambientPlayer.play();
-      } else if (!mainState.playing && _ambientPlayer.state.playing) {
+      } else if (!mainState.playing && ambientPlayer.state.playing) {
         await ambientPlayer.pause();
       }
       final driftMs = (ambientPlayer.state.position - mainState.position).inMilliseconds.abs();
