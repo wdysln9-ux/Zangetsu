@@ -2654,8 +2654,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Live cinematic background: the same stream is decoded by a
-                  // muted secondary player, enlarged and blurred behind the main video.
+                  // Ambient layer reuses the current video texture. The main
+                  // video viewport below must have a transparent fill so this
+                  // blurred layer remains visible outside the actual video frame.
                   if (_cinematicLighting && _c.state.active != null)
                     Positioned.fill(
                       child: IgnorePointer(
@@ -2694,6 +2695,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             controller: _c.videoController,
                             controls: NoVideoControls,
                             fit: _fits[_fitIndex].$1,
+                            // A black fill here covers the ambient layer entirely.
+                            fill: Colors.transparent,
                             subtitleViewConfiguration: _subtitleConfig(),
                           ),
                         ),
