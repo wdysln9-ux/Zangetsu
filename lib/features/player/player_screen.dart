@@ -466,6 +466,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void initState() {
     super.initState();
+    _loadCinematicLightingPrefs();
     // Refresh the "enhancement shaders downloaded?" flag so the in-player picker
     // gates correctly (they're fetched on demand from Settings). Fire-and-forget.
     unawaited(ShaderPresets.refreshDownloaded());
@@ -1702,6 +1703,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _bumpControls();
   }
 
+  Future<void> _loadCinematicLightingPrefs() async {
+    final prefs = sl<PlaybackPrefs>();
+    if (!mounted) return;
+    setState(() {
+      _cinematicLighting = prefs.cinematicLightingEnabled;
+      _cinematicBrightness = prefs.cinematicBrightness.clamp(-1.0, 1.0).toDouble();
+      _cinematicBlur = prefs.cinematicBlur.clamp(0.0, 24.0).toDouble();
+      _cinematicZoom = prefs.cinematicZoom.clamp(1.0, 1.8).toDouble();
+      _cinematicVignette = prefs.cinematicVignette.clamp(0.0, 1.0).toDouble();
+    });
+  }
+
   void _toggleCinematicLighting() => _openCinematicLightingSheet();
 
   void _openCinematicLightingSheet() {
@@ -1726,6 +1739,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     style: AppText.body.copyWith(color: Colors.white70)),
                   Switch(value: _cinematicLighting, onChanged: (value) {
                     setState(() => _cinematicLighting = value);
+                    unawaited(sl<PlaybackPrefs>().setCinematicLightingEnabled(value));
                     refreshDialog(() {});
                     _bumpControls();
                   }),
@@ -1733,16 +1747,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 const SizedBox(height: 12),
                 _CinematicSlider(label: 'Kecerahan', value: _cinematicBrightness,
                   min: -1, max: 1, displayValue: _cinematicBrightness.toStringAsFixed(1),
-                  onChanged: (value) { setState(() => _cinematicBrightness = value); refreshDialog(() {}); }),
+                  onChanged: (value) { setState(() => _cinematicBrightness = value); unawaited(sl<PlaybackPrefs>().setCinematicBrightness(value)); refreshDialog(() {}); }),
                 _CinematicSlider(label: 'Blur', value: _cinematicBlur,
                   min: 0, max: 24, displayValue: _cinematicBlur.toStringAsFixed(0),
-                  onChanged: (value) { setState(() => _cinematicBlur = value); refreshDialog(() {}); }),
+                  onChanged: (value) { setState(() => _cinematicBlur = value); unawaited(sl<PlaybackPrefs>().setCinematicBlur(value)); refreshDialog(() {}); }),
                 _CinematicSlider(label: 'Zoom', value: _cinematicZoom,
                   min: 1, max: 1.8, displayValue: '${_cinematicZoom.toStringAsFixed(2)}x',
-                  onChanged: (value) { setState(() => _cinematicZoom = value); refreshDialog(() {}); }),
+                  onChanged: (value) { setState(() => _cinematicZoom = value); unawaited(sl<PlaybackPrefs>().setCinematicZoom(value)); refreshDialog(() {}); }),
                 _CinematicSlider(label: 'Vignette', value: _cinematicVignette,
                   min: 0, max: 1, displayValue: _cinematicVignette.toStringAsFixed(1),
-                  onChanged: (value) { setState(() => _cinematicVignette = value); refreshDialog(() {}); }),
+                  onChanged: (value) { setState(() => _cinematicVignette = value); unawaited(sl<PlaybackPrefs>().setCinematicVignette(value)); refreshDialog(() {}); }),
                 Align(alignment: Alignment.centerRight,
                   child: TextButton(onPressed: () => Navigator.pop(dialogContext),
                     child: const Text('Selesai'))),
