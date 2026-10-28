@@ -292,6 +292,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   bool _controlsVisible = true;
   bool _cinematicLighting = false;
+  double _cinematicBrightness = 0;
+  double _cinematicBlur = 28;
+  double _cinematicZoom = 1.22;
+  double _cinematicVignette = 0;
   bool _holding = false; // long-press 2x active
 
   /// The speed to go back to when a hold ends. Captured at the start of the
@@ -1698,11 +1702,56 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _bumpControls();
   }
 
-  void _toggleCinematicLighting() {
-    // Reuse the main player's decoded video texture. This avoids opening and
-    // decoding the same network stream a second time on low-end devices.
-    setState(() => _cinematicLighting = !_cinematicLighting);
-    _bumpControls();
+  void _toggleCinematicLighting() => _openCinematicLightingSheet();
+
+  void _openCinematicLightingSheet() {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, refreshDialog) => Dialog(
+          backgroundColor: const Color(0xFF17171D),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 680),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Row(children: [
+                  Expanded(child: Text('Cinematic lighting',
+                    style: AppText.title.copyWith(fontSize: 22,
+                      fontWeight: FontWeight.w700, color: Colors.white))),
+                  Text(_cinematicLighting ? 'ON' : 'OFF',
+                    style: AppText.body.copyWith(color: Colors.white70)),
+                  Switch(value: _cinematicLighting, onChanged: (value) {
+                    setState(() => _cinematicLighting = value);
+                    refreshDialog(() {});
+                    _bumpControls();
+                  }),
+                ]),
+                const SizedBox(height: 12),
+                _CinematicSlider(label: 'Kecerahan', value: _cinematicBrightness,
+                  min: -1, max: 1, displayValue: _cinematicBrightness.toStringAsFixed(1),
+                  onChanged: (value) { setState(() => _cinematicBrightness = value); refreshDialog(() {}); }),
+                _CinematicSlider(label: 'Blur', value: _cinematicBlur,
+                  min: 0, max: 50, displayValue: _cinematicBlur.toStringAsFixed(0),
+                  onChanged: (value) { setState(() => _cinematicBlur = value); refreshDialog(() {}); }),
+                _CinematicSlider(label: 'Zoom', value: _cinematicZoom,
+                  min: 1, max: 1.8, displayValue: '${_cinematicZoom.toStringAsFixed(2)}x',
+                  onChanged: (value) { setState(() => _cinematicZoom = value); refreshDialog(() {}); }),
+                _CinematicSlider(label: 'Vignette', value: _cinematicVignette,
+                  min: 0, max: 1, displayValue: _cinematicVignette.toStringAsFixed(1),
+                  onChanged: (value) { setState(() => _cinematicVignette = value); refreshDialog(() {}); }),
+                Align(alignment: Alignment.centerRight,
+                  child: TextButton(onPressed: () => Navigator.pop(dialogContext),
+                    child: const Text('Selesai'))),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _toggleLock() {
@@ -2664,13 +2713,39 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           child: Opacity(
                             opacity: 0.68,
                             child: ImageFiltered(
-                              imageFilter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+                              imageFilter: ImageFilter.blur(
+                                sigmaX: _cinematicBlur, sigmaY: _cinematicBlur,
+                              ),
                               child: Transform.scale(
-                                scale: 1.22,
-                                child: Video(
-                                  controller: _c.videoController,
-                                  controls: NoVideoControls,
-                                  fit: BoxFit.cover,
+                                scale: _cinematicZoom,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    Video(
+                                      controller: _c.videoController,
+                                      controls: NoVideoControls,
+                                      fit: BoxFit.cover,
+                                    ),
+                                    if (_cinematicBrightness < 0)
+                                      ColoredBox(color: Colors.black.withValues(
+                                        alpha: -_cinematicBrightness * 0.65,
+                                      ))
+                                    else if (_cinematicBrightness > 0)
+                                      ColoredBox(color: Colors.white.withValues(
+                                        alpha: _cinematicBrightness * 0.35,
+                                      )),
+                                    if (_cinematicVignette > 0)
+                                      DecoratedBox(decoration: BoxDecoration(
+                                        gradient: RadialGradient(
+                                          colors: [
+                                            Colors.transparent,
+                                            Colors.black.withValues(alpha: _cinematicVignette),
+                                          ],
+                                          stops: const [0.35, 1],
+                                          radius: 0.85,
+                                        ),
+                                      )),
+                                  ],
                                 ),
                               ),
                             ),
@@ -3383,3 +3458,34 @@ class _PlayerScreenState extends State<PlayerScreen> {
 // Hides the Video widget behind it and provides a seek bar + play/pause / ±10s
 // / Stop casting controls bound to CastController's live position/duration.
 // ─────────────────────────────────────────────────────────────────────────────
+
+
+class _CinematicSlider extends StatelessWidget {
+  const _CinematicSlider({
+    required this.label,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.displayValue,
+    required this.onChanged,
+  });
+
+  final String label;
+  final double value;
+  final double min;
+  final double max;
+  final String displayValue;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Expanded(child: Text(label, style: AppText.body.copyWith(color: Colors.white70))),
+        Text(displayValue, style: AppText.body.copyWith(color: Colors.white54)),
+      ]),
+      Slider(value: value.clamp(min, max), min: min, max: max, onChanged: onChanged),
+    ]),
+  );
+}
