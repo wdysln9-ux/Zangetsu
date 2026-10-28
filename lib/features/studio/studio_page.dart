@@ -41,7 +41,7 @@ class _StudioPageState extends State<StudioPage> {
           isAnimationStudio
           siteUrl
           favourites
-          media(sort: POPULARITY_DESC, type: ANIME, isAdult: false, page: 1, perPage: 30) {
+          media(sort: POPULARITY_DESC, page: 1, perPage: 30) {
             nodes {
               id
               idMal
