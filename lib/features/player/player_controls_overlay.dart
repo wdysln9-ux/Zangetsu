@@ -537,13 +537,14 @@ class _ControlsOverlay extends StatelessWidget {
                           if (secondaryLine != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 1),
-                              child: Text(
-                                secondaryLine,
+                              child: AutoTranslatedText(
+                                text: secondaryLine,
                                 style: AppText.caption.copyWith(
                                   color: Colors.white70,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
+                                showToggle: false,
                               ),
                             ),
                         ],
