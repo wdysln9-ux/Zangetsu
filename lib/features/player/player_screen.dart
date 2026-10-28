@@ -1728,11 +1728,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final ambientPlayer = _ambientPlayer ??= Player(configuration: PlayerConfiguration());
     _ambientVideoController ??= VideoController(ambientPlayer);
     try {
+      await ambientPlayer.setVolume(0);
       await ambientPlayer.open(
         Media(source.url, httpHeaders: source.headers ?? const <String, String>{}),
         play: true,
       );
-      await ambientPlayer.setVolume(0);
       await ambientPlayer.setRate(_c.player.state.rate);
       await ambientPlayer.seek(_c.player.state.position);
       if (!_c.player.state.playing) await ambientPlayer.pause();
