@@ -1,0 +1,205 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
+
+import '../../core/di/injector.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text.dart';
+import '../../core/ui/states.dart';
+import '../detail/open_related.dart';
+
+/// Studio profile and the anime credited to it, loaded from AniList.
+class StudioPage extends StatefulWidget {
+  const StudioPage({super.key, required this.studioName});
+
+  final String studioName;
+
+  static Route<void> route(String studioName) => MaterialPageRoute<void>(
+    builder: (_) => StudioPage(studioName: studioName),
+  );
+
+  @override
+  State<StudioPage> createState() => _StudioPageState();
+}
+
+class _StudioPageState extends State<StudioPage> {
+  late Future<Map<String, dynamic>?> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  Future<Map<String, dynamic>?> _load() async {
+    const query = r'''
+      query ($search: String) {
+        Studio(search: $search) {
+          id
+          name
+          isAnimationStudio
+          media(sort: POPULARITY_DESC, type: ANIME, isAdult: false, perPage: 30) {
+            nodes {
+              id
+              idMal
+              title { romaji english }
+              coverImage { large }
+              averageScore
+              episodes
+              seasonYear
+              format
+            }
+          }
+        }
+      }
+    ''';
+    try {
+      final response = await sl<Dio>().post<dynamic>(
+        'https://graphql.anilist.co',
+        data: {'query': query, 'variables': {'search': widget.studioName}},
+        options: Options(
+          headers: const {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+      final data = response.data;
+      if (data is Map && data['data'] is Map) {
+        final studio = (data['data'] as Map)['Studio'];
+        if (studio is Map) return Map<String, dynamic>.from(studio);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: AppColors.bg,
+    appBar: AppBar(
+      backgroundColor: AppColors.bg,
+      elevation: 0,
+      title: Text(widget.studioName, style: AppText.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+    ),
+    body: FutureBuilder<Map<String, dynamic>?>(
+      future: _future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Center(child: CircularProgressIndicator(color: AppColors.accent));
+        }
+        final studio = snapshot.data;
+        if (studio == null) {
+          return const EmptyState(icon: Icons.business_outlined, message: 'Couldn’t load studio information');
+        }
+        final media = studio['media'] is Map ? (studio['media'] as Map)['nodes'] : null;
+        final anime = media is List ? media.whereType<Map>().toList() : <Map>[];
+        final name = (studio['name'] as String?) ?? widget.studioName;
+        return CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Icon(Icons.movie_creation_outlined, size: 34, color: AppColors.accent),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(name, style: AppText.title.copyWith(fontSize: 25)),
+                    const SizedBox(height: 6),
+                    Text(
+                      studio['isAnimationStudio'] == true ? 'Studio animasi' : 'Studio',
+                      style: AppText.caption.copyWith(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 18),
+                    Text('Anime populer', style: AppText.headline),
+                    const SizedBox(height: 4),
+                    Text(
+                      anime.isEmpty ? 'Belum ada anime yang tercatat untuk studio ini.' : '${anime.length} judul',
+                      style: AppText.caption.copyWith(color: AppColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (anime.isNotEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 0.49,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 16,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final item = anime[index];
+                      final titleData = item['title'] is Map ? item['title'] as Map : const {};
+                      final title = (titleData['english'] as String?)?.trim().isNotEmpty == true
+                          ? titleData['english'] as String
+                          : (titleData['romaji'] as String?) ?? 'Unknown title';
+                      final cover = item['coverImage'] is Map ? (item['coverImage'] as Map)['large'] as String? : null;
+                      final score = item['averageScore'];
+                      final episodes = item['episodes'];
+                      final year = item['seasonYear'];
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => openRelatedTitle(
+                          context,
+                          title: title,
+                          romaji: titleData['romaji'] as String?,
+                          cover: cover,
+                          isReading: false,
+                          anilistId: item['id'] as int?,
+                          malId: item['idMal'] as int?,
+                          sourceId: null,
+                          fromReadingPage: false,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: cover == null
+                                      ? ColoredBox(color: AppColors.surface, child: Icon(Icons.image_not_supported_outlined, color: AppColors.textSecondary))
+                                      : CachedNetworkImage(
+                                          imageUrl: cover,
+                                          fit: BoxFit.cover,
+                                          placeholder: (_, __) => ColoredBox(color: AppColors.surface),
+                                          errorWidget: (_, __, ___) => ColoredBox(color: AppColors.surface, child: Icon(Icons.broken_image_outlined, color: AppColors.textSecondary)),
+                                        ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 7),
+                            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppText.body.copyWith(fontSize: 12)),
+                            const SizedBox(height: 3),
+                            Text(
+                              [if (year is int) '$year', if (episodes is int) '$episodes eps', if (score is int && score > 0) '★ ${(score / 10).toStringAsFixed(1)}'].join(' · '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppText.caption.copyWith(color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    childCount: anime.length,
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    ),
+  );
+}
