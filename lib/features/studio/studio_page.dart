@@ -24,6 +24,7 @@ class StudioPage extends StatefulWidget {
 
 class _StudioPageState extends State<StudioPage> {
   late Future<Map<String, dynamic>?> _future;
+  String? _loadError;
 
   @override
   void initState() {
@@ -69,7 +70,22 @@ class _StudioPageState extends State<StudioPage> {
         final studio = (data['data'] as Map)['Studio'];
         if (studio is Map) return Map<String, dynamic>.from(studio);
       }
-    } catch (_) {}
+      if (data is Map && data['errors'] is List) {
+        final errors = data['errors'] as List;
+        if (errors.isNotEmpty && errors.first is Map) {
+          _loadError = (errors.first as Map)['message']?.toString();
+        }
+      }
+      _loadError ??= 'Studio ini tidak ditemukan di AniList.';
+    } on DioException catch (error) {
+      _loadError = error.response?.statusCode == 429
+          ? 'AniList sedang membatasi permintaan. Coba lagi sebentar.'
+          : error.response == null
+              ? 'Tidak bisa terhubung ke AniList. Periksa koneksi internet.'
+              : 'AniList gagal memuat data (HTTP ${error.response?.statusCode}).';
+    } catch (error) {
+      _loadError = 'Terjadi kesalahan saat memuat data studio.';
+    }
     return null;
   }
 
@@ -89,7 +105,38 @@ class _StudioPageState extends State<StudioPage> {
         }
         final studio = snapshot.data;
         if (studio == null) {
-          return const EmptyState(icon: Icons.business_outlined, message: 'Couldn’t load studio information');
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.business_outlined, size: 42, color: AppColors.textSecondary),
+                  const SizedBox(height: 14),
+                  Text(
+                    'Informasi studio gagal dimuat',
+                    textAlign: TextAlign.center,
+                    style: AppText.headline,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _loadError ?? 'Periksa koneksi lalu coba lagi.',
+                    textAlign: TextAlign.center,
+                    style: AppText.caption.copyWith(color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 18),
+                  FilledButton.icon(
+                    onPressed: () => setState(() {
+                      _loadError = null;
+                      _future = _load();
+                    }),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Coba lagi'),
+                  ),
+                ],
+              ),
+            ),
+          );
         }
         final media = studio['media'] is Map ? (studio['media'] as Map)['nodes'] : null;
         final anime = media is List ? media.whereType<Map>().toList() : <Map>[];
