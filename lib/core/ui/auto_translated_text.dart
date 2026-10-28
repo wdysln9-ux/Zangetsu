@@ -13,6 +13,7 @@ class AutoTranslatedText extends StatefulWidget {
     this.maxLines,
     this.overflow,
     this.textAlign,
+    this.showToggle = true,
   });
 
   final String text;
@@ -20,6 +21,7 @@ class AutoTranslatedText extends StatefulWidget {
   final int? maxLines;
   final TextOverflow? overflow;
   final TextAlign? textAlign;
+  final bool showToggle;
 
   @override
   State<AutoTranslatedText> createState() => _AutoTranslatedTextState();
@@ -63,7 +65,7 @@ class _AutoTranslatedTextState extends State<AutoTranslatedText> {
               overflow: widget.overflow,
               textAlign: widget.textAlign,
             ),
-            if (hasTranslation)
+            if (hasTranslation && widget.showToggle)
               Align(
                 alignment: Alignment.centerLeft,
                 child: GestureDetector(
