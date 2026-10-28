@@ -1828,76 +1828,124 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ? episode.metaTitle!.trim()
         : episode.title.trim();
     final description = episode.description?.trim();
+    final episodeNumber = episode.number == null
+        ? null
+        : episode.number! % 1 == 0
+            ? episode.number!.toInt().toString()
+            : episode.number!.toString();
 
     _bumpControls();
     showDialog<void>(
       context: context,
       builder: (dialogContext) => Dialog(
         backgroundColor: const Color(0xFF17151C),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
         ),
-        child: SizedBox(
-          width: 640,
-          height: 360,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(28, 20, 28, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 48,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 700, maxHeight: 460),
+          child: SizedBox(
+            width: 700,
+            height: 420,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 18, 24, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 18),
-                AutoTranslatedText(
-                  text: title.isEmpty ? 'Ringkasan episode' : title,
-                  style: const TextStyle(
-                    color: Color(0xFFB28AFF),
-                    fontSize: 25,
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Ringkasan Episode',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 20),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: (description != null && description.isNotEmpty)
-                        ? AutoTranslatedText(
-                            text: description,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 17,
-                              height: 1.45,
-                            ),
-                          )
-                        : const Text(
-                            'Deskripsi episode tidak tersedia di metadata untuk episode ini.',
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 16,
-                              height: 1.45,
-                            ),
+                  const SizedBox(height: 8),
+                  Text(
+                    [
+                      if (episodeNumber != null) 'Episode $episodeNumber',
+                      if (title.isNotEmpty) title,
+                    ].join(' · '),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFB7B2C2),
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 6,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.warning_amber_rounded, size: 15, color: Color(0xFFE8B15D)),
+                          SizedBox(width: 6),
+                          Text(
+                            'Peringatan spoiler',
+                            style: TextStyle(color: Color(0xFFE8B15D), fontSize: 13, fontWeight: FontWeight.w500),
                           ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.auto_awesome, size: 15, color: Color(0xFF79A9FF)),
+                          SizedBox(width: 6),
+                          Text(
+                            'Dibuat AI',
+                            style: TextStyle(color: Color(0xFF79A9FF), fontSize: 13, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: const Text('Tutup'),
+                  const SizedBox(height: 14),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: (description != null && description.isNotEmpty)
+                          ? AutoTranslatedText(
+                              text: description,
+                              style: const TextStyle(
+                                color: Color(0xFFF0EEF4),
+                                fontSize: 15,
+                                height: 1.6,
+                              ),
+                            )
+                          : const Text(
+                              'Deskripsi episode tidak tersedia di metadata untuk episode ini.',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                                height: 1.5,
+                              ),
+                            ),
+                    ),
                   ),
-                ),
-              ],
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: const Text('Tutup'),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
