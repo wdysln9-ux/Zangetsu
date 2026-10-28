@@ -328,6 +328,8 @@ class _ControlsOverlay extends StatelessWidget {
       case 'episodes':
         if (onEpisodes == null) return null;
         return (Icons.video_library_outlined, 'Episodes', onEpisodes!);
+      case 'summary':
+        return (Icons.subject_rounded, 'Episode summary', onEpisodeSummary);
       case 'fit':
         return (_fitIcon(zoomLabel), 'Aspect ratio · $zoomLabel', onZoom);
       case 'rotate':
