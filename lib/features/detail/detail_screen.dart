@@ -434,6 +434,9 @@ class _DetailViewState extends State<_DetailView>
     with SingleTickerProviderStateMixin {
   static const double _expandedHeight = 320;
   bool _showAppBarTitle = false;
+  // Phone detail is a single scrollable page with inline expandable sections.
+  final List<bool> _detailSectionsOpen = [true, false, false, false];
+
 
   // The episode url we've already kicked a background source-prefetch for, so we
   // don't re-fire it on every rebuild (see _maybePrefetch).
@@ -602,17 +605,16 @@ class _DetailViewState extends State<_DetailView>
   /// that's still below the fold (feels like nothing happened). Animates both
   /// for a smooth transition into the Cast / Details tab.
   void _revealTab(int index) {
-    _tabController.animateTo(index);
-    if (_scrollController.hasClients) {
-      final target = _scrollController.position.maxScrollExtent;
-      if (_scrollController.offset < target - 1) {
-        _scrollController.animateTo(
-          target,
-          duration: const Duration(milliseconds: 380),
-          curve: Curves.easeOutCubic,
-        );
-      }
-    }
+    if (index < 0 || index >= _detailSectionsOpen.length) return;
+    setState(() => _detailSectionsOpen[index] = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 
   // ── The 5-icon action row wiring ──────────────────────────────────────────
@@ -2540,146 +2542,135 @@ class _DetailViewState extends State<_DetailView>
           ),
         ),
 
-        // ── 7. Pinned tab bar ───────────────────────────────────────────────
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: _TabBarDelegate(
-            TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              // Hug the left edge: the first tab starts flush with the 16px
-              // content gutter (title/synopsis), and labelPadding(right: 24)
-              // spaces the tabs apart while keeping them left-anchored —
-              // never centered/spread (matches Sozo Read).
-              padding: const EdgeInsetsDirectional.only(start: 16),
-              labelPadding: const EdgeInsetsDirectional.only(end: 24),
-              labelColor: AppColors.accent,
-              unselectedLabelColor: AppColors.textSecondary,
-              indicatorSize: TabBarIndicatorSize.label,
-              indicator: UnderlineTabIndicator(
-                borderSide: BorderSide(color: AppColors.accent, width: 2.5),
-                // Bottom inset lifts the line toward the label. A Tab is 46
-                // high for 15px text, so the indicator otherwise draws at the
-                // bottom of that box with a visible gap under the word.
-                // Raising the line rather than shortening the tab keeps the
-                // tap target at its full height.
-                insets: EdgeInsetsDirectional.only(start: 2, end: 2, bottom: 8),
-              ),
-              // Remove the full-width underline divider under the bar.
-              dividerColor: Colors.transparent,
-              dividerHeight: 0,
-              splashFactory: NoSplash.splashFactory,
-              overlayColor: WidgetStateProperty.all(Colors.transparent),
-              labelStyle: AppText.headline.copyWith(fontSize: 15),
-              unselectedLabelStyle: AppText.headline.copyWith(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
-              tabs: [
-                Tab(
-                  text: isReading
-                      ? context.l10n.chapters
-                      : context.l10n.episodes,
+        // ── 7. One-page expandable content ─────────────────────────────────
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 24),
+            child: Column(
+              children: [
+                _DetailExpandableSection(
+                  title: isReading ? context.l10n.chapters : context.l10n.episodes,
+                  count: eps.length,
+                  initiallyExpanded: _detailSectionsOpen[0],
+                  onExpansionChanged: (v) => setState(() => _detailSectionsOpen[0] = v),
+                  child: SizedBox(
+                    height: 560,
+                    child: _EpisodesTab(
+                      loading: state.episodesLoading, eps: eps, seasonEps: seasonEps,
+                      fillerEps: _fillerEps, hasMultipleSeasons: hasMultipleSeasons,
+                      seasonSet: seasonSet, currentSeason: currentSeason,
+                      onSelectSeason: cubit.selectSeason, coverUrl: coverUrl,
+                      coverHeaders: coverHeaders, sourceId: item.sourceId,
+                      downloadSourceId: detail.sourceId.isNotEmpty ? detail.sourceId : item.sourceId,
+                      showId: item.id, showUrl: item.url, resumeIndex: _resumeIndex,
+                      hasAnyMark: hasAnyMark, trackerProgress: _trackerProgress,
+                      nextAiringEpisode: _nextAiringEpisode, nextAiringAt: _nextAiringAt,
+                      onOpen: (fullIndex) => _openPlayer(eps, fullIndex, detail, category),
+                      onEpisodeMenu: (fullIndex) => _pickPlayerFor(eps, fullIndex, detail, category),
+                      onRefresh: cubit.refresh,
+                      onDownload: (ep) => isReading ? _downloadChapter(ep, detail) : _downloadSingle(ep, detail, category),
+                      onDownloadMany: isReading ? (eps) => _downloadChapters(eps, detail) : null,
+                      resumeChapter: readResume == null || eps.isEmpty ? null : eps[readResume.index],
+                      onSwitchSource: ZmodeIds.isZ(item.url) ? _switchSource : null,
+                      isReading: isReading,
+                    ),
+                  ),
                 ),
-                Tab(
-                  text: isReading ? context.l10n.characters : context.l10n.cast,
+                _DetailExpandableSection(
+                  title: isReading ? context.l10n.characters : context.l10n.cast,
+                  count: state.cast.isNotEmpty ? state.cast.length : detail.cast.length,
+                  initiallyExpanded: _detailSectionsOpen[1],
+                  onExpansionChanged: (v) => setState(() => _detailSectionsOpen[1] = v),
+                  child: SizedBox(
+                    height: 440,
+                    child: _CastTab(
+                      loading: state.extrasLoading,
+                      cast: state.cast.isNotEmpty ? state.cast : [for (final n in detail.cast) CastMember(name: n)],
+                      onOpenPerson: (ref) => Navigator.of(context).push(PersonPage.route(ref, sourceId: widget.item.sourceId)),
+                    ),
+                  ),
                 ),
-                Tab(text: context.l10n.relations),
-                Tab(text: context.l10n.details),
+                _DetailExpandableSection(
+                  title: context.l10n.relations,
+                  count: state.relations.length + state.seasons.length,
+                  initiallyExpanded: _detailSectionsOpen[2],
+                  onExpansionChanged: (v) => setState(() => _detailSectionsOpen[2] = v),
+                  child: SizedBox(
+                    height: 440,
+                    child: _RelationsTab(
+                      loading: state.extrasLoading, relations: state.relations,
+                      seasons: state.seasons, onOpen: _openRelation,
+                    ),
+                  ),
+                ),
+                _DetailExpandableSection(
+                  title: context.l10n.details,
+                  initiallyExpanded: _detailSectionsOpen[3],
+                  onExpansionChanged: (v) => setState(() => _detailSectionsOpen[3] = v),
+                  child: SizedBox(
+                    height: 440,
+                    child: _DetailsTab(
+                      sourceName: sourceName, statusStr: statusStr, reading: isReading,
+                      genres: detail.genres, studios: detail.studios,
+                      episodeCount: eps.length, year: detail.year,
+                      description: cleanSynopsis(detail.description), detail: detail,
+                    ),
+                  ),
+                ),
               ],
             ),
-            tint: ThemeController.adaptiveColour ? _tint : null,
           ),
         ),
       ],
-      body: TabBarView(
-        controller: _tabController,
+      body: const SizedBox.shrink(),
+  }
+}
+
+/// Collapsible section for the single-page phone detail layout.
+class _DetailExpandableSection extends StatelessWidget {
+  const _DetailExpandableSection({
+    required this.title,
+    required this.child,
+    required this.initiallyExpanded,
+    required this.onExpansionChanged,
+    this.count,
+  });
+  final String title;
+  final Widget child;
+  final bool initiallyExpanded;
+  final ValueChanged<bool> onExpansionChanged;
+  final int? count;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    color: AppColors.surface,
+    margin: const EdgeInsets.only(bottom: 8),
+    elevation: 0,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(18),
+      side: BorderSide(color: AppColors.textTertiary.withValues(alpha: 0.18)),
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: ExpansionTile(
+      key: PageStorageKey<String>('detail-section-$title'),
+      initiallyExpanded: initiallyExpanded,
+      onExpansionChanged: onExpansionChanged,
+      tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      childrenPadding: const EdgeInsets.only(bottom: 8),
+      iconColor: AppColors.accent,
+      collapsedIconColor: AppColors.textSecondary,
+      title: Row(
         children: [
-          // ── Episodes ──────────────────────────────────────────────────────
-          _EpisodesTab(
-            loading: state.episodesLoading,
-            eps: eps,
-            seasonEps: seasonEps,
-            fillerEps: _fillerEps,
-            hasMultipleSeasons: hasMultipleSeasons,
-            seasonSet: seasonSet,
-            currentSeason: currentSeason,
-            onSelectSeason: cubit.selectSeason,
-            coverUrl: coverUrl,
-            coverHeaders: coverHeaders,
-            sourceId: item.sourceId,
-            // Downloads name the source that has the files; progress above
-            // stays on the canonical id.
-            downloadSourceId: detail.sourceId.isNotEmpty
-                ? detail.sourceId
-                : item.sourceId,
-            showId: item.id,
-            showUrl: item.url,
-            resumeIndex: _resumeIndex,
-            hasAnyMark: hasAnyMark,
-            trackerProgress: _trackerProgress,
-            nextAiringEpisode: _nextAiringEpisode,
-            nextAiringAt: _nextAiringAt,
-            onOpen: (fullIndex) {
-              if (isReading) {
-                _openPlayer(eps, fullIndex, detail, category);
-                return;
-              }
-              // Open the player directly; do not show the extra episode landing page.
-              _openPlayer(eps, fullIndex, detail, category);
-            },
-            // Reading has no player to pick, but it does have the marking
-            // rows — gating the whole menu on the player is what hid them.
-            onEpisodeMenu: (fullIndex) =>
-                _pickPlayerFor(eps, fullIndex, detail, category),
-            onRefresh: cubit.refresh,
-            onDownload: (ep) => isReading
-                ? _downloadChapter(ep, detail)
-                : _downloadSingle(ep, detail, category),
-            onDownloadMany: isReading
-                ? (eps) => _downloadChapters(eps, detail)
-                : null,
-            resumeChapter: readResume == null || eps.isEmpty
-                ? null
-                : eps[readResume.index],
-            // Only a catalogue title has another source to fall back on.
-            onSwitchSource: ZmodeIds.isZ(item.url) ? _switchSource : null,
-            isReading: isReading,
-          ),
-          // ── Cast ────────────────────────────────────────────────────────────
-          _CastTab(
-            loading: state.extrasLoading,
-            cast: state.cast.isNotEmpty
-                ? state.cast
-                : [for (final n in detail.cast) CastMember(name: n)],
-            onOpenPerson: (ref) => Navigator.of(
-              context,
-            ).push(PersonPage.route(ref, sourceId: widget.item.sourceId)),
-          ),
-          // ── Relations ─────────────────────────────────────────────────────────
-          _RelationsTab(
-            loading: state.extrasLoading,
-            relations: state.relations,
-            seasons: state.seasons,
-            onOpen: _openRelation,
-          ),
-          // ── Details ──────────────────────────────────────────────────────────
-          _DetailsTab(
-            sourceName: sourceName,
-            statusStr: statusStr,
-            reading: isReading,
-            genres: detail.genres,
-            studios: detail.studios,
-            episodeCount: eps.length,
-            year: detail.year,
-            description: cleanSynopsis(detail.description),
-            detail: detail,
-          ),
+          Expanded(child: Text(title, style: AppText.headline.copyWith(fontSize: 17))),
+          if (count != null) ...[
+            const SizedBox(width: 8),
+            Text('$count', style: AppText.caption.copyWith(color: AppColors.textSecondary)),
+          ],
         ],
       ),
-    );
-  }
+      children: [child],
+    ),
+  );
 }
 
 /// The bar shown when a detail page only half-loaded.
