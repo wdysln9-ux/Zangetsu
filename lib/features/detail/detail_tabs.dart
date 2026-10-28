@@ -457,8 +457,25 @@ class _DetailsTab extends StatelessWidget {
           label: reading ? context.l10n.chapters : context.l10n.episodes,
           value: '$episodeCount',
         ),
-        if (studios.isNotEmpty)
-          _DetailRow(label: context.l10n.studio, value: studios.join(', ')),
+        if (studios.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            context.l10n.studio,
+            style: AppText.caption.copyWith(color: AppColors.textTertiary),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: studios.map((name) => ActionChip(
+              label: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
+              onPressed: () => Navigator.of(context).push(StudioPage.route(name)),
+              backgroundColor: AppColors.surface,
+              side: BorderSide(color: AppColors.accent.withValues(alpha: 0.45)),
+              labelStyle: AppText.body.copyWith(color: AppColors.accent),
+            )).toList(),
+          ),
+        ],
         ..._providerRows(context),
         if (genres.isNotEmpty) ...[
           const SizedBox(height: 14),
