@@ -5,7 +5,7 @@ import 'dart:ui' show ImageFilter;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:media_kit/media_kit.dart' show Track;
+import 'package:media_kit/media_kit.dart' show Media, Player, PlayerConfiguration, Track;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -291,7 +291,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
       .distinct();
 
   bool _controlsVisible = true;
-  bool _cinematicLighting = true;
+  bool _cinematicLighting = false;
+  late final Player _ambientPlayer = Player(configuration: PlayerConfiguration());
+  late final VideoController _ambientVideoController = VideoController(_ambientPlayer);
+  Timer? _ambientSyncTimer;
+  bool _ambientReady = false;
+  bool _ambientOpening = false;
+  String? _ambientUrl;
   bool _holding = false; // long-press 2x active
 
   /// The speed to go back to when a hold ends. Captured at the start of the
@@ -1291,6 +1297,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
       sl<PlaybackResolver>().abortSweeps();
     }
     _hideTimer?.cancel();
+    _ambientSyncTimer?.cancel();
+    unawaited(_ambientPlayer.dispose());
     _showTimer?.cancel();
     _seekLabelTimer?.cancel();
     _seekDebounceTimer?.cancel();
@@ -1696,6 +1704,72 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (!mounted) return;
     if (wasPlaying && !_c.player.state.playing) _c.togglePlay();
     _bumpControls();
+  }
+
+  Future<void> _toggleCinematicLighting() async {
+    final enabled = !_cinematicLighting;
+    setState(() => _cinematicLighting = enabled);
+    if (!enabled) {
+      _ambientSyncTimer?.cancel();
+      try { await _ambientPlayer.pause(); } catch (_) {}
+    } else {
+      await _openAmbientBackground(_c.state.active);
+    }
+    _bumpControls();
+  }
+
+  Future<void> _openAmbientBackground(VideoSource? source) async {
+    if (!_cinematicLighting || source == null || !mounted || _ambientOpening) return;
+    if (_ambientUrl == source.url && _ambientReady) {
+      await _syncAmbientPlayback();
+      return;
+    }
+    _ambientOpening = true;
+    try {
+      await _ambientPlayer.open(
+        Media(source.url, httpHeaders: source.headers ?? const <String, String>{}),
+        play: true,
+      );
+      await _ambientPlayer.setVolume(0);
+      await _ambientPlayer.setRate(_c.player.state.rate);
+      await _ambientPlayer.seek(_c.player.state.position);
+      if (!_c.player.state.playing) await _ambientPlayer.pause();
+      _ambientUrl = source.url;
+      if (mounted) setState(() => _ambientReady = true);
+      _ambientSyncTimer?.cancel();
+      _ambientSyncTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+        unawaited(_syncAmbientPlayback());
+      });
+    } catch (e, st) {
+      AppLogger.instance.logError(e, st);
+      if (mounted) setState(() => _ambientReady = false);
+    } finally {
+      _ambientOpening = false;
+    }
+  }
+
+  Future<void> _syncAmbientPlayback() async {
+    if (!_cinematicLighting || !_ambientReady || _ambientOpening || !mounted) return;
+    try {
+      final mainState = _c.player.state;
+      final active = _c.state.active;
+      if (active != null && active.url != _ambientUrl) {
+        await _openAmbientBackground(active);
+        return;
+      }
+      if (mainState.playing && !_ambientPlayer.state.playing) {
+        await _ambientPlayer.play();
+      } else if (!mainState.playing && _ambientPlayer.state.playing) {
+        await _ambientPlayer.pause();
+      }
+      final drift = (_ambientPlayer.state.position - mainState.position).abs();
+      if (drift > const Duration(milliseconds: 1400)) {
+        await _ambientPlayer.seek(mainState.position);
+      }
+      if (_ambientPlayer.state.rate != mainState.rate) {
+        await _ambientPlayer.setRate(mainState.rate);
+      }
+    } catch (_) {}
   }
 
   void _toggleLock() {
@@ -2560,6 +2634,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
             if (state.error != null && !_c.everStarted) {
               _handleDeadEnd(state.error!);
             }
+            if (_cinematicLighting && state.active != null && state.active!.url != _ambientUrl) {
+              unawaited(_openAmbientBackground(state.active));
+            }
           },
           builder: (context, state) {
             // Inside the PiP window: render ONLY the video — no overlay, no
@@ -2647,29 +2724,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // Cinematic ambient lighting: a low-resolution visual backdrop
-                  // made from the current episode artwork, blurred behind the video.
-                  // This stays outside the native video surface and is inexpensive
-                  // compared with decoding an extra live video stream.
-                  if (_cinematicLighting)
+                  // Live cinematic background: the same stream is decoded by a
+                  // muted secondary player, enlarged and blurred behind the main video.
+                  if (_cinematicLighting && _ambientReady)
                     Positioned.fill(
                       child: IgnorePointer(
-                        child: Opacity(
-                          opacity: 0.58,
-                          child: ImageFiltered(
-                            imageFilter: ImageFilter.blur(sigmaX: 42, sigmaY: 42),
-                            child: Transform.scale(
-                              scale: 1.22,
-                              child: CachedNetworkImage(
-                                imageUrl: (_c.currentEpisode.thumbnail?.trim().isNotEmpty ?? false)
-                                    ? _c.currentEpisode.thumbnail!.trim()
-                                    : (widget.cover ?? ''),
-                                httpHeaders: widget.coverHeaders,
-                                fit: BoxFit.cover,
-                                errorWidget: (c, u, e) =>
-                                    const ColoredBox(color: Colors.black),
-                                placeholder: (c, u) =>
-                                    const ColoredBox(color: Colors.black),
+                        child: ClipRect(
+                          child: Opacity(
+                            opacity: 0.68,
+                            child: ImageFiltered(
+                              imageFilter: ImageFilter.blur(sigmaX: 38, sigmaY: 38),
+                              child: Transform.scale(
+                                scale: 1.22,
+                                child: Video(
+                                  controller: _ambientVideoController,
+                                  controls: NoVideoControls,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
                             ),
                           ),
@@ -3155,10 +3226,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               sl<PlaybackPrefs>().videoShaderStyle != 'off',
                           onColorProfile: _openColorProfileSheet,
                           cinematicLightingActive: _cinematicLighting,
-                          onCinematicLighting: () {
-                            setState(() => _cinematicLighting = !_cinematicLighting);
-                            _bumpControls();
-                          },
+                          onCinematicLighting: _toggleCinematicLighting,
                         ),
                       ),
                     )
