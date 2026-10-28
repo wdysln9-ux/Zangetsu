@@ -463,27 +463,7 @@ class _RootShellState extends State<RootShell>
                           valueListenable: dockCollapsedByScroll,
                           builder: (context, collapsed, child) {
                             final tabs = _visibleTabs();
-                            if (_navPrefs.style == NavBarStyle.liquid) {
-                              return _LiquidNavDock(
-                                tabs: tabs,
-                                active: _tab,
-                                collapsed: collapsed && !_keepDockExpanded,
-                                glassTint: _navPrefs.glassTint,
-                                glassQuality: _navPrefs.glassQuality,
-                                glassBlurEnabled: _navPrefs.glassBlurEnabled,
-                                onSelected: _onTabSelected,
-                                modesEnabled: ZModePrefs.enabled,
-                                onModeSelected: (mode, kind) async {
-                                  await ZModePrefs.setStreamKind(kind);
-                                  await sl<ContentModeCubit>().setMode(mode);
-                                  if (mode != ContentMode.anime) {
-                                    sl<HomeCubit>().load(reset: true);
-                                  }
-                                },
-                              );
-                            }
-                            return _FloatingDock(
-                              collapsed: collapsed && !_keepDockExpanded,
+                            return _ClassicBottomBar(
                               tabs: tabs,
                               active: _tab,
                               onSelected: _onTabSelected,
@@ -762,6 +742,72 @@ class _LiquidGlassTabBar extends StatelessWidget {
       );
     },
   );
+}
+
+/// Full-width, edge-attached bottom navigation in the classic streaming-app style.
+class _ClassicBottomBar extends StatelessWidget {
+  const _ClassicBottomBar({
+    required this.tabs,
+    required this.active,
+    required this.onSelected,
+    this.centre,
+  });
+
+  final List<DockTab> tabs;
+  final DockTab active;
+  final ValueChanged<DockTab> onSelected;
+  final Widget? centre;
+
+  Widget _item(BuildContext context, DockTab tab) => tab == DockTab.profile
+      ? _ProfileDockItem(
+          selected: active == tab,
+          onTap: () => onSelected(tab),
+          labelOpacity: 1,
+        )
+      : _DockItem(
+          labelOpacity: 1,
+          label: tab.localizedLabel(context),
+          glyph: dockGlyphFor(tab),
+          icon: _iconFor(tab),
+          selected: active == tab,
+          onTap: () => onSelected(tab),
+        );
+
+  @override
+  Widget build(BuildContext context) {
+    final half = tabs.length ~/ 2;
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.bg,
+        border: Border(top: BorderSide(color: AppColors.hairline)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(4, 5, 4, 4),
+          child: Row(
+            children: [
+              for (final tab in tabs.take(half))
+                Expanded(child: _item(context, tab)),
+              if (centre != null)
+                Expanded(
+                  child: Center(
+                    child: SizedBox(
+                      width: 46,
+                      height: 46,
+                      child: FittedBox(fit: BoxFit.contain, child: centre!),
+                    ),
+                  ),
+                ),
+              for (final tab in tabs.skip(half))
+                Expanded(child: _item(context, tab)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 /// The frosted floating capsule: blurred surface, hairline border, five
