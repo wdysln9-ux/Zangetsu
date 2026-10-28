@@ -2623,6 +2623,7 @@ class _DetailViewState extends State<_DetailView>
         ),
       ],
       body: const SizedBox.shrink(),
+    );
   }
 }
 
