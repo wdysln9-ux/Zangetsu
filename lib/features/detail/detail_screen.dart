@@ -1412,6 +1412,8 @@ class _DetailViewState extends State<_DetailView>
           MaterialPageRoute(
             builder: (_) => PlayerScreen(
               episodeDetailMode: true,
+              onDownloadEpisode: (episode) =>
+                  _downloadSingle(episode, detail, launchCategory),
               playerOverride: playerOverride?.package,
               initialSource: initialSource,
               sourceId: widget.item.sourceId,
