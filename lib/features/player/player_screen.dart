@@ -2711,29 +2711,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       fontSize: 19,
                       fontWeight: FontWeight.w700,
                     ),
+                    showToggle: false,
                   ),
                 ),
                 const SizedBox(width: 8),
-                IconButton.filledTonal(
-                  tooltip: 'Fullscreen',
-                  onPressed: () {
-                    setState(() {
-                      _showEpisodeDetails = false;
-                      _portraitMode = false;
-                    });
-                    SystemChrome.setPreferredOrientations(const [
-                      DeviceOrientation.landscapeLeft,
-                      DeviceOrientation.landscapeRight,
-                    ]);
-                    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-                  },
-                  icon: const Icon(Icons.fullscreen_rounded),
-                  color: Colors.white,
-                  style: IconButton.styleFrom(
-                    backgroundColor: Colors.white12,
-                    foregroundColor: Colors.white,
-                  ),
-                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -2763,6 +2744,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   color: AppColors.textSecondary,
                   height: 1.55,
                 ),
+                showToggle: false,
               ),
             ],
             const SizedBox(height: 16),
