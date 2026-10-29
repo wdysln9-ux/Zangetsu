@@ -2693,66 +2693,112 @@ class _PlayerScreenState extends State<PlayerScreen> {
         : episode.title.trim();
     final synopsis = episode.description?.trim() ?? '';
     final number = episode.number?.toString().replaceFirst(RegExp(r'\.0$'), '');
+    final metadata = <String>[
+      if (number != null) 'Episode $number',
+      if (episode.runtimeMinutes != null && episode.runtimeMinutes! > 0)
+        '${episode.runtimeMinutes} min',
+      if (episode.rating != null && episode.rating! > 0)
+        '★ ${episode.rating!.toStringAsFixed(1)}',
+    ];
+
+    Widget metadataItem(String text) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Text(
+        text,
+        style: AppText.caption.copyWith(
+          color: Colors.white70,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+
     return ColoredBox(
-      color: Colors.black,
+      color: const Color(0xFF080808),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: AutoTranslatedText(
-                    text: title.isEmpty ? (widget.showTitle ?? 'Episode') : title,
-                    style: AppText.title.copyWith(
-                      color: Colors.white,
-                      fontSize: 19,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    showToggle: false,
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              [
-                if (number != null) 'Episode $number',
-                if (episode.runtimeMinutes != null && episode.runtimeMinutes! > 0)
-                  '${episode.runtimeMinutes} min',
-                if (episode.rating != null && episode.rating! > 0)
-                  '★ ${episode.rating!.toStringAsFixed(1)}',
-              ].join('  ·  '),
-              style: AppText.caption.copyWith(color: AppColors.textSecondary),
-            ),
-            if (synopsis.isNotEmpty) ...[
-              const SizedBox(height: 18),
+            if (widget.showTitle?.trim().isNotEmpty ?? false) ...[
               Text(
-                'Sinopsis episode',
-                style: AppText.body.copyWith(
-                  color: Colors.white,
+                widget.showTitle!.trim(),
+                style: AppText.caption.copyWith(
+                  color: AppColors.accent,
                   fontWeight: FontWeight.w700,
+                  letterSpacing: 0.7,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 7),
-              AutoTranslatedText(
-                text: synopsis,
-                style: AppText.body.copyWith(
-                  color: AppColors.textSecondary,
-                  height: 1.55,
-                ),
-                showToggle: false,
+              const SizedBox(height: 8),
+            ],
+            AutoTranslatedText(
+              text: title.isEmpty ? 'Episode' : title,
+              style: AppText.title.copyWith(
+                color: Colors.white,
+                fontSize: 21,
+                fontWeight: FontWeight.w800,
+                height: 1.25,
+              ),
+              showToggle: false,
+            ),
+            if (metadata.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: metadata.map(metadataItem).toList(),
               ),
             ],
-            const SizedBox(height: 16),
-            if (widget.showTitle?.trim().isNotEmpty ?? false)
-              Text(
-                widget.showTitle!,
-                style: AppText.caption.copyWith(color: AppColors.textTertiary),
+            if (synopsis.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Container(
+                    width: 3,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: AppColors.accent,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(width: 9),
+                  Text(
+                    'Sinopsis episode',
+                    style: AppText.body.copyWith(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.045),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.07),
+                  ),
+                ),
+                child: AutoTranslatedText(
+                  text: synopsis,
+                  style: AppText.body.copyWith(
+                    color: Colors.white70,
+                    height: 1.65,
+                  ),
+                  showToggle: false,
+                ),
+              ),
+            ],
           ],
         ),
       ),
