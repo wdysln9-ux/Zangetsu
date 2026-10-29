@@ -2714,151 +2714,293 @@ class _PlayerScreenState extends State<PlayerScreen> {
         : episode.title.trim();
     final summary = episode.description?.trim() ?? '';
     final number = episode.number?.toString().replaceFirst(RegExp(r'\.0$'), '');
-    final metadata = <String>[
-      if (number != null) 'Episode $number',
-      if (episode.runtimeMinutes != null && episode.runtimeMinutes! > 0)
-        '${episode.runtimeMinutes} min',
-      if (episode.rating != null && episode.rating! > 0)
-        '★ ${episode.rating!.toStringAsFixed(1)}',
-    ];
+    final episodes = _c.episodes;
+    final activeIndex = _c.state.activeEpisodeIndex;
 
-    Widget metadataItem(String text) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-      ),
-      child: Text(
-        text,
-        style: AppText.caption.copyWith(
-          color: Colors.white70,
-          fontWeight: FontWeight.w600,
+    Widget roundAction(IconData icon, VoidCallback? onPressed) => SizedBox(
+      width: 52,
+      height: 52,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          backgroundColor: const Color(0xFF100D0B),
+          side: const BorderSide(color: Color(0xFF302923)),
+          shape: const CircleBorder(),
+          padding: EdgeInsets.zero,
         ),
+        child: Icon(icon, size: 24),
       ),
     );
 
     return ColoredBox(
       color: Colors.black,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (widget.showTitle?.trim().isNotEmpty ?? false) ...[
-              Text(
-                widget.showTitle!.trim(),
-                style: AppText.caption.copyWith(
-                  color: const Color(0xFF91A396),
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-            ],
-            AutoTranslatedText(
-              text: title.isEmpty ? 'Episode' : title,
+            Text(
+              title.isEmpty ? ('Episode ' + (number ?? '')) : title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: AppText.title.copyWith(
                 color: Colors.white,
                 fontSize: 25,
                 fontWeight: FontWeight.w700,
                 height: 1.18,
               ),
-              showToggle: false,
             ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: _c.episodes.length > 1 ? _openEpisodesPanel : null,
-                  icon: const Icon(Icons.video_library_outlined, size: 18),
-                  label: const Text('Pilih Episode'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
+            if (widget.showTitle?.trim().isNotEmpty ?? false) ...[
+              const SizedBox(height: 8),
+              Text(
+                widget.showTitle!.trim(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.body.copyWith(
+                  color: const Color(0xFF91A396),
+                  fontSize: 16,
                 ),
-                if (widget.onDownloadEpisode != null)
-                  FilledButton.icon(
-                    onPressed: () => widget.onDownloadEpisode!(episode),
-                    icon: const Icon(Icons.download_rounded, size: 18),
-                    label: const Text('Download'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.accent,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                if (widget.onSaveToFolder != null)
-                  OutlinedButton.icon(
-                    onPressed: () => widget.onSaveToFolder!(episode),
-                    icon: const Icon(Icons.folder_outlined, size: 18),
-                    label: const Text('Simpan ke folder'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-              ],
-            ),
-            if (metadata.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: metadata.map(metadataItem).toList(),
               ),
             ],
-            if (summary.isNotEmpty) ...[
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Container(
-                    width: 3,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: AppColors.accent,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                  const SizedBox(width: 9),
-                  Text(
-                    'Ringkasan Episode',
-                    style: AppText.body.copyWith(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF100D0B),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: const Color(0xFF302923),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Text(
+                  number == null ? 'Episode' : 'Ep ' + number,
+                  style: AppText.body.copyWith(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                child: AutoTranslatedText(
-                  text: summary,
+                const SizedBox(width: 12),
+                const Icon(Icons.visibility_outlined,
+                    color: Color(0xFF91A396), size: 20),
+                const SizedBox(width: 6),
+                Text(
+                  episode.rating != null && episode.rating! > 0
+                      ? episode.rating!.toStringAsFixed(0)
+                      : '—',
                   style: AppText.body.copyWith(
-                    color: Colors.white70,
-                    height: 1.65,
+                    color: const Color(0xFF91A396),
+                    fontSize: 16,
                   ),
-                  showToggle: false,
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                roundAction(
+                  Icons.bookmark_border_rounded,
+                  widget.onSaveToFolder == null
+                      ? null
+                      : () => widget.onSaveToFolder!(episode),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SizedBox(
+                    height: 52,
+                    child: FilledButton.icon(
+                      onPressed: widget.onDownloadEpisode == null
+                          ? null
+                          : () => widget.onDownloadEpisode!(episode),
+                      icon: const Icon(Icons.download_rounded, size: 23),
+                      label: const Text('Unduh'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF100D0B),
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF302923)),
+                        shape: const StadiumBorder(),
+                        textStyle: AppText.body.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                roundAction(Icons.warning_amber_rounded, null),
+              ],
+            ),
+            const SizedBox(height: 36),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  'Episode',
+                  style: AppText.title.copyWith(
+                    color: Colors.white,
+                    fontSize: 23,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  episodes.length.toString() + ' Eps',
+                  style: AppText.body.copyWith(
+                    color: const Color(0xFF91A396),
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 112,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: episodes.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final item = episodes[index];
+                  final selected = index == activeIndex;
+                  final image = (item.thumbnail?.trim().isNotEmpty ?? false)
+                      ? item.thumbnail!.trim()
+                      : widget.cover;
+                  final itemNumber = item.number?.toString().replaceFirst(
+                        RegExp(r'\.0$'),
+                        '',
+                      ) ?? (index + 1).toString();
+                  return GestureDetector(
+                    onTap: () => _c.selectEpisode(index),
+                    child: Container(
+                      width: 290,
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF171717),
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(
+                          color: selected
+                              ? AppColors.accent
+                              : const Color(0xFF242424),
+                          width: selected ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (image != null && image.isNotEmpty)
+                            CachedNetworkImage(
+                              imageUrl: image,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) =>
+                                  const ColoredBox(color: Color(0xFF202020)),
+                            )
+                          else
+                            const ColoredBox(color: Color(0xFF202020)),
+                          const DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Color(0xCC000000),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 10,
+                            right: 8,
+                            bottom: 9,
+                            child: Text(
+                              'Episode ' + itemNumber,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppText.body.copyWith(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (selected)
+                            Positioned(
+                              top: 7,
+                              right: 7,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 9,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accent,
+                                  borderRadius: BorderRadius.circular(7),
+                                ),
+                                child: Text(
+                                  'Sedang ditonton',
+                                  style: AppText.caption.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          if (selected)
+                            const Positioned(
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              child: SizedBox(
+                                height: 4,
+                                child: ColoredBox(color: AppColors.accent),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (summary.isNotEmpty) ...[
+              const SizedBox(height: 34),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 15, 16, 18),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF100D0B),
+                  borderRadius: BorderRadius.circular(19),
+                  border: Border.all(color: const Color(0xFF302923)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.subject_rounded,
+                            color: AppColors.accent, size: 22),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Ringkasan Episode',
+                            style: AppText.body.copyWith(
+                              color: Colors.white,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const Icon(Icons.keyboard_arrow_down_rounded,
+                            color: Color(0xFF91A396)),
+                      ],
+                    ),
+                    const SizedBox(height: 28),
+                    AutoTranslatedText(
+                      text: summary,
+                      style: AppText.body.copyWith(
+                        color: const Color(0xFFE1E1E1),
+                        fontSize: 16,
+                        height: 1.55,
+                      ),
+                      showToggle: false,
+                    ),
+                  ],
                 ),
               ),
             ],
