@@ -2201,12 +2201,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
               style: AppText.caption.copyWith(color: Colors.white70),
             ),
             const SizedBox(height: 4),
-            Text(
-              hasName ? 'E$epNum · $name' : 'Episode $epNum',
-              style: AppText.headline.copyWith(color: Colors.white),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
+            if (hasName)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('E$epNum · ', style: AppText.headline.copyWith(color: Colors.white)),
+                  Expanded(
+                    child: AutoTranslatedText(
+                      text: name,
+                      style: AppText.headline.copyWith(color: Colors.white),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      showToggle: false,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text('Episode $epNum', style: AppText.headline.copyWith(color: Colors.white), maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 12),
             Row(
               children: [
