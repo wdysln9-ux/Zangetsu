@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - feat/cinematic-ambient-lighting
+      - ui/episode-loading-notch-save-block
     paths-ignore:
       - "preview/**"
       - ".github/workflows/preview-pages.yml"
