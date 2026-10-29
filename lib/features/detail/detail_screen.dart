@@ -125,6 +125,18 @@ import 'cubit/detail_cubit.dart';
 import 'wrong_title_sheet.dart';
 import '../../l10n/l10n.dart';
 
+String _yearWithSeason(String year, DateTime? startDate) {
+  if (startDate == null) return year;
+  final season = switch (startDate.month) {
+    <= 3 => 'Winter',
+    <= 6 => 'Spring',
+    <= 9 => 'Summer',
+    _ => 'Fall',
+  };
+  return '$season $year';
+}
+
+
 part 'detail_hero.dart';
 part 'detail_info.dart';
 part 'detail_episodes.dart';
@@ -2187,7 +2199,9 @@ class _DetailViewState extends State<_DetailView>
     // duration each got a turn here and each cost more than it paid; they
     // live in the Details tab now, where there is room to read them.
     final metaParts = <String>[];
-    if ((detail.year ?? '').isNotEmpty) metaParts.add(detail.year!);
+    if ((detail.year ?? '').isNotEmpty) {
+      metaParts.add(_yearWithSeason(detail.year!, detail.startDate));
+    }
     // A film has no episode count to fill the middle slot, so its run time
     // takes it — there it IS the thing worth knowing before pressing play.
     if (!isReading && eps.length <= 1 && (detail.durationMins ?? 0) > 0) {
