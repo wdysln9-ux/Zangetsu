@@ -7,6 +7,7 @@ on:
       - main
       - feat/cinematic-ambient-lighting
       - feat/auto-translate-synopsis
+      - feat/portrait-episode-details
     paths-ignore:
       - "preview/**"
       - ".github/workflows/preview-pages.yml"

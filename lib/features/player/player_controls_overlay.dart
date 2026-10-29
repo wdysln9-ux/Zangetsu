@@ -17,6 +17,7 @@ class _ControlsOverlay extends StatelessWidget {
     required this.onLock,
     required this.onRotate,
     required this.portraitMode,
+    this.episodeDetailMode = false,
     required this.onSettings,
     required this.barConfig,
     required this.onZoom,
@@ -60,6 +61,7 @@ class _ControlsOverlay extends StatelessWidget {
   final VoidCallback
   onRotate; // flip between locked landscape and locked portrait
   final bool portraitMode; // true while watching upright
+  final bool episodeDetailMode;
   final VoidCallback onSettings;
 
   /// The user's control arrangement — which bar each control sits on, in what
@@ -333,6 +335,15 @@ class _ControlsOverlay extends StatelessWidget {
       case 'fit':
         return (_fitIcon(zoomLabel), 'Aspect ratio · $zoomLabel', onZoom);
       case 'rotate':
+        if (episodeDetailMode) {
+          return (
+            portraitMode
+                ? Icons.fullscreen_rounded
+                : Icons.fullscreen_exit_rounded,
+            portraitMode ? 'Fullscreen' : 'Episode details',
+            onRotate,
+          );
+        }
         return (
           Icons.screen_rotation_rounded,
           portraitMode ? 'Landscape' : 'Portrait',

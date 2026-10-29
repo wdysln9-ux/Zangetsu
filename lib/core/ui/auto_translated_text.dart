@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../metadata/synopsis_translator.dart';
 import '../theme/app_colors.dart';
 
-/// Shows Indonesian text when available while preserving the original toggle.
+/// Shows Indonesian text when available while showing the Indonesian translation without an original-text toggle.
 /// Translation is best-effort; the original remains visible if it fails.
 class AutoTranslatedText extends StatefulWidget {
   const AutoTranslatedText({
@@ -13,7 +13,7 @@ class AutoTranslatedText extends StatefulWidget {
     this.maxLines,
     this.overflow,
     this.textAlign,
-    this.showToggle = true,
+    this.showToggle = false,
   });
 
   final String text;

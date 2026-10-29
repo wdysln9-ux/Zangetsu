@@ -168,12 +168,25 @@ class PlayerScreen extends StatefulWidget {
     this.joinRoomCode,
     this.playerOverride,
     this.initialSource,
+    this.episodeDetailMode = false,
+    this.onDownloadEpisode,
+    this.onSaveToFolder,
   });
 
   /// A mirror picked from the episode list's long-press menu, opened instead
   /// of the adaptive default. One-shot: the cubit clears it after the first
   /// episode so nothing later is affected.
   final VideoSource? initialSource;
+
+  /// Start in a portrait episode page with the live player above its metadata.
+  /// The same PlayerCubit and VideoController remain mounted when going fullscreen.
+  final bool episodeDetailMode;
+
+  /// Optional download action supplied by the title detail screen.
+  final Future<void> Function(Episode episode)? onDownloadEpisode;
+
+  /// Optional action to save the current title into a My List folder.
+  final Future<void> Function(Episode episode)? onSaveToFolder;
 
   /// Set by the episode list's long-press sheet: play this one episode here,
   /// ignoring the Settings default. Empty string means the built-in player
@@ -467,6 +480,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   @override
   void initState() {
     super.initState();
+    _showEpisodeDetails = widget.episodeDetailMode;
+    _portraitMode = widget.episodeDetailMode;
     _loadCinematicLightingPrefs();
     // Refresh the "enhancement shaders downloaded?" flag so the in-player picker
     // gates correctly (they're fetched on demand from Settings). Fire-and-forget.
@@ -485,6 +500,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// Watching upright (the ⟳ button). Starts false — every episode opens
   /// landscape, as it always has.
   bool _portraitMode = false;
+  bool _showEpisodeDetails = false;
 
   /// The orientation this player holds right now. Single source of truth: the
   /// screen pins orientation in more than one place (open, and either side of
@@ -501,7 +517,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// shouldn't flip the video mid-episode, and this still works for people who
   /// keep system auto-rotate switched off.
   void _toggleOrientation() {
-    setState(() => _portraitMode = !_portraitMode);
+    setState(() {
+      _portraitMode = !_portraitMode;
+      if (widget.episodeDetailMode) _showEpisodeDetails = _portraitMode;
+    });
     SystemChrome.setPreferredOrientations(_orientationLock);
     _bumpControls();
   }
@@ -559,8 +578,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   void _initInApp() {
     _routeTeardownLease ??= playerRouteTeardownBarrier.acquire();
-    _turnLandscapeWhenCovered();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    if (_showEpisodeDetails) {
+      SystemChrome.setPreferredOrientations(const [DeviceOrientation.portraitUp]);
+    } else {
+      _turnLandscapeWhenCovered();
+    }
+    SystemChrome.setEnabledSystemUIMode(
+      _showEpisodeDetails ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky,
+    );
+    if (_showEpisodeDetails) {
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+        statusBarColor: Colors.black,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.black,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: Colors.black,
+      ));
+    }
     // Wake-lock is bound to playback in _startSession, once the player exists.
     // The volume swipe sets the real system volume; hide the OS volume bar so
     // only our own HUD shows (CloudStream draws its own too). Restored on exit.
@@ -1698,7 +1732,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     // Back to whichever orientation you were watching in — not landscape by
     // default, or a portrait session would end up sideways after a settings trip.
     await SystemChrome.setPreferredOrientations(_orientationLock);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setEnabledSystemUIMode(
+      _showEpisodeDetails ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky,
+    );
     if (!mounted) return;
     if (wasPlaying && !_c.player.state.playing) _c.togglePlay();
     _bumpControls();
@@ -2671,6 +2707,316 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
+  Widget _buildEpisodeDetailsPanel() {
+    final episode = _c.currentEpisode;
+    final title = (episode.metaTitle?.trim().isNotEmpty ?? false)
+        ? episode.metaTitle!.trim()
+        : episode.title.trim();
+    final summary = episode.description?.trim() ?? '';
+    final number = episode.number?.toString().replaceFirst(RegExp(r'\.0$'), '');
+    final episodes = _c.episodes;
+    final activeIndex = _c.state.currentIndex;
+
+    Widget roundAction(IconData icon, VoidCallback? onPressed) => SizedBox(
+      width: 44,
+      height: 44,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          backgroundColor: const Color(0xFF100D0B),
+          side: const BorderSide(color: Color(0xFF302923)),
+          shape: const CircleBorder(),
+          padding: EdgeInsets.zero,
+        ),
+        child: Icon(icon, size: 21),
+      ),
+    );
+
+    return ColoredBox(
+      color: Colors.black,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.showTitle?.trim().isNotEmpty ?? false)
+              Text(
+                widget.showTitle!.trim(),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.title.copyWith(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  height: 1.18,
+                ),
+              ),
+            const SizedBox(height: 6),
+            Text(
+              title.isEmpty ? ('Episode ' + (number ?? '')) : title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppText.body.copyWith(
+                color: const Color(0xFF91A396),
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Text(
+                  number == null ? 'Episode' : 'Ep ' + number,
+                  style: AppText.body.copyWith(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Icon(Icons.visibility_outlined,
+                    color: Color(0xFF91A396), size: 17),
+                const SizedBox(width: 6),
+                Text(
+                  episode.rating != null && episode.rating! > 0
+                      ? episode.rating!.toStringAsFixed(0)
+                      : '—',
+                  style: AppText.body.copyWith(
+                    color: const Color(0xFF91A396),
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                roundAction(
+                  Icons.bookmark_border_rounded,
+                  widget.onSaveToFolder == null
+                      ? null
+                      : () => widget.onSaveToFolder!(episode),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SizedBox(
+                    height: 44,
+                    child: FilledButton.icon(
+                      onPressed: widget.onDownloadEpisode == null
+                          ? null
+                          : () => widget.onDownloadEpisode!(episode),
+                      icon: const Icon(Icons.download_rounded, size: 19),
+                      label: const Text('Unduh'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF100D0B),
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF302923)),
+                        shape: const StadiumBorder(),
+                        textStyle: AppText.body.copyWith(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                roundAction(Icons.warning_amber_rounded, null),
+              ],
+            ),
+            const SizedBox(height: 22),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  'Episode',
+                  style: AppText.title.copyWith(
+                    color: Colors.white,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  episodes.length.toString() + ' Eps',
+                  style: AppText.body.copyWith(
+                    color: const Color(0xFF91A396),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 104,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: episodes.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final item = episodes[index];
+                  final selected = index == activeIndex;
+                  final image = (item.thumbnail?.trim().isNotEmpty ?? false)
+                      ? item.thumbnail!.trim()
+                      : widget.cover;
+                  final itemNumber = item.number?.toString().replaceFirst(
+                        RegExp(r'\.0$'),
+                        '',
+                      ) ?? (index + 1).toString();
+                  return GestureDetector(
+                    onTap: () {
+                      if (index != _c.state.currentIndex) _c.openEpisode(index);
+                      _bumpControls();
+                    },
+                    child: Container(
+                      width: 185,
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF171717),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: selected
+                              ? AppColors.accent
+                              : const Color(0xFF242424),
+                          width: 1,
+                        ),
+                      ),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (image != null && image.isNotEmpty)
+                            CachedNetworkImage(
+                              imageUrl: image,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, __, ___) =>
+                                  const ColoredBox(color: Color(0xFF202020)),
+                            )
+                          else
+                            const ColoredBox(color: Color(0xFF202020)),
+                          const DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Color(0xCC000000),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 10,
+                            right: 8,
+                            bottom: 9,
+                            child: Text(
+                              'Episode ' + itemNumber,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppText.body.copyWith(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (selected)
+                            Positioned(
+                              top: 7,
+                              right: 7,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accent,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'Sedang ditonton',
+                                  style: AppText.caption.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            if (summary.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF100D0B),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFF302923)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.subject_rounded,
+                            color: AppColors.accent, size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Ringkasan Episode',
+                            style: AppText.body.copyWith(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        const Icon(Icons.keyboard_arrow_down_rounded,
+                            color: Color(0xFF91A396)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      [
+                        if (number != null) 'Episode $number',
+                        if (title.isNotEmpty) title,
+                      ].join(' · '),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.body.copyWith(
+                        color: const Color(0xFF91A396),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    AutoTranslatedText(
+                      text: summary,
+                      style: AppText.body.copyWith(
+                        color: const Color(0xFFE1E1E1),
+                        fontSize: 14,
+                        height: 1.45,
+                      ),
+                      showToggle: false,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // A Watch Together join that couldn't resolve the room's source — explain
@@ -2825,12 +3171,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             }
             // Passive Listener tracks raw pointers for pinch-to-zoom so it never
             // competes with the 1-finger gesture detector inside the Stack.
-            return Listener(
-              onPointerDown: _onPointerDown,
-              onPointerMove: _onPointerMove,
-              onPointerUp: _onPointerUp,
-              onPointerCancel: _onPointerUp,
-              child: Stack(
+            final playerStack = Stack(
                 fit: StackFit.expand,
                 children: [
                   // Ambient layer reuses the current video texture. The main
@@ -3319,6 +3660,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           onInteract: _bumpControls,
                           onRotate: _toggleOrientation,
                           portraitMode: _portraitMode,
+                          episodeDetailMode: widget.episodeDetailMode,
                           onBack: () => Navigator.of(context).maybePop(),
                           onSpeed: _openSpeedSheet,
                           onAudioSubs: _openAudioSubsSheet,
@@ -3546,7 +3888,43 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     },
                   ),
                 ],
-              ),
+              );
+            return Listener(
+              onPointerDown: _onPointerDown,
+              onPointerMove: _onPointerMove,
+              onPointerUp: _onPointerUp,
+              onPointerCancel: _onPointerUp,
+              child: _showEpisodeDetails
+                  ? Column(
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: playerStack,
+                        ),
+                        SizedBox(
+                          height: 3,
+                          child: StreamBuilder<Duration>(
+                            stream: _c.player.stream.position,
+                            initialData: _c.player.state.position,
+                            builder: (context, snapshot) {
+                              final duration = _c.player.state.duration;
+                              final position = snapshot.data ?? Duration.zero;
+                              final progress = duration.inMilliseconds <= 0
+                                  ? 0.0
+                                  : (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
+                              return LinearProgressIndicator(
+                                value: progress,
+                                minHeight: 3,
+                                backgroundColor: const Color(0xFF343434),
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
+                              );
+                            },
+                          ),
+                        ),
+                        Expanded(child: _buildEpisodeDetailsPanel()),
+                      ],
+                    )
+                  : playerStack,
             );
           },
         ),

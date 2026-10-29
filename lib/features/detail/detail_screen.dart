@@ -76,6 +76,7 @@ import '../../core/playback/filler_service.dart';
 import '../../core/playback/list_status_store.dart';
 import '../../core/privacy/incognito_mode.dart';
 import '../../core/playback/my_list.dart';
+import '../../core/playback/category_store.dart';
 import '../../core/ui/episode_player_sheet.dart';
 import '../../core/ui/list_status_sheet.dart';
 import '../../core/ui/tracker_list_sheet.dart';
@@ -1411,6 +1412,10 @@ class _DetailViewState extends State<_DetailView>
         .push(
           MaterialPageRoute(
             builder: (_) => PlayerScreen(
+              episodeDetailMode: true,
+              onSaveToFolder: (_) => _openListSheet(detail),
+              onDownloadEpisode: (episode) =>
+                  _downloadSingle(episode, detail, launchCategory),
               playerOverride: playerOverride?.package,
               initialSource: initialSource,
               sourceId: widget.item.sourceId,
@@ -1821,6 +1826,46 @@ class _DetailViewState extends State<_DetailView>
 
   /// Per-episode / movie download → resolve sources, let the user pick a
   /// server/mirror, then download that exact url + headers.
+  Future<void> _saveTitleToFolder() async {
+    final categories = sl<CategoryStore>().all();
+    if (categories.isEmpty) {
+      _snack('Belum ada folder. Buat folder terlebih dahulu di My List.');
+      return;
+    }
+    final selected = await showModalBottomSheet<ListCategory>(
+      context: context,
+      backgroundColor: const Color(0xFF171717),
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(4, 8, 4, 12),
+              child: Text('Simpan ke folder', style: TextStyle(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700,
+              )),
+            ),
+            for (final folder in categories)
+              ListTile(
+                leading: const Icon(Icons.folder_outlined, color: Colors.white70),
+                title: Text(folder.name, style: const TextStyle(color: Colors.white)),
+                onTap: () => Navigator.pop(sheetContext, folder),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selected == null || !mounted) return;
+    final list = sl<MyListStore>();
+    if (!list.contains(widget.item)) {
+      await list.add(widget.item);
+    }
+    await sl<CategoryStore>().setMembership(widget.item, selected.id, true);
+    if (mounted) _snack('Disimpan ke folder ${selected.name}');
+  }
+
   Future<void> _downloadSingle(
     Episode ep,
     MediaDetail detail,
