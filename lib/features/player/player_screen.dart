@@ -2643,12 +2643,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ),
               );
             }
-            if (state.loadingSources) {
-              return _loadingBackdropBody(
-                'Finding the best source…',
-                thumb: _c.currentEpisode.thumbnail,
-              );
-            }
+            // Source resolution runs while the player page is already visible.
+            // Do not replace the episode view with a full-screen "Finding the
+            // best source" page; the video surface stays ready for the stream.
             // Torrent source buffering: "Finding peers…" / "Buffering N%".
             if (state.torrentPhase != null) {
               return _loadingBackdropBody(
