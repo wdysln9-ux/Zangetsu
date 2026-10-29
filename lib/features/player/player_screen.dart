@@ -2740,29 +2740,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (widget.showTitle?.trim().isNotEmpty ?? false)
+              Text(
+                widget.showTitle!.trim(),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.title.copyWith(
+                  color: Colors.white,
+                  fontSize: 25,
+                  fontWeight: FontWeight.w700,
+                  height: 1.18,
+                ),
+              ),
+            const SizedBox(height: 6),
             Text(
               title.isEmpty ? ('Episode ' + (number ?? '')) : title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: AppText.title.copyWith(
-                color: Colors.white,
-                fontSize: 25,
-                fontWeight: FontWeight.w700,
-                height: 1.18,
+              style: AppText.body.copyWith(
+                color: const Color(0xFF91A396),
+                fontSize: 16,
               ),
             ),
-            if (widget.showTitle?.trim().isNotEmpty ?? false) ...[
-              const SizedBox(height: 8),
-              Text(
-                widget.showTitle!.trim(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppText.body.copyWith(
-                  color: const Color(0xFF91A396),
-                  fontSize: 16,
-                ),
-              ),
-            ],
             const SizedBox(height: 14),
             Row(
               children: [
@@ -2993,7 +2992,21 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             color: Color(0xFF91A396)),
                       ],
                     ),
-                    const SizedBox(height: 28),
+                    const SizedBox(height: 16),
+                    Text(
+                      [
+                        if (number != null) 'Episode $number',
+                        if (title.isNotEmpty) title,
+                      ].join(' · '),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.body.copyWith(
+                        color: const Color(0xFF91A396),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     AutoTranslatedText(
                       text: summary,
                       style: AppText.body.copyWith(
