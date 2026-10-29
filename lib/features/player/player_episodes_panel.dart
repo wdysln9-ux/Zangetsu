@@ -555,8 +555,8 @@ class _EpisodesPanelState extends State<_EpisodesPanel> {
                             ),
                           ),
                           if (hasTitle)
-                            Text(
-                              title,
+                            AutoTranslatedText(
+                              text: title,
                               style: AppText.caption.copyWith(
                                 color: AppColors.textSecondary,
                                 fontSize: 12.5 * s,
@@ -564,6 +564,7 @@ class _EpisodesPanelState extends State<_EpisodesPanel> {
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
+                              showToggle: false,
                             ),
                           if (bits.isNotEmpty || isFiller)
                             Padding(
