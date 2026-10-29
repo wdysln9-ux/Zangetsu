@@ -125,18 +125,6 @@ import 'cubit/detail_cubit.dart';
 import 'wrong_title_sheet.dart';
 import '../../l10n/l10n.dart';
 
-String _yearWithSeason(String year, DateTime? startDate) {
-  if (startDate == null) return year;
-  final season = switch (startDate.month) {
-    <= 3 => 'Winter',
-    <= 6 => 'Spring',
-    <= 9 => 'Summer',
-    _ => 'Fall',
-  };
-  return '$season $year';
-}
-
-
 part 'detail_hero.dart';
 part 'detail_info.dart';
 part 'detail_episodes.dart';
