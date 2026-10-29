@@ -2718,8 +2718,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final activeIndex = _c.state.currentIndex;
 
     Widget roundAction(IconData icon, VoidCallback? onPressed) => SizedBox(
-      width: 52,
-      height: 52,
+      width: 44,
+      height: 44,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
@@ -2729,14 +2729,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
           shape: const CircleBorder(),
           padding: EdgeInsets.zero,
         ),
-        child: Icon(icon, size: 24),
+        child: Icon(icon, size: 21),
       ),
     );
 
     return ColoredBox(
       color: Colors.black,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2747,7 +2747,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 overflow: TextOverflow.ellipsis,
                 style: AppText.title.copyWith(
                   color: Colors.white,
-                  fontSize: 25,
+                  fontSize: 20,
                   fontWeight: FontWeight.w700,
                   height: 1.18,
                 ),
@@ -2759,23 +2759,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
               overflow: TextOverflow.ellipsis,
               style: AppText.body.copyWith(
                 color: const Color(0xFF91A396),
-                fontSize: 16,
+                fontSize: 14,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Text(
                   number == null ? 'Episode' : 'Ep ' + number,
                   style: AppText.body.copyWith(
                     color: Colors.white,
-                    fontSize: 17,
+                    fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(width: 12),
                 const Icon(Icons.visibility_outlined,
-                    color: Color(0xFF91A396), size: 20),
+                    color: Color(0xFF91A396), size: 17),
                 const SizedBox(width: 6),
                 Text(
                   episode.rating != null && episode.rating! > 0
@@ -2783,12 +2783,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       : '—',
                   style: AppText.body.copyWith(
                     color: const Color(0xFF91A396),
-                    fontSize: 16,
+                    fontSize: 14,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Row(
               children: [
                 roundAction(
@@ -2800,12 +2800,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: SizedBox(
-                    height: 52,
+                    height: 44,
                     child: FilledButton.icon(
                       onPressed: widget.onDownloadEpisode == null
                           ? null
                           : () => widget.onDownloadEpisode!(episode),
-                      icon: const Icon(Icons.download_rounded, size: 23),
+                      icon: const Icon(Icons.download_rounded, size: 19),
                       label: const Text('Unduh'),
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFF100D0B),
@@ -2813,7 +2813,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         side: const BorderSide(color: Color(0xFF302923)),
                         shape: const StadiumBorder(),
                         textStyle: AppText.body.copyWith(
-                          fontSize: 18,
+                          fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -2824,7 +2824,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 roundAction(Icons.warning_amber_rounded, null),
               ],
             ),
-            const SizedBox(height: 36),
+            const SizedBox(height: 22),
             Row(
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
@@ -2833,7 +2833,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   'Episode',
                   style: AppText.title.copyWith(
                     color: Colors.white,
-                    fontSize: 23,
+                    fontSize: 19,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -2842,18 +2842,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   episodes.length.toString() + ' Eps',
                   style: AppText.body.copyWith(
                     color: const Color(0xFF91A396),
-                    fontSize: 15,
+                    fontSize: 13,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             SizedBox(
-              height: 112,
+              height: 104,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: episodes.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (context, index) {
                   final item = episodes[index];
                   final selected = index == activeIndex;
@@ -2870,16 +2870,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       _bumpControls();
                     },
                     child: Container(
-                      width: 290,
+                      width: 185,
                       clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
                         color: const Color(0xFF171717),
-                        borderRadius: BorderRadius.circular(13),
+                        borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color: selected
                               ? AppColors.accent
                               : const Color(0xFF242424),
-                          width: selected ? 1.5 : 1,
+                          width: 1,
                         ),
                       ),
                       child: Stack(
@@ -2916,7 +2916,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               overflow: TextOverflow.ellipsis,
                               style: AppText.body.copyWith(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -2927,12 +2927,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               right: 7,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 9,
-                                  vertical: 5,
+                                  horizontal: 7,
+                                  vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
                                   color: AppColors.accent,
-                                  borderRadius: BorderRadius.circular(7),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
                                   'Sedang ditonton',
@@ -2943,16 +2943,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                 ),
                               ),
                             ),
-                          if (selected)
-                            Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              child: SizedBox(
-                                height: 4,
-                                child: ColoredBox(color: AppColors.accent),
-                              ),
-                            ),
+                          
                         ],
                       ),
                     ),
@@ -2961,13 +2952,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
             ),
             if (summary.isNotEmpty) ...[
-              const SizedBox(height: 34),
+              const SizedBox(height: 20),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(16, 15, 16, 18),
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
                 decoration: BoxDecoration(
                   color: const Color(0xFF100D0B),
-                  borderRadius: BorderRadius.circular(19),
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: const Color(0xFF302923)),
                 ),
                 child: Column(
@@ -2976,14 +2967,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     Row(
                       children: [
                         Icon(Icons.subject_rounded,
-                            color: AppColors.accent, size: 22),
+                            color: AppColors.accent, size: 18),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             'Ringkasan Episode',
                             style: AppText.body.copyWith(
                               color: Colors.white,
-                              fontSize: 17,
+                              fontSize: 15,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -3002,17 +2993,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: AppText.body.copyWith(
                         color: const Color(0xFF91A396),
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     AutoTranslatedText(
                       text: summary,
                       style: AppText.body.copyWith(
                         color: const Color(0xFFE1E1E1),
-                        fontSize: 16,
-                        height: 1.55,
+                        fontSize: 14,
+                        height: 1.45,
                       ),
                       showToggle: false,
                     ),
