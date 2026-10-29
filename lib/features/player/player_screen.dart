@@ -169,6 +169,7 @@ class PlayerScreen extends StatefulWidget {
     this.playerOverride,
     this.initialSource,
     this.episodeDetailMode = false,
+    this.onDownloadEpisode,
   });
 
   /// A mirror picked from the episode list's long-press menu, opened instead
@@ -179,6 +180,9 @@ class PlayerScreen extends StatefulWidget {
   /// Start in a portrait episode page with the live player above its metadata.
   /// The same PlayerCubit and VideoController remain mounted when going fullscreen.
   final bool episodeDetailMode;
+
+  /// Optional download action supplied by the title detail screen.
+  final Future<void> Function(Episode episode)? onDownloadEpisode;
 
   /// Set by the episode list's long-press sheet: play this one episode here,
   /// ignoring the Settings default. Empty string means the built-in player
@@ -2691,7 +2695,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final title = (episode.metaTitle?.trim().isNotEmpty ?? false)
         ? episode.metaTitle!.trim()
         : episode.title.trim();
-    final synopsis = episode.description?.trim() ?? '';
+    final summary = episode.description?.trim() ?? '';
     final number = episode.number?.toString().replaceFirst(RegExp(r'\.0$'), '');
     final metadata = <String>[
       if (number != null) 'Episode $number',
@@ -2747,6 +2751,36 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
               showToggle: false,
             ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _c.episodes.length > 1 ? _openEpisodesPanel : null,
+                  icon: const Icon(Icons.video_library_outlined, size: 18),
+                  label: const Text('Pilih Episode'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+                if (widget.onDownloadEpisode != null)
+                  FilledButton.icon(
+                    onPressed: () => widget.onDownloadEpisode!(episode),
+                    icon: const Icon(Icons.download_rounded, size: 18),
+                    label: const Text('Download'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.accent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+              ],
+            ),
             if (metadata.isNotEmpty) ...[
               const SizedBox(height: 14),
               Wrap(
@@ -2755,7 +2789,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 children: metadata.map(metadataItem).toList(),
               ),
             ],
-            if (synopsis.isNotEmpty) ...[
+            if (summary.isNotEmpty) ...[
               const SizedBox(height: 24),
               Row(
                 children: [
@@ -2790,7 +2824,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   ),
                 ),
                 child: AutoTranslatedText(
-                  text: synopsis,
+                  text: summary,
                   style: AppText.body.copyWith(
                     color: Colors.white70,
                     height: 1.65,
