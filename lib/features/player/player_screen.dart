@@ -2945,7 +2945,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               ),
                             ),
                           if (selected)
-                            const Positioned(
+                            Positioned(
                               left: 0,
                               right: 0,
                               bottom: 0,
