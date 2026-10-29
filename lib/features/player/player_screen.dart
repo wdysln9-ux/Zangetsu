@@ -2769,7 +2769,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   ),
                   const SizedBox(width: 9),
                   Text(
-                    'Sinopsis episode',
+                    'Ringkasan Episode',
                     style: AppText.body.copyWith(
                       color: Colors.white,
                       fontSize: 16,
