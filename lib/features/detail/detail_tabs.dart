@@ -410,6 +410,17 @@ class _RelationsTab extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+String _yearWithSeason(String year, DateTime? startDate) {
+  if (startDate == null) return year;
+  final season = switch (startDate.month) {
+    <= 3 => 'Winter',
+    <= 6 => 'Spring',
+    <= 9 => 'Summer',
+    _ => 'Fall',
+  };
+  return '$season $year';
+}
+
 // Details tab — source / status / genres / studios / episode count / synopsis.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -452,7 +463,10 @@ class _DetailsTab extends StatelessWidget {
         if (statusStr.isNotEmpty)
           _DetailRow(label: context.l10n.status, value: statusStr),
         if ((year ?? '').isNotEmpty)
-          _DetailRow(label: context.l10n.year, value: year!),
+          _DetailRow(
+            label: context.l10n.year,
+            value: _yearWithSeason(year!, detail?.startDate),
+          ),
         _DetailRow(
           label: reading ? context.l10n.chapters : context.l10n.episodes,
           value: '$episodeCount',
@@ -467,12 +481,22 @@ class _DetailsTab extends StatelessWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: studios.map((name) => ActionChip(
-              label: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis),
-              onPressed: () => Navigator.of(context).push(StudioPage.route(name)),
-              backgroundColor: AppColors.surface,
-              side: BorderSide(color: AppColors.accent.withValues(alpha: 0.45)),
-              labelStyle: AppText.body.copyWith(color: AppColors.accent),
+            children: studios.map((name) => InkWell(
+              borderRadius: BorderRadius.circular(4),
+              onTap: () => Navigator.of(context).push(StudioPage.route(name)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 1),
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.body.copyWith(
+                    color: AppColors.textPrimary,
+                    decoration: TextDecoration.underline,
+                    decorationColor: AppColors.textTertiary,
+                  ),
+                ),
+              ),
             )).toList(),
           ),
         ],
