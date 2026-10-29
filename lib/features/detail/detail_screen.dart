@@ -1413,6 +1413,7 @@ class _DetailViewState extends State<_DetailView>
           MaterialPageRoute(
             builder: (_) => PlayerScreen(
               episodeDetailMode: true,
+              onSaveToFolder: (_) => _openListSheet(detail),
               onDownloadEpisode: (episode) =>
                   _downloadSingle(episode, detail, launchCategory),
               playerOverride: playerOverride?.package,
