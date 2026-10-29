@@ -170,6 +170,7 @@ class PlayerScreen extends StatefulWidget {
     this.initialSource,
     this.episodeDetailMode = false,
     this.onDownloadEpisode,
+    this.onSaveToFolder,
   });
 
   /// A mirror picked from the episode list's long-press menu, opened instead
@@ -183,6 +184,9 @@ class PlayerScreen extends StatefulWidget {
 
   /// Optional download action supplied by the title detail screen.
   final Future<void> Function(Episode episode)? onDownloadEpisode;
+
+  /// Optional action to save the current title into a My List folder.
+  final Future<void> Function(Episode episode)? onSaveToFolder;
 
   /// Set by the episode list's long-press sheet: play this one episode here,
   /// ignoring the Settings default. Empty string means the built-in player
@@ -2775,6 +2779,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.accent,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                if (widget.onSaveToFolder != null)
+                  OutlinedButton.icon(
+                    onPressed: () => widget.onSaveToFolder!(episode),
+                    icon: const Icon(Icons.folder_outlined, size: 18),
+                    label: const Text('Simpan ke folder'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: BorderSide(color: Colors.white.withValues(alpha: 0.22)),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
