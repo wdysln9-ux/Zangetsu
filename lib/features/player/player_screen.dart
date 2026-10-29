@@ -583,7 +583,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     } else {
       _turnLandscapeWhenCovered();
     }
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setEnabledSystemUIMode(
+      _showEpisodeDetails ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky,
+    );
     // Wake-lock is bound to playback in _startSession, once the player exists.
     // The volume swipe sets the real system volume; hide the OS volume bar so
     // only our own HUD shows (CloudStream draws its own too). Restored on exit.
@@ -1721,7 +1723,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     // Back to whichever orientation you were watching in — not landscape by
     // default, or a portrait session would end up sideways after a settings trip.
     await SystemChrome.setPreferredOrientations(_orientationLock);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setEnabledSystemUIMode(
+      _showEpisodeDetails ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky,
+    );
     if (!mounted) return;
     if (wasPlaying && !_c.player.state.playing) _c.togglePlay();
     _bumpControls();
@@ -2726,9 +2730,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
 
     return ColoredBox(
-      color: const Color(0xFF080808),
+      color: Colors.black,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2736,9 +2740,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
               Text(
                 widget.showTitle!.trim(),
                 style: AppText.caption.copyWith(
-                  color: AppColors.accent,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.7,
+                  color: const Color(0xFF91A396),
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -2749,9 +2753,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
               text: title.isEmpty ? 'Episode' : title,
               style: AppText.title.copyWith(
                 color: Colors.white,
-                fontSize: 21,
-                fontWeight: FontWeight.w800,
-                height: 1.25,
+                fontSize: 25,
+                fontWeight: FontWeight.w700,
+                height: 1.18,
               ),
               showToggle: false,
             ),
@@ -2833,10 +2837,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.045),
-                  borderRadius: BorderRadius.circular(14),
+                  color: const Color(0xFF100D0B),
+                  borderRadius: BorderRadius.circular(18),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.07),
+                    color: const Color(0xFF302923),
                   ),
                 ),
                 child: AutoTranslatedText(
@@ -3738,6 +3742,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         AspectRatio(
                           aspectRatio: 16 / 9,
                           child: playerStack,
+                        ),
+                        SizedBox(
+                          height: 3,
+                          child: StreamBuilder<Duration>(
+                            stream: _c.player.stream.position,
+                            initialData: _c.player.state.position,
+                            builder: (context, snapshot) {
+                              final duration = _c.player.state.duration;
+                              final position = snapshot.data ?? Duration.zero;
+                              final progress = duration.inMilliseconds <= 0
+                                  ? 0.0
+                                  : (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0);
+                              return LinearProgressIndicator(
+                                value: progress,
+                                minHeight: 3,
+                                backgroundColor: const Color(0xFF343434),
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.accent),
+                              );
+                            },
+                          ),
                         ),
                         Expanded(child: _buildEpisodeDetailsPanel()),
                       ],
