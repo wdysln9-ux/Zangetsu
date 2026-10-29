@@ -17,6 +17,11 @@ import '../theme/app_text.dart';
 Future<void> showCategoryPicker(BuildContext context, MediaItem item) async {
   if (!sl.isRegistered<CategoryStore>()) return;
   final store = sl<CategoryStore>();
+  final selected = store
+      .all()
+      .where((category) => store.isIn(item, category.id))
+      .map((category) => category.id)
+      .toSet();
 
   if (store.all().isEmpty) {
     final made = await _promptNewCategory(context, store);
@@ -47,16 +52,21 @@ Future<void> showCategoryPicker(BuildContext context, MediaItem item) async {
                 children: [
                   for (final c in store.all())
                     CheckboxListTile(
-                      value: store.isIn(item, c.id),
+                      value: selected.contains(c.id),
                       activeColor: AppColors.accent,
                       title: Text(
                         c.name,
                         style:
                             AppText.body.copyWith(color: AppColors.textPrimary),
                       ),
-                      onChanged: (v) async {
-                        await store.setMembership(item, c.id, v ?? false);
-                        setSheetState(() {});
+                      onChanged: (v) {
+                        setSheetState(() {
+                          if (v ?? false) {
+                            selected.add(c.id);
+                          } else {
+                            selected.remove(c.id);
+                          }
+                        });
                       },
                     ),
                 ],
@@ -72,12 +82,33 @@ Future<void> showCategoryPicker(BuildContext context, MediaItem item) async {
                 final made = await _promptNewCategory(ctx, store);
                 // Filing it straight away saves a second trip through the sheet.
                 if (made != null) {
-                  await store.setMembership(item, made.id, true);
-                  setSheetState(() {});
+                  setSheetState(() => selected.add(made.id));
                 }
               },
             ),
-            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () async {
+                    for (final category in store.all()) {
+                      await store.setMembership(
+                        item,
+                        category.id,
+                        selected.contains(category.id),
+                      );
+                    }
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    minimumSize: const Size.fromHeight(48),
+                  ),
+                  child: const Text('Save'),
+                ),
+              ),
+            ),
           ],
         ),
       ),
