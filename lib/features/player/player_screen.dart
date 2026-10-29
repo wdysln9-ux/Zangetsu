@@ -3402,6 +3402,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           onInteract: _bumpControls,
                           onRotate: _toggleOrientation,
                           portraitMode: _portraitMode,
+                          episodeDetailMode: widget.episodeDetailMode,
                           onBack: () => Navigator.of(context).maybePop(),
                           onSpeed: _openSpeedSheet,
                           onAudioSubs: _openAudioSubsSheet,
