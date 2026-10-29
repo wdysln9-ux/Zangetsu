@@ -214,6 +214,10 @@ class MainActivity : AppCompatActivity(), FlutterEngineConfigurator {
         // The manifest meta-data is unchanged; we just have to read it ourselves.
         switchLaunchThemeForNormalTheme()
         super.onCreate(savedInstanceState)
+        // Keep the physical camera cutout visible against the app's black
+        // surfaces. The launch theme already enables short-edge cutout layout;
+        // a slightly lighter status-bar backdrop gives the black notch contrast.
+        window.statusBarColor = android.graphics.Color.rgb(22, 22, 22)
         reconcileIconAliases()
         setContentView(R.layout.activity_main)
         // Survives configuration changes / process death: re-attaching a second
