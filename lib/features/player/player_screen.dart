@@ -2715,7 +2715,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final summary = episode.description?.trim() ?? '';
     final number = episode.number?.toString().replaceFirst(RegExp(r'\.0$'), '');
     final episodes = _c.episodes;
-    final activeIndex = _c.state.activeEpisodeIndex;
+    final activeIndex = _c.state.currentIndex;
 
     Widget roundAction(IconData icon, VoidCallback? onPressed) => SizedBox(
       width: 52,
@@ -2866,7 +2866,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         '',
                       ) ?? (index + 1).toString();
                   return GestureDetector(
-                    onTap: () => _c.selectEpisode(index),
+                    onTap: () {
+                      if (index != _c.state.currentIndex) _c.openEpisode(index);
+                      _bumpControls();
+                    },
                     child: Container(
                       width: 290,
                       clipBehavior: Clip.antiAlias,
