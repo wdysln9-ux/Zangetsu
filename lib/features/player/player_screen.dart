@@ -2903,7 +2903,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
             const SizedBox(height: 10),
             Transform.translate(
               offset: const Offset(-16, 0),
-              child: SizedBox(
                 width: MediaQuery.of(context).size.width,
                 child: SizedBox(
               child: SizedBox(
