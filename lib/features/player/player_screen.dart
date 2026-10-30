@@ -2789,7 +2789,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     return ColoredBox(
       color: Colors.black,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
