@@ -1941,7 +1941,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                         ),
                       if (episodeNumber != null && title.isNotEmpty)
-                        const SizedBox(width: 8),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 7),
+                          child: Text(
+                            '·',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
                       if (title.isNotEmpty)
                         Expanded(
                           child: AutoTranslatedText(
@@ -2911,11 +2921,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
             Transform.translate(
               offset: const Offset(-16, 0),
               child: SizedBox(
-                width: MediaQuery.of(context).size.width,
+                width: MediaQuery.of(context).size.width + 32,
                 child: SizedBox(
                   height: 112,
                   child: ListView.separated(
-                  padding: const EdgeInsets.only(left: 16, right: 0),
+                  padding: const EdgeInsets.only(left: 16, right: 32),
                   controller: _episodeCardsScroll,
                   scrollDirection: Axis.horizontal,
                   itemCount: episodes.length,
