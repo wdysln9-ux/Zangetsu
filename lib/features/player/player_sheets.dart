@@ -764,6 +764,7 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
     await _prefs.setSubtitleOutlineWidth(2.0);
     await _prefs.setSubtitleFontWeight(500);
     await _prefs.setSubtitleShadowAngle(90.0);
+    await _prefs.setSubtitleShadowThickness(1.0);
     await _prefs.setSubtitleShadowDistance(1.0);
     await _prefs.setSubtitleShadowBlur(0.0);
     await _prefs.setSubtitleShadowColorHex('#000000FF');
@@ -781,7 +782,7 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
@@ -826,8 +827,7 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
           // the real overlay, so what you see here is what renders on the video.
           Container(
             margin: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-            height: (MediaQuery.of(context).size.width - 48) * 9 / 16,
-            constraints: const BoxConstraints(maxHeight: 250),
+            height: ((MediaQuery.of(context).size.width - 48) * 9 / 16).clamp(130.0, 220.0),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
@@ -846,16 +846,12 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
               ),
             ),
           ),
-          Flexible(
+          Expanded(
             child: ListView(
-              shrinkWrap: true,
+              padding: const EdgeInsets.only(bottom: 20),
               children: [
                 _SheetSectionHeader(context.l10n.font),
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: h * 0.28),
-                  child: ListView(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
+                Column(
                     children: [
                       for (final f in kBundledSubtitleFonts)
                         _SheetRow(
@@ -886,7 +882,6 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
                       ),
                     ],
                   ),
-                ),
                 _SheetSectionHeader(context.l10n.textColour),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
@@ -978,6 +973,15 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
                   label: _prefs.subtitleOutlineWidth.toStringAsFixed(1),
                   onChanged: (v) =>
                       _apply(() => _prefs.setSubtitleOutlineWidth(v)),
+                ),
+                _SheetSectionHeader('Ketebalan Bayangan'),
+                _SliderRow(
+                  value: _prefs.subtitleShadowThickness,
+                  min: 0,
+                  max: 10,
+                  divisions: 20,
+                  label: '${_prefs.subtitleShadowThickness.toStringAsFixed(1)} px',
+                  onChanged: (v) => _apply(() => _prefs.setSubtitleShadowThickness(v)),
                 ),
                 _SheetSectionHeader('Sudut Bayangan'),
                 _SliderRow(
