@@ -2901,11 +2901,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              height: 112,
-              child: ListView.separated(
-                controller: _episodeCardsScroll,
-                scrollDirection: Axis.horizontal,
+            Transform.translate(
+              offset: const Offset(-16, 0),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width,
+                child: SizedBox(
+                  height: 112,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    controller: _episodeCardsScroll,
+                    scrollDirection: Axis.horizontal,
                 itemCount: episodes.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
@@ -2988,7 +2993,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                     ),
                   );
-                },
+                    },
+                  ),
+                ),
               ),
             ),
             if (summary.isNotEmpty) ...[
