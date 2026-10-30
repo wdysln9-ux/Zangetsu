@@ -694,6 +694,7 @@ class _HomeViewState extends State<_HomeView>
       context,
       MaterialPageRoute(
         builder: (_) => PlayerScreen(
+          episodeDetailMode: true,
           sourceId: e.sourceId,
           episodesResolver: () => _repo.episodes(
             e.showUrl,
