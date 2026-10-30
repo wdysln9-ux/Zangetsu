@@ -2903,11 +2903,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
             const SizedBox(height: 10),
             Transform.translate(
               offset: const Offset(-16, 0),
+              child: SizedBox(
                 width: MediaQuery.of(context).size.width,
                 child: SizedBox(
-              child: SizedBox(
-                height: 112,
-                child: ListView.separated(
+                  height: 112,
+                  child: ListView.separated(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   controller: _episodeCardsScroll,
                   scrollDirection: Axis.horizontal,
