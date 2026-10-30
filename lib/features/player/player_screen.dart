@@ -2901,10 +2901,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            OverflowBox(
-              alignment: Alignment.center,
-              minWidth: MediaQuery.of(context).size.width,
-              maxWidth: MediaQuery.of(context).size.width,
+            Transform.translate(
+              offset: const Offset(-16, 0),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width,
+                child: SizedBox(
               child: SizedBox(
                 height: 112,
                 child: ListView.separated(
@@ -2996,6 +2997,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     },
                   ),
                 ),
+              ),
               ),
             if (summary.isNotEmpty) ...[
               const SizedBox(height: 20),
