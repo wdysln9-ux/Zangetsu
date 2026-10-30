@@ -1192,12 +1192,6 @@ class _SliderRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: AppText.body.copyWith(color: AppColors.textPrimary),
-            ),
-          ),
           IconButton(
             visualDensity: VisualDensity.compact,
             onPressed: canDec ? () => onChanged((value - step).clamp(min, max)) : null,
