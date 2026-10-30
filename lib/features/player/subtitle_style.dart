@@ -125,7 +125,7 @@ TextStyle buildSubtitleTextStyle(PlaybackPrefs p, {required double fontSize}) {
             math.cos(p.subtitleShadowAngle * math.pi / 180) * p.subtitleShadowDistance,
             math.sin(p.subtitleShadowAngle * math.pi / 180) * p.subtitleShadowDistance,
           ),
-          blurRadius: p.subtitleShadowBlur,
+          blurRadius: p.subtitleShadowBlur + p.subtitleShadowThickness,
         ),
     ],
   );
