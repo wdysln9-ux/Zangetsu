@@ -2920,7 +2920,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ? item.thumbnail!.trim()
                       : widget.cover;
                   final itemNumber = item.number?.toString().replaceFirst(
-                        RegExp(r'\.0,
+                        RegExp(r'\.0$'),
                         '',
                       ) ?? (index + 1).toString();
                   return GestureDetector(
