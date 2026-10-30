@@ -501,6 +501,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// landscape, as it always has.
   bool _portraitMode = false;
   bool _showEpisodeDetails = false;
+  final ScrollController _episodeCardsScroll = ScrollController();
+  int _lastEpisodeCardsIndex = -1;
 
   /// The orientation this player holds right now. Single source of truth: the
   /// screen pins orientation in more than one place (open, and either side of
@@ -1332,6 +1334,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   void dispose() {
+    _episodeCardsScroll.dispose();
     AppLogger.instance.log(
       '[player-route] dispose ready=$_ready '
       'loading=${_ready ? _c.state.loadingSources : 'uninitialized'} '
@@ -2747,6 +2750,25 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final number = episode.number?.toString().replaceFirst(RegExp(r'\.0$'), '');
     final episodes = _c.episodes;
     final activeIndex = _c.state.currentIndex;
+    // Keep the active episode card visible whenever the detail page opens
+    // or playback moves to another episode.
+    if (_lastEpisodeCardsIndex != activeIndex) {
+      _lastEpisodeCardsIndex = activeIndex;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_episodeCardsScroll.hasClients) return;
+        final position = _episodeCardsScroll.position;
+        const cardWidth = 185.0;
+        const itemExtent = 193.0; // card + horizontal gap
+        final target = (activeIndex * itemExtent -
+                (position.viewportDimension - cardWidth) / 2)
+            .clamp(0.0, position.maxScrollExtent);
+        _episodeCardsScroll.animateTo(
+          target,
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+        );
+      });
+    }
 
     Widget roundAction(IconData icon, VoidCallback? onPressed) => SizedBox(
       width: 44,
@@ -2882,6 +2904,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             SizedBox(
               height: 104,
               child: ListView.separated(
+                controller: _episodeCardsScroll,
                 scrollDirection: Axis.horizontal,
                 itemCount: episodes.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
@@ -2910,7 +2933,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           color: selected
                               ? AppColors.accent
                               : const Color(0xFF242424),
-                          width: 1,
+                          width: selected ? 1.8 : 1.4,
                         ),
                       ),
                       child: Stack(
