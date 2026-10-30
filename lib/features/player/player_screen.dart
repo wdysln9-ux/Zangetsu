@@ -1887,8 +1887,48 @@ class _PlayerScreenState extends State<PlayerScreen> {
         : episode.number == episode.number!.truncateToDouble()
             ? episode.number!.toInt().toString()
             : episode.number!.toString();
-    final episodeHeading = [
-                if (episodeNumber != null || title.isNotEmpty)
+    final hasHeading = episodeNumber != null || title.isNotEmpty;
+    final description = episode.description?.trim();
+
+    _bumpControls();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: const Color(0xFF17151C),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 36, vertical: 28),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560, maxHeight: 330),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 16, 22, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 15),
+                const Text(
+                  'Ringkasan Episode',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                if (hasHeading)
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1915,8 +1955,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                         ),
                     ],
-                  ),
-                if (episodeHeading.isEmpty)
+                  )
+                else
                   const Text(
                     'Episode tidak diketahui',
                     style: TextStyle(
