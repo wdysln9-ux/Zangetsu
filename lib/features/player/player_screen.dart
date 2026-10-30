@@ -522,6 +522,20 @@ class _PlayerScreenState extends State<PlayerScreen> {
       if (widget.episodeDetailMode) _showEpisodeDetails = _portraitMode;
     });
     SystemChrome.setPreferredOrientations(_orientationLock);
+    // System bars belong only to the portrait episode-details layout.
+    // Landscape playback must stay fully immersive, including navigation.
+    if (_portraitMode) {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+        statusBarColor: Color(0xFF161616),
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: Colors.black,
+        systemNavigationBarIconBrightness: Brightness.light,
+        systemNavigationBarDividerColor: Colors.black,
+      ));
+    } else {
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    }
     _bumpControls();
   }
 
@@ -1914,17 +1928,32 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   ),
                 ),
                 const SizedBox(height: 5),
-                AutoTranslatedText(
-                  text: episodeHeading.isEmpty
-                      ? 'Episode tidak diketahui'
-                      : episodeHeading,
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
+                if (episodeNumber != null)
+                  Text(
+                    'Episode $episodeNumber',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                if (title.isNotEmpty)
+                  AutoTranslatedText(
+                    text: title,
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                if (episodeHeading.isEmpty)
+                  const Text(
+                    'Episode tidak diketahui',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
                 const SizedBox(height: 12),
                 Flexible(
                   child: SingleChildScrollView(
