@@ -2806,8 +2806,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ),
               ),
             const SizedBox(height: 6),
-            Text(
-              title.isEmpty ? ('Episode ' + (number ?? '')) : title,
+            AutoTranslatedText(
+              text: title.isEmpty ? ('Episode ' + (number ?? '')) : title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: AppText.body.copyWith(
@@ -2902,12 +2902,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ),
             const SizedBox(height: 10),
             SizedBox(
-              height: 104,
+              height: 132,
               child: ListView.separated(
                 controller: _episodeCardsScroll,
                 scrollDirection: Axis.horizontal,
                 itemCount: episodes.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
                   final item = episodes[index];
                   final selected = index == activeIndex;
@@ -2915,89 +2915,78 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ? item.thumbnail!.trim()
                       : widget.cover;
                   final itemNumber = item.number?.toString().replaceFirst(
-                        RegExp(r'\.0$'),
+                        RegExp(r'\\.0$'),
                         '',
                       ) ?? (index + 1).toString();
+                  final itemTitle = (item.metaTitle?.trim().isNotEmpty ?? false)
+                      ? item.metaTitle!.trim()
+                      : item.title.trim();
                   return GestureDetector(
                     onTap: () {
                       if (index != _c.state.currentIndex) _c.openEpisode(index);
                       _bumpControls();
                     },
-                    child: Container(
-                      width: 185,
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF171717),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: selected
-                              ? AppColors.accent
-                              : const Color(0xFF242424),
-                          width: selected ? 1.8 : 1.4,
-                        ),
-                      ),
-                      child: Stack(
-                        fit: StackFit.expand,
+                    child: SizedBox(
+                      width: 160,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          if (image != null && image.isNotEmpty)
-                            CachedNetworkImage(
-                              imageUrl: image,
-                              fit: BoxFit.cover,
-                              errorWidget: (_, __, ___) =>
-                                  const ColoredBox(color: Color(0xFF202020)),
-                            )
-                          else
-                            const ColoredBox(color: Color(0xFF202020)),
-                          const DecoratedBox(
+                          Container(
+                            height: 90,
+                            width: 160,
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Color(0xCC000000),
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                color: selected
+                                    ? AppColors.accent
+                                    : const Color(0xFF514D55),
+                                width: selected ? 1.8 : 1.2,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(7),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  if (image != null && image.isNotEmpty)
+                                    CachedNetworkImage(
+                                      imageUrl: image,
+                                      fit: BoxFit.cover,
+                                      errorWidget: (_, __, ___) =>
+                                          const ColoredBox(color: Color(0xFF202020)),
+                                    )
+                                  else
+                                    const ColoredBox(color: Color(0xFF202020)),
+                                  if (selected)
+                                    Align(
+                                      alignment: Alignment.bottomCenter,
+                                      child: Container(
+                                        height: 3,
+                                        color: AppColors.accent,
+                                      ),
+                                    ),
                                 ],
                               ),
                             ),
                           ),
-                          Positioned(
-                            left: 10,
-                            right: 8,
-                            bottom: 9,
-                            child: Text(
-                              'Episode ' + itemNumber,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppText.body.copyWith(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          const SizedBox(height: 5),
+                          AutoTranslatedText(
+                            text: itemTitle.isEmpty
+                                ? 'Episode $itemNumber'
+                                : itemTitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.caption.copyWith(
+                              color: selected
+                                  ? Colors.white
+                                  : AppColors.textSecondary,
+                              fontSize: 12,
+                              height: 1.15,
+                              fontWeight: selected
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
                             ),
                           ),
-                          if (selected)
-                            Positioned(
-                              top: 7,
-                              right: 7,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.accent,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  'Sedang ditonton',
-                                  style: AppText.caption.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          
                         ],
                       ),
                     ),
