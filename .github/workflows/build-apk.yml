@@ -9,6 +9,7 @@ on:
       - feat/auto-translate-synopsis
       - feat/portrait-episode-details
       - fix/preserve-latest-features-ui
+      - fix/episode-detail-resume-ui-bugs
     paths-ignore:
       - "preview/**"
       - ".github/workflows/preview-pages.yml"
