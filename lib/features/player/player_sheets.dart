@@ -761,6 +761,11 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
     await _prefs.setSubtitleOutlineType('soft');
     await _prefs.setSubtitleOutlineColorHex('#000000FF');
     await _prefs.setSubtitleOutlineWidth(2.0);
+    await _prefs.setSubtitleFontWeight(500);
+    await _prefs.setSubtitleShadowAngle(90.0);
+    await _prefs.setSubtitleShadowDistance(1.0);
+    await _prefs.setSubtitleShadowBlur(0.0);
+    await _prefs.setSubtitleShadowColorHex('#000000FF');
     await _prefs.setSubtitleBgOpacity(0.0);
     await _prefs.setSubtitlePosition(95);
     await _prefs.setSubtitleScale(1.0);
@@ -883,6 +888,17 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
                   onChanged: (v) =>
                       _apply(() => _prefs.setSubtitleTextOpacity(v)),
                 ),
+                _SheetSectionHeader('Ketebalan Font'),
+                _SliderRow(
+                  value: _prefs.subtitleFontWeight.toDouble(),
+                  min: 100,
+                  max: 900,
+                  divisions: 8,
+                  label: _prefs.subtitleFontWeight.toString(),
+                  onChanged: (v) => _apply(
+                    () => _prefs.setSubtitleFontWeight(v.round()),
+                  ),
+                ),
                 _SheetSectionHeader(context.l10n.outlineStyle),
                 // Subtitles that carry their own styling (.ass signs, karaoke)
                 // keep it while styled subtitles are on — that is the whole
@@ -935,6 +951,57 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
                   label: _prefs.subtitleOutlineWidth.toStringAsFixed(1),
                   onChanged: (v) =>
                       _apply(() => _prefs.setSubtitleOutlineWidth(v)),
+                ),
+                _SheetSectionHeader('Sudut Bayangan'),
+                _SliderRow(
+                  value: _prefs.subtitleShadowAngle,
+                  min: 0,
+                  max: 360,
+                  divisions: 36,
+                  label: '${_prefs.subtitleShadowAngle.round()}°',
+                  onChanged: (v) => _apply(
+                    () => _prefs.setSubtitleShadowAngle(v),
+                  ),
+                ),
+                _SheetSectionHeader('Jarak Bayangan'),
+                _SliderRow(
+                  value: _prefs.subtitleShadowDistance,
+                  min: 0,
+                  max: 20,
+                  divisions: 40,
+                  label: '${_prefs.subtitleShadowDistance.toStringAsFixed(1)} px',
+                  onChanged: (v) => _apply(
+                    () => _prefs.setSubtitleShadowDistance(v),
+                  ),
+                ),
+                _SheetSectionHeader('Ukuran Bayangan'),
+                _SliderRow(
+                  value: _prefs.subtitleShadowBlur,
+                  min: 0,
+                  max: 20,
+                  divisions: 40,
+                  label: '${_prefs.subtitleShadowBlur.toStringAsFixed(1)} px',
+                  onChanged: (v) => _apply(
+                    () => _prefs.setSubtitleShadowBlur(v),
+                  ),
+                ),
+                _SheetSectionHeader('Warna Bayangan'),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Wrap(
+                    spacing: 12,
+                    children: [
+                      for (final hex in _colorHexes)
+                        _ColorSwatch(
+                          color: _colorFromHex(hex),
+                          label: _subtitleColourLabel(context.l10n, hex),
+                          active: _prefs.subtitleShadowColorHex.toUpperCase() == hex,
+                          onTap: () => _apply(
+                            () => _prefs.setSubtitleShadowColorHex(hex),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
                 _SheetSectionHeader(context.l10n.background),
                 _SliderRow(
