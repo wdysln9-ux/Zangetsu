@@ -613,19 +613,20 @@ void openSubtitleStyleSheet(
   PlayerCubit? controller,
   VoidCallback onInteract,
 ) {
-  showModalBottomSheet<void>(
+  showDialog<void>(
     context: context,
-    backgroundColor: Colors.transparent,
-    isScrollControlled: true,
-    builder: (_) => _SheetSurface(
-      blur: true,
-      opacity: 0.82,
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      child: SafeArea(
-        top: false,
-        child: _SubtitleStyleSheet(
-          controller: controller,
-          onInteract: onInteract,
+    barrierColor: Colors.black87,
+    builder: (dialogContext) => Dialog(
+      insetPadding: EdgeInsets.zero,
+      backgroundColor: const Color(0xFF17110D),
+      child: SizedBox(
+        width: MediaQuery.of(context).size.width,
+        height: MediaQuery.of(context).size.height,
+        child: SafeArea(
+          child: _SubtitleStyleSheet(
+            controller: controller,
+            onInteract: onInteract,
+          ),
         ),
       ),
     ),
@@ -793,14 +794,40 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-            child: Text(context.l10n.subtitleStyle, style: AppText.headline),
+            padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
+            child: Row(
+              children: [
+                IconButton(
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.arrow_back),
+                ),
+                Expanded(
+                  child: Text(
+                    'Kustomisasi Subtitle',
+                    style: AppText.headline,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(
+                    'Save',
+                    style: TextStyle(
+                      color: AppColors.accent,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           // Live WYSIWYG preview — built with the SAME buildSubtitleTextStyle as
           // the real overlay, so what you see here is what renders on the video.
           Container(
             margin: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-            height: 92,
+            height: (MediaQuery.of(context).size.width - 48) * 9 / 16,
+            constraints: const BoxConstraints(maxHeight: 250),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
