@@ -3033,8 +3033,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             ),
                           ),
                         ),
-                        const Icon(Icons.keyboard_arrow_down_rounded,
-                            color: Color(0xFF91A396)),
                       ],
                     ),
                     const SizedBox(height: 16),
