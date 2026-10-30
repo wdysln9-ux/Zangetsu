@@ -2908,11 +2908,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: SizedBox(
                 height: 112,
                 child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    controller: _episodeCardsScroll,
-                    scrollDirection: Axis.horizontal,
-                itemCount: episodes.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  controller: _episodeCardsScroll,
+                  scrollDirection: Axis.horizontal,
+                  itemCount: episodes.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
                   final item = episodes[index];
                   final selected = index == activeIndex;
@@ -2920,7 +2920,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ? item.thumbnail!.trim()
                       : widget.cover;
                   final itemNumber = item.number?.toString().replaceFirst(
-                        RegExp(r'\.0
+                        RegExp(r'\.0$'),
                         '',
                       ) ?? (index + 1).toString();
                   return GestureDetector(
@@ -2929,7 +2929,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       _bumpControls();
                     },
                     child: Container(
-                      width: 160,
+                      width: 168,
                       height: 104,
                       decoration: BoxDecoration(
                         color: const Color(0xFF171717),
