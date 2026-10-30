@@ -3699,7 +3699,10 @@ class PlayerCubit extends Cubit<PlayerState> {
     await set('sub-shadow-offset', o.shadow.toStringAsFixed(1));
     // Shadows follow the outline colour, so a drop shadow reads as the user's
     // choice rather than a second, always-black effect.
-    await set('sub-shadow-color', outlineColor);
+    await set('sub-shadow-color', _mpvColor(prefs.subtitleShadowColorHex) ?? outlineColor);
+    await set('sub-shadow-offset', prefs.subtitleShadowDistance.toStringAsFixed(1));
+    await set('sub-blur', (o.blur + prefs.subtitleShadowBlur).toStringAsFixed(1));
+    await set('sub-bold', prefs.subtitleFontWeight >= 600 ? 'yes' : 'no');
     await set('sub-pos', prefs.subtitlePosition.toString());
     // media_kit renders text subtitles via a Flutter overlay (not libass), so
     // the above mpv props are ignored in practice — the real styling is the
