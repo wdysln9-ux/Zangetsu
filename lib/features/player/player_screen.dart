@@ -1888,66 +1888,33 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ? episode.number!.toInt().toString()
             : episode.number!.toString();
     final episodeHeading = [
-      if (episodeNumber != null) 'Episode $episodeNumber',
-      if (title.isNotEmpty) title,
-    ].join(' · ');
-    final description = episode.description?.trim();
-
-    _bumpControls();
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: const Color(0xFF17151C),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 36, vertical: 28),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
-        ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560, maxHeight: 330),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 16, 22, 14),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 38,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 15),
-                const Text(
-                  'Ringkasan Episode',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                if (episodeNumber != null)
-                  Text(
-                    'Episode $episodeNumber',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                if (title.isNotEmpty)
-                  AutoTranslatedText(
-                    text: title,
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                if (episodeNumber != null || title.isNotEmpty)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (episodeNumber != null)
+                        Text(
+                          'Episode $episodeNumber',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      if (episodeNumber != null && title.isNotEmpty)
+                        const SizedBox(width: 8),
+                      if (title.isNotEmpty)
+                        Expanded(
+                          child: AutoTranslatedText(
+                            text: title,
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
                   ),
                 if (episodeHeading.isEmpty)
                   const Text(
@@ -2908,7 +2875,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 child: SizedBox(
                   height: 112,
                   child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.only(left: 16, right: 0),
                   controller: _episodeCardsScroll,
                   scrollDirection: Axis.horizontal,
                   itemCount: episodes.length,
