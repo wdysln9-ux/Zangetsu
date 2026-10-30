@@ -588,7 +588,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
     if (_showEpisodeDetails) {
       SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-        statusBarColor: Colors.black,
+        // A slightly raised dark tone makes the camera cutout visible instead
+        // of blending into the pure-black episode screen.
+        statusBarColor: Color(0xFF161616),
         statusBarIconBrightness: Brightness.light,
         systemNavigationBarColor: Colors.black,
         systemNavigationBarIconBrightness: Brightness.light,
@@ -3105,12 +3107,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ),
               );
             }
-            if (state.loadingSources) {
-              return _loadingBackdropBody(
-                'Finding the best source…',
-                thumb: _c.currentEpisode.thumbnail,
-              );
-            }
+            // Keep the episode detail page visible while source resolution runs.
+            // The player surface remains mounted; source lookup continues in the cubit.
             // Torrent source buffering: "Finding peers…" / "Buffering N%".
             if (state.torrentPhase != null) {
               return _loadingBackdropBody(

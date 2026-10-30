@@ -8,6 +8,7 @@ on:
       - feat/cinematic-ambient-lighting
       - feat/auto-translate-synopsis
       - feat/portrait-episode-details
+      - fix/preserve-latest-features-ui
     paths-ignore:
       - "preview/**"
       - ".github/workflows/preview-pages.yml"
