@@ -10,6 +10,7 @@ on:
       - feat/portrait-episode-details
       - fix/preserve-latest-features-ui
       - fix/episode-detail-resume-ui-bugs
+      - fix/episode-cards-border-autoscroll
     paths-ignore:
       - "preview/**"
       - ".github/workflows/preview-pages.yml"
