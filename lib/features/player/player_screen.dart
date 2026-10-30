@@ -2997,7 +2997,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   ),
                 ),
               ),
-            ),
             if (summary.isNotEmpty) ...[
               const SizedBox(height: 20),
               Container(
