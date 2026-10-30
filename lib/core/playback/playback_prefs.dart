@@ -992,6 +992,11 @@ class PlaybackPrefs {
       _box.put('subtitleFontWeight', (value ~/ 100).clamp(1, 9) * 100);
 
   /// Independent drop-shadow controls.
+  double get subtitleShadowThickness =>
+      (_box.get('subtitleShadowThickness', defaultValue: 1.0) as num).toDouble().clamp(0.0, 10.0);
+  Future<void> setSubtitleShadowThickness(double value) =>
+      _box.put('subtitleShadowThickness', value.clamp(0.0, 10.0));
+
   double get subtitleShadowAngle =>
       (_box.get('subtitleShadowAngle', defaultValue: 90.0) as num).toDouble().clamp(0.0, 360.0);
   Future<void> setSubtitleShadowAngle(double value) =>
