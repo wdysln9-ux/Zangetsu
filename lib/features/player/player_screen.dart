@@ -2757,8 +2757,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_episodeCardsScroll.hasClients) return;
         final position = _episodeCardsScroll.position;
-        const cardWidth = 185.0;
-        const itemExtent = 193.0; // card + horizontal gap
+        const cardWidth = 160.0;
+        const itemExtent = 170.0; // card + horizontal gap
         final target = (activeIndex * itemExtent -
                 (position.viewportDimension - cardWidth) / 2)
             .clamp(0.0, position.maxScrollExtent);
@@ -2902,7 +2902,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ),
             const SizedBox(height: 10),
             SizedBox(
-              height: 132,
+              height: 112,
               child: ListView.separated(
                 controller: _episodeCardsScroll,
                 scrollDirection: Axis.horizontal,
@@ -2918,76 +2918,73 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         RegExp(r'\\.0$'),
                         '',
                       ) ?? (index + 1).toString();
-                  final itemTitle = (item.metaTitle?.trim().isNotEmpty ?? false)
-                      ? item.metaTitle!.trim()
-                      : item.title.trim();
                   return GestureDetector(
                     onTap: () {
                       if (index != _c.state.currentIndex) _c.openEpisode(index);
                       _bumpControls();
                     },
-                    child: SizedBox(
+                    child: Container(
                       width: 160,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            height: 90,
-                            width: 160,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(9),
-                              border: Border.all(
-                                color: selected
-                                    ? AppColors.accent
-                                    : const Color(0xFF514D55),
-                                width: selected ? 1.8 : 1.2,
-                              ),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(7),
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  if (image != null && image.isNotEmpty)
-                                    CachedNetworkImage(
-                                      imageUrl: image,
-                                      fit: BoxFit.cover,
-                                      errorWidget: (_, __, ___) =>
-                                          const ColoredBox(color: Color(0xFF202020)),
-                                    )
-                                  else
+                      height: 104,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF171717),
+                        borderRadius: BorderRadius.circular(9),
+                        border: Border.all(
+                          color: selected
+                              ? AppColors.accent
+                              : const Color(0xFF514D55),
+                          width: selected ? 1.6 : 1.2,
+                        ),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(7.5),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            if (image != null && image.isNotEmpty)
+                              CachedNetworkImage(
+                                imageUrl: image,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) =>
                                     const ColoredBox(color: Color(0xFF202020)),
-                                  if (selected)
-                                    Align(
-                                      alignment: Alignment.bottomCenter,
-                                      child: Container(
-                                        height: 3,
-                                        color: AppColors.accent,
-                                      ),
-                                    ),
-                                ],
+                              )
+                            else
+                              const ColoredBox(color: Color(0xFF202020)),
+                            const DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Color(0xD9000000),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 5),
-                          AutoTranslatedText(
-                            text: itemTitle.isEmpty
-                                ? 'Episode $itemNumber'
-                                : itemTitle,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppText.caption.copyWith(
-                              color: selected
-                                  ? Colors.white
-                                  : AppColors.textSecondary,
-                              fontSize: 12,
-                              height: 1.15,
-                              fontWeight: selected
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
+                            Positioned(
+                              left: 9,
+                              right: 9,
+                              bottom: 8,
+                              child: Text(
+                                'Episode $itemNumber',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppText.caption.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  shadows: const [
+                                    Shadow(
+                                      color: Colors.black,
+                                      blurRadius: 5,
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );
