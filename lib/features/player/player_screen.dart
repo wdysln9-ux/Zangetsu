@@ -1765,7 +1765,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     setState(() {
       _cinematicLighting = prefs.cinematicLightingEnabled;
       _cinematicBrightness = prefs.cinematicBrightness.clamp(-1.0, 1.0).toDouble();
-      _cinematicBlur = prefs.cinematicBlur.clamp(0.0, 24.0).toDouble();
+      _cinematicBlur = prefs.cinematicBlur.clamp(0.0, 48.0).toDouble();
       _cinematicZoom = prefs.cinematicZoom.clamp(1.0, 1.8).toDouble();
       _cinematicVignette = prefs.cinematicVignette.clamp(0.0, 1.0).toDouble();
     });
@@ -1805,7 +1805,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   min: -1, max: 1, displayValue: _cinematicBrightness.toStringAsFixed(1),
                   onChanged: (value) { setState(() => _cinematicBrightness = value); unawaited(sl<PlaybackPrefs>().setCinematicBrightness(value)); refreshDialog(() {}); }),
                 _CinematicSlider(label: 'Blur', value: _cinematicBlur,
-                  min: 0, max: 24, displayValue: _cinematicBlur.toStringAsFixed(0),
+                  min: 0, max: 48, displayValue: _cinematicBlur.toStringAsFixed(0),
                   onChanged: (value) { setState(() => _cinematicBlur = value); unawaited(sl<PlaybackPrefs>().setCinematicBlur(value)); refreshDialog(() {}); }),
                 _CinematicSlider(label: 'Zoom', value: _cinematicZoom,
                   min: 1, max: 1.8, displayValue: '${_cinematicZoom.toStringAsFixed(2)}x',
