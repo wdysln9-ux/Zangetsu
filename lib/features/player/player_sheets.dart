@@ -1172,50 +1172,52 @@ class _SliderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // On TV a focused Slider swallows D-pad ↑/↓ (you can't move off it). Swap in
-    // a focusable ◄ value ► stepper: ◄/► adjust, ↑/↓ move to the next control.
+    final step = (max - min) / divisions;
+    final canDec = value > min;
+    final canInc = value < max;
     if (sl<AppMode>().isTv) {
-      final step = (max - min) / divisions;
       return _TvStepperRow(
         label: label,
-        onDec: value <= min
-            ? null
-            : () => onChanged((value - step).clamp(min, max)),
-        onInc: value >= max
-            ? null
-            : () => onChanged((value + step).clamp(min, max)),
+        onDec: canDec ? () => onChanged((value - step).clamp(min, max)) : null,
+        onInc: canInc ? () => onChanged((value + step).clamp(min, max)) : null,
       );
     }
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 3, 12, 5),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFF241A16),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: const Color(0xFF38271F), width: 1),
+      ),
       child: Row(
         children: [
           Expanded(
-            child: SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                activeTrackColor: AppColors.accent,
-                thumbColor: AppColors.accent,
-                inactiveTrackColor: AppColors.surface2,
-              ),
-              child: Slider(
-                value: value.clamp(min, max),
-                min: min,
-                max: max,
-                divisions: divisions,
-                onChanged: onChanged,
-              ),
+            child: Text(
+              label,
+              style: AppText.body.copyWith(color: AppColors.textPrimary),
             ),
           ),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            onPressed: canDec ? () => onChanged((value - step).clamp(min, max)) : null,
+            icon: const Icon(Icons.remove_circle_outline, color: Color(0xFF91A396)),
+          ),
           SizedBox(
-            width: 64,
+            width: 72,
             child: Text(
               label,
               textAlign: TextAlign.center,
               style: AppText.body.copyWith(
-                color: AppColors.accent,
-                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+                fontSize: 12,
               ),
             ),
+          ),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            onPressed: canInc ? () => onChanged((value + step).clamp(min, max)) : null,
+            icon: const Icon(Icons.add_circle_outline, color: Color(0xFFF47521)),
           ),
         ],
       ),
