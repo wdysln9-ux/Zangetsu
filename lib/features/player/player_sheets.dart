@@ -827,7 +827,7 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
           // the real overlay, so what you see here is what renders on the video.
           Container(
             margin: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-            height: ((MediaQuery.of(context).size.width - 48) * 9 / 16).clamp(130.0, 220.0),
+            height: ((MediaQuery.of(context).size.width - 48) * 9 / 16).clamp(130.0, 220.0).toDouble(),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
