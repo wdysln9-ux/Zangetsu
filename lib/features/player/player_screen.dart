@@ -2925,7 +2925,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 child: SizedBox(
                   height: 112,
                   child: ListView.separated(
-                  padding: const EdgeInsets.only(left: 16, right: 32),
+                  padding: const EdgeInsets.only(left: 16, right: 64),
                   controller: _episodeCardsScroll,
                   scrollDirection: Axis.horizontal,
                   itemCount: episodes.length,
