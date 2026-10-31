@@ -695,18 +695,7 @@ class DownloadManager extends ChangeNotifier {
       await _startTorrentDownload(rec, source);
       return;
     }
-    // Read the advertised Content-Length before enqueueing so the Downloads
-    // list can show MB/GB while the file is being fetched. Hosts that do not
-    // support HEAD simply continue with live progress-size reporting.
-    final advertisedSize = await RemoteFileSize.lookup(
-      source.url,
-      headers: source.headers,
-    );
-    if (advertisedSize != null && advertisedSize > 0) {
-      _put(rec.copyWith(bytesTotal: advertisedSize));
-      rec = _records[rec.id] ?? rec;
-      notifyListeners();
-    }
+
     final filename =
         '${_safe(rec.showTitle)}_E${rec.episodeNumber?.toInt() ?? ''}'
         '_${_safe(rec.quality)}${_ext(source.url)}';
@@ -763,8 +752,17 @@ class DownloadManager extends ChangeNotifier {
     _put(rec.copyWith(status: DownloadStatus.queued, progress: 0));
     notifyListeners();
     _mp4Queue.add(task);
+    unawaited(_lookupAndStoreSize(rec.id, source));
   }
 
+  Future<void> _lookupAndStoreSize(String id, VideoSource source) async {
+    final size = await RemoteFileSize.lookup(source.url, headers: source.headers);
+    if (size == null || size <= 0) return;
+    final latest = _records[id];
+    if (latest == null || latest.bytesTotal > 0) return;
+    _put(latest.copyWith(bytesTotal: size));
+    notifyListeners();
+  }
   /// Hand an HLS source to the foreground-service isolate so it downloads in
   /// true background. We resolve the path here (UI isolate owns path_provider),
   /// start the service, and dispatch the job; progress/done/failed come back via
