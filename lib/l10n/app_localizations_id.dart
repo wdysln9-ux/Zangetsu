@@ -1717,7 +1717,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get pictureInPicture => 'Gambar dalam gambar';
 
   @override
-  String get cast => 'Siaran';
+  String get cast => 'Karakter';
 
   @override
   String get playbackStats => 'Statistik pemutaran';
@@ -2830,7 +2830,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get nativeTitle => 'Judul asli';
 
   @override
-  String get alsoKnownAs => 'Dikenal juga sebagai';
+  String get alsoKnownAs => 'Sinonim';
 
   @override
   String get tags => 'Tag';
