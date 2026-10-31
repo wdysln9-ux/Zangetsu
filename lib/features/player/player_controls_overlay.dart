@@ -727,6 +727,7 @@ class _ControlsOverlay extends StatelessWidget {
             curve: Curves.easeOutCubic,
             child: SafeArea(
               top: false,
+              bottom: !compactEpisodePortrait,
               // Vertical inset only — the bottom one keeps the bar clear of the
               // gesture nav. See the top bar for why the horizontal cutout inset
               // is skipped: it lands on one edge only and pushed this whole block
@@ -739,10 +740,10 @@ class _ControlsOverlay extends StatelessWidget {
                 // both button groups share it, so every edge lines up. Kept wide
                 // so the controls sit clear of the screen edges.
                 padding: EdgeInsets.fromLTRB(
-                  compactEpisodePortrait ? 12 : 44,
+                  compactEpisodePortrait ? 4 : 44,
                   0,
-                  compactEpisodePortrait ? 12 : 44,
-                  compactEpisodePortrait ? 8 : 14,
+                  compactEpisodePortrait ? 4 : 44,
+                  compactEpisodePortrait ? 2 : 14,
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -770,7 +771,7 @@ class _ControlsOverlay extends StatelessWidget {
                         );
                       },
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: compactEpisodePortrait ? 0 : 2),
                     // Control bar under the progress bar: the pickers ride in one
                     // translucent group on the left, episode list + fit mode in
                     // another on the right. Two groups rather than seven floating
@@ -827,7 +828,7 @@ class _ControlsOverlay extends StatelessWidget {
                             children: [
                               if (left.isNotEmpty) _BarGroup(children: left),
                               if (left.isNotEmpty && right.isNotEmpty)
-                                const SizedBox(width: 8),
+                                SizedBox(width: compactEpisodePortrait ? 2 : 8),
                               if (right.isNotEmpty) _BarGroup(children: right),
                             ],
                           ),
