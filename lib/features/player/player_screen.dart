@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -17,6 +18,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../core/cache/app_image_cache.dart';
 import '../../core/di/injector.dart';
+import '../../core/anilist/anilist_service.dart';
 import '../../core/repository/source_repository.dart';
 import '../../core/zmode/playback_resolver.dart';
 import '../../core/tracker/tracker_hub.dart';
@@ -483,6 +485,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _showEpisodeDetails = widget.episodeDetailMode;
     _portraitMode = widget.episodeDetailMode;
     _loadCinematicLightingPrefs();
+    if (widget.episodeDetailMode) _loadShowPopularity();
     // Refresh the "enhancement shaders downloaded?" flag so the in-player picker
     // gates correctly (they're fetched on demand from Settings). Fire-and-forget.
     unawaited(ShaderPresets.refreshDownloaded());
@@ -501,6 +504,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// landscape, as it always has.
   bool _portraitMode = false;
   bool _showEpisodeDetails = false;
+
+  int? _showPopularity;
+  bool _showPopularityLoaded = false;
+
+  Future<void> _loadShowPopularity() async {
+    if (_showPopularityLoaded) return;
+    _showPopularityLoaded = true;
+    try {
+      final api = sl<AniListService>().api;
+      final malId = widget.malId;
+      final popularity = malId != null
+          ? await api.popularityByMalId(malId)
+          : await api.popularityBySearch(widget.scrobbleTitle ?? widget.showTitle ?? '');
+      if (!mounted || popularity == null) return;
+      setState(() => _showPopularity = popularity);
+    } catch (_) {
+      // Viewer estimates are optional; keep the page usable if AniList is down.
+    }
+  }
+
   final ScrollController _episodeCardsScroll = ScrollController();
   int _lastEpisodeCardsIndex = -1;
 
@@ -2847,14 +2870,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 const Icon(Icons.visibility_outlined,
                     color: Color(0xFF91A396), size: 17),
                 const SizedBox(width: 6),
-                Text(
-                  episode.rating != null && episode.rating! > 0
-                      ? episode.rating!.toStringAsFixed(0)
-                      : '—',
-                  style: AppText.body.copyWith(
-                    color: const Color(0xFF91A396),
-                    fontSize: 14,
-                  ),
+                Builder(
+                  builder: (context) {
+                    final episodeNumber = episode.number ?? (activeIndex + 1);
+                    final exponent = (episodeNumber - 1).clamp(0.0, 1000.0);
+                    final estimatedViewers = _showPopularity == null
+                        ? null
+                        : (_showPopularity! / math.pow(1.07, exponent)).round();
+                    return Text(
+                      estimatedViewers == null
+                          ? '—'
+                          : estimatedViewers.toString(),
+                      style: AppText.body.copyWith(
+                        color: const Color(0xFF91A396),
+                        fontSize: 14,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
