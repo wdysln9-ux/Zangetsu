@@ -133,9 +133,18 @@ class _SynopsisTranslationState extends State<_SynopsisTranslation> {
 
   @override
   Widget build(BuildContext context) {
-    return AniListMarkdown(
-      data: _translated ?? widget.text,
-      textStyle: AppText.body,
+    // Keep the synopsis preview compact on the main anime page.
+    // The full Markdown remains available from the Details tab via Read more.
+    final lineHeight = (AppText.body.fontSize ?? 14) *
+        (AppText.body.height ?? 1.45);
+    return ClipRect(
+      child: SizedBox(
+        height: lineHeight * 3,
+        child: AniListMarkdown(
+          data: _translated ?? widget.text,
+          textStyle: AppText.body,
+        ),
+      ),
     );
   }
 }
