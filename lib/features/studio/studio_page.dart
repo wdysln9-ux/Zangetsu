@@ -46,7 +46,7 @@ class _StudioPageState extends State<StudioPage> {
           isAnimationStudio
           siteUrl
           favourites
-          media(sort: $sort, type: ANIME, isAdult: false, page: 1, perPage: 30) {
+          media(sort: $sort, type: ANIME, page: 1, perPage: 30) {
             pageInfo { hasNextPage }
             nodes {
               id
@@ -109,7 +109,7 @@ class _StudioPageState extends State<StudioPage> {
     const query = r'''
       query ($id: Int!, $page: Int!, $sort: [MediaSort]) {
         Studio(id: $id) {
-          media(sort: $sort, type: ANIME, isAdult: false, page: $page, perPage: 30) {
+          media(sort: $sort, type: ANIME, page: $page, perPage: 30) {
             pageInfo { hasNextPage }
             nodes {
               id
