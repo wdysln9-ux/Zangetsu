@@ -2319,15 +2319,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         borderRadius: BorderRadius.circular(9),
                       ),
                       alignment: Alignment.center,
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.play_arrow_rounded,
                             color: Colors.white,
                             size: 20,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
                             context.l10n.play,
                             style: TextStyle(
@@ -2396,11 +2396,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: AppColors.hairline, width: 0.5),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.skip_next, color: Colors.white, size: 20),
-                  SizedBox(width: 6),
+                  const Icon(Icons.skip_next, color: Colors.white, size: 20),
+                  const SizedBox(width: 6),
                   Text(
                     context.l10n.nextEpisode,
                     style: TextStyle(
