@@ -235,6 +235,8 @@ String _indonesianRelationLabel(String value) {
     'compilation': 'Kompilasi',
     'full story': 'Cerita lengkap',
     'season': 'Season',
+    'recommended': 'Rekomendasi',
+    'recommendation': 'Rekomendasi',
   };
   return translations[normalized] ?? value;
 }
@@ -281,13 +283,8 @@ class _RelationsTab extends StatelessWidget {
     anilistId: s.anilistId,
   );
 
-  /// The relations left once the seasons have been lifted out.
-  ///
-  /// A prequel is also season 2; showing it in both places is the same title
-  /// twice on one screen. Everything that is NOT a season — films, the source
-  /// manga, side stories, recaps — is untouched.
+  /// Relations that are not seasons, after removing season duplicates.
   List<MediaRelation> get _rest {
-    if (seasons.isEmpty) return relations;
     final taken = {
       for (final s in seasons) ...[
         if (s.anilistId != null) 'a:${s.anilistId}',
@@ -301,6 +298,17 @@ class _RelationsTab extends StatelessWidget {
           r,
     ];
   }
+
+  bool _isRecommended(MediaRelation relation) {
+    final value = relation.relation?.trim().toLowerCase().replaceAll('_', ' ');
+    return value == 'recommended' || value == 'recommendation';
+  }
+
+  List<MediaRelation> get _related =>
+      _rest.where((r) => !_isRecommended(r)).toList();
+
+  List<MediaRelation> get _recommendations =>
+      _rest.where(_isRecommended).toList();
 
   SliverGridDelegate _grid(BuildContext context) =>
       SliverGridDelegateWithFixedCrossAxisCount(
@@ -321,43 +329,54 @@ class _RelationsTab extends StatelessWidget {
         context.l10n.noRelatedTitles,
       );
     }
-    // One grid and no headings when there are no seasons — byte-identical to
-    // what this tab rendered before seasons existed.
-    if (seasons.isEmpty) {
-      return GridView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 40),
-        gridDelegate: _grid(context),
-        itemCount: relations.length,
-        itemBuilder: (_, i) => _card(context, relations[i], i),
-      );
-    }
-    final rest = _rest;
+    final related = _related;
+    final recommendations = _recommendations;
     return CustomScrollView(
       slivers: [
-        _header(context, 'Season'),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-          sliver: SliverGrid(
-            gridDelegate: _grid(context),
-            delegate: SliverChildBuilderDelegate(
-              (_, i) => _card(context, _asRelation(context, seasons[i]), i),
-              childCount: seasons.length,
+        if (seasons.isNotEmpty) ...[
+          _header(context, 'Season'),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            sliver: SliverGrid(
+              gridDelegate: _grid(context),
+              delegate: SliverChildBuilderDelegate(
+                (_, i) => _card(context, _asRelation(context, seasons[i]), i),
+                childCount: seasons.length,
+              ),
             ),
           ),
-        ),
-        if (rest.isNotEmpty) ...[
+        ],
+        if (related.isNotEmpty) ...[
           _header(context, context.l10n.relations),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            sliver: SliverGrid(
+              gridDelegate: _grid(context),
+              delegate: SliverChildBuilderDelegate(
+                (_, i) => _card(context, related[i], seasons.length + i),
+                childCount: related.length,
+              ),
+            ),
+          ),
+        ],
+        if (recommendations.isNotEmpty) ...[
+          _header(context, 'Rekomendasi'),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
             sliver: SliverGrid(
               gridDelegate: _grid(context),
               delegate: SliverChildBuilderDelegate(
-                (_, i) => _card(context, rest[i], seasons.length + i),
-                childCount: rest.length,
+                (_, i) => _card(
+                  context,
+                  recommendations[i],
+                  seasons.length + related.length + i,
+                ),
+                childCount: recommendations.length,
               ),
             ),
           ),
-        ],
+        ] else if (related.isNotEmpty || seasons.isNotEmpty)
+          const SliverToBoxAdapter(child: SizedBox(height: 40)),
       ],
     );
   }
