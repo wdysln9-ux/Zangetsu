@@ -179,7 +179,7 @@ class PeopleService {
     final occ = s['primaryOccupations'];
     final subtitle = (occ is List && occ.isNotEmpty) ? '${occ.first}' : null;
     return PersonProfile(
-      name: _aniName(s) ?? 'Staff',
+      name: _japaneseOrderName(_aniName(s), _aniNative(s)) ?? 'Staff',
       nativeName: _aniNative(s),
       photo: _aniImage(s, 'image'),
       description: _plain(s['description'] as String?),
