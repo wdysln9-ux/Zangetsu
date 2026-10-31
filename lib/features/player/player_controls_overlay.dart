@@ -651,7 +651,7 @@ class _ControlsOverlay extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (multiEpisode) ...[
+              if (multiEpisode && !compactEpisodePortrait) ...[
                 _TransportButton(
                   icon: Icons.skip_previous_rounded,
                   label: context.l10n.previousEpisode,
