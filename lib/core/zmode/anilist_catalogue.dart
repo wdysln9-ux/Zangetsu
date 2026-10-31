@@ -153,21 +153,21 @@ class AniListCatalogue implements AnimeCatalogue {
       _ => ('WINTER', now.year + 1),
     };
     return [
-      ('Recently released', recent(2000)),
+      ('Baru dirilis', recent(2000)),
       ('Trending', 'sort:TRENDING_DESC'),
       (
-        'Popular this season',
+        'Populer musim ini',
         'sort:POPULARITY_DESC,season:$season,seasonYear:${now.year}',
       ),
       (
-        'Upcoming next season',
+        'Paling ditunggu',
         'sort:POPULARITY_DESC,season:$nextSeason,seasonYear:$nextYear,'
             'status:NOT_YET_RELEASED',
       ),
-      ('All-time popular', 'sort:POPULARITY_DESC'),
-      ('Top rated', 'sort:SCORE_DESC'),
-      ('Action', 'genre_in:["Action"],sort:POPULARITY_DESC'),
-      ('Romance', 'genre_in:["Romance"],sort:POPULARITY_DESC'),
+      ('Populer', 'sort:POPULARITY_DESC'),
+      ('Rating tertinggi', 'sort:SCORE_DESC'),
+      ('Action', 'genre_in:["Action"],sort:TRENDING_DESC'),
+      ('Romantis', 'genre_in:["Romance"],sort:TRENDING_DESC'),
     ];
   }
 
