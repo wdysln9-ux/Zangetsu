@@ -624,7 +624,7 @@ class _DetailsTab extends StatelessWidget {
       if (d.score != null)
         _DetailRow(label: l10n.score, value: '${d.score! / 10} / 10'),
       if (d.popularity != null)
-        _DetailRow(label: l10n.popularity, value: _thousands(d.popularity!)),
+        _DetailRow(label: 'Popularitas', value: _thousands(d.popularity!)),
       if (d.favourites != null)
         _DetailRow(label: l10n.favourites, value: _thousands(d.favourites!)),
       if (d.sourceMaterial != null)
@@ -668,7 +668,7 @@ class _DetailsTab extends StatelessWidget {
     final s = '$n';
     final b = StringBuffer();
     for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) b.write(',');
+      if (i > 0 && (s.length - i) % 3 == 0) b.write('.');
       b.write(s[i]);
     }
     return b.toString();
@@ -677,8 +677,8 @@ class _DetailsTab extends StatelessWidget {
   /// The handful that actually appear on animation and comics. Anything else
   /// keeps its code rather than being guessed at.
   static String _countryName(String code) => switch (code.toUpperCase()) {
-    'JP' => 'Japan',
-    'KR' => 'South Korea',
+    'JP' => 'Jepang',
+    'KR' => 'Korea',
     'CN' => 'China',
     'TW' => 'Taiwan',
     'US' => 'United States',
