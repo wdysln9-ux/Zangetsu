@@ -2251,6 +2251,8 @@ class _DetailViewState extends State<_DetailView>
       );
     }
     if (statusStr.isNotEmpty) metaParts.add(statusStr);
+    final formatStr = detail.format?.trim();
+    if (formatStr != null && formatStr.isNotEmpty) metaParts.add(formatStr);
     final metaLine = metaParts.join('  ·  ');
 
     // ── Download button label: "Download S{season}:E{n}" when we can derive
