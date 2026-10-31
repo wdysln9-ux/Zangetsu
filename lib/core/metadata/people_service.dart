@@ -54,7 +54,7 @@ class PeopleService {
   Future<PersonProfile?> _character(int id) async {
     const q =
         'query(\$id:Int){ Character(id:\$id){ '
-        'name{ full native } image{ large } description(asHtml:false) '
+        'name{ full native alternative } image{ large } description(asHtml:false) '
         // No type filter: a manga character's appearances ARE manga, and
         // pinning this to ANIME left every reading character empty.
         'media(sort:[POPULARITY_DESC],perPage:25){ edges{ characterRole '
@@ -94,8 +94,9 @@ class PeopleService {
       }
     }
     return PersonProfile(
-      name: _aniName(c) ?? 'Character',
+      name: _japaneseOrderName(_aniName(c), _aniNative(c)) ?? 'Character',
       nativeName: _aniNative(c),
+      alternativeNames: _aniAlternatives(c),
       photo: _aniImage(c, 'image'),
       description: _plain(c['description'] as String?),
       subtitle: 'Character',
@@ -178,7 +179,7 @@ class PeopleService {
     final occ = s['primaryOccupations'];
     final subtitle = (occ is List && occ.isNotEmpty) ? '${occ.first}' : null;
     return PersonProfile(
-      name: _aniName(s) ?? 'Staff',
+      name: _japaneseOrderName(_aniName(s), _aniNative(s)) ?? 'Staff',
       nativeName: _aniNative(s),
       photo: _aniImage(s, 'image'),
       description: _plain(s['description'] as String?),
@@ -200,11 +201,34 @@ class PeopleService {
     );
   }
 
+  /// AniList's romanized full name is often stored in Western order.
+  /// For characters with a native East Asian name, display family name first.
+  /// Single-part names are left unchanged.
+  static String? _japaneseOrderName(String? full, String? native) {
+    if (full == null || full.trim().isEmpty) return full;
+    if (native == null || native.trim().isEmpty) return full;
+    final parts = full.trim().split(RegExp(r'\s+'));
+    if (parts.length < 2) return full.trim();
+    return [parts.last, ...parts.sublist(1, parts.length - 1), parts.first]
+        .join(' ');
+  }
+
   String? _aniName(Map m) =>
       (m['name'] is Map) ? m['name']['full'] as String? : null;
   String? _aniNative(Map m) {
     final n = (m['name'] is Map) ? m['name']['native'] as String? : null;
     return (n != null && n.isNotEmpty) ? n : null;
+  }
+
+  List<String> _aniAlternatives(Map m) {
+    final names = (m['name'] is Map) ? m['name']['alternative'] : null;
+    if (names is! List) return const [];
+    return names
+        .whereType<String>()
+        .map((name) => name.trim())
+        .where((name) => name.isNotEmpty)
+        .toSet()
+        .toList();
   }
 
   String? _aniTitle(dynamic node) {
@@ -310,14 +334,12 @@ class PeopleService {
     return t[0].toUpperCase() + t.substring(1);
   }
 
-  /// Strip AniList's light HTML/markdown so the bio renders as plain text.
+  /// Keep AniList Markdown intact for the rich-text renderer. AniList may
+  /// still include HTML line breaks even when asHtml is false.
   static String? _plain(String? s) {
     if (s == null || s.trim().isEmpty) return null;
-    var out = s
+    final out = s
         .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'<[^>]+>'), '')
-        .replaceAll(RegExp(r'~!|!~'), '') // AniList spoiler markers
-        .replaceAll('__', '')
         .replaceAll(RegExp(r'\n{3,}'), '\n\n')
         .trim();
     return out.isEmpty ? null : out;

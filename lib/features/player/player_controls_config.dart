@@ -34,6 +34,7 @@ const List<PlayerControl> kPlayerControls = [
   PlayerControl('sources', 'Sources', Icons.layers_rounded),
   PlayerControl('more', 'More', Icons.more_vert_rounded, pinned: true),
   PlayerControl('episodes', 'Episodes', Icons.video_library_outlined),
+  PlayerControl('summary', 'Episode summary', Icons.subject_rounded),
   PlayerControl('fit', 'Aspect ratio', Icons.fit_screen_rounded),
   PlayerControl('rotate', 'Portrait', Icons.screen_rotation_rounded),
   PlayerControl('cast', 'Cast', Icons.cast),

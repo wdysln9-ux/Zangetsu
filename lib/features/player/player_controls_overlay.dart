@@ -41,6 +41,7 @@ class _ControlsOverlay extends StatelessWidget {
     required this.onColorProfile,
     required this.cinematicLightingActive,
     required this.onCinematicLighting,
+    required this.onEpisodeSummary,
     this.visible = true,
   });
 
@@ -88,6 +89,7 @@ class _ControlsOverlay extends StatelessWidget {
   final VoidCallback onColorProfile; // opens the colour-profile picker
   final bool cinematicLightingActive;
   final VoidCallback onCinematicLighting;
+  final VoidCallback onEpisodeSummary;
   final bool visible; // drives the bars' slide-in (top drops, bottom rises)
 
   /// Overflow panel that slides in from the RIGHT (like the episodes panel) —
@@ -175,6 +177,14 @@ class _ControlsOverlay extends StatelessWidget {
                         onTap: () {
                           Navigator.pop(ctx);
                           onCinematicLighting();
+                        },
+                      ),
+                      _MoreRow(
+                        icon: Icons.subject_rounded,
+                        label: 'Ringkasan episode',
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          onEpisodeSummary();
                         },
                       ),
                       _MoreRow(
@@ -318,6 +328,8 @@ class _ControlsOverlay extends StatelessWidget {
       case 'episodes':
         if (onEpisodes == null) return null;
         return (Icons.video_library_outlined, 'Episodes', onEpisodes!);
+      case 'summary':
+        return (Icons.subject_rounded, 'Episode summary', onEpisodeSummary);
       case 'fit':
         return (_fitIcon(zoomLabel), 'Aspect ratio · $zoomLabel', onZoom);
       case 'rotate':
@@ -537,13 +549,14 @@ class _ControlsOverlay extends StatelessWidget {
                           if (secondaryLine != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 1),
-                              child: Text(
-                                secondaryLine,
+                              child: AutoTranslatedText(
+                                text: secondaryLine,
                                 style: AppText.caption.copyWith(
                                   color: Colors.white70,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
+                                showToggle: false,
                               ),
                             ),
                         ],

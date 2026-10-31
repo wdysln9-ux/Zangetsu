@@ -39,6 +39,7 @@ import '../../core/playback/subtitle_search_service.dart';
 import '../../core/playback/watch_history.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
+import '../../core/ui/auto_translated_text.dart';
 import '../../core/ui/app_dialog.dart';
 import '../../core/ui/episode_unavailable_dialog.dart';
 import '../../core/ui/badge.dart';
@@ -1821,6 +1822,109 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
   }
 
+  void _showEpisodeSummary() {
+    final episode = _c.currentEpisode;
+    final title = (episode.metaTitle?.trim().isNotEmpty ?? false)
+        ? episode.metaTitle!.trim()
+        : episode.title.trim();
+    final episodeNumber = episode.number == null
+        ? null
+        : episode.number == episode.number!.truncateToDouble()
+            ? episode.number!.toInt().toString()
+            : episode.number!.toString();
+    final episodeHeading = [
+      if (episodeNumber != null) 'Episode $episodeNumber',
+      if (title.isNotEmpty) title,
+    ].join(' · ');
+    final description = episode.description?.trim();
+
+    _bumpControls();
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: const Color(0xFF17151C),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 36, vertical: 28),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.07)),
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560, maxHeight: 330),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 16, 22, 14),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 38,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 15),
+                const Text(
+                  'Ringkasan Episode',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                AutoTranslatedText(
+                  text: episodeHeading.isEmpty
+                      ? 'Episode tidak diketahui'
+                      : episodeHeading,
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: (description != null && description.isNotEmpty)
+                        ? AutoTranslatedText(
+                            text: description,
+                            style: const TextStyle(
+                              color: Color(0xFFE8E5ED),
+                              fontSize: 14,
+                              height: 1.55,
+                            ),
+                          )
+                        : const Text(
+                            'Deskripsi episode tidak tersedia di metadata untuk episode ini.',
+                            style: TextStyle(
+                              color: Color(0xFFB8B3C2),
+                              fontSize: 14,
+                              height: 1.5,
+                            ),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () => Navigator.of(dialogContext).pop(),
+                    child: const Text('Tutup'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _captureScreenshot() async {
     // Instant camera-flash feedback. It's a Flutter overlay (not in the mpv
     // frame), so it never corrupts the captured image.
@@ -2097,12 +2201,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
               style: AppText.caption.copyWith(color: Colors.white70),
             ),
             const SizedBox(height: 4),
-            Text(
-              hasName ? 'E$epNum · $name' : 'Episode $epNum',
-              style: AppText.headline.copyWith(color: Colors.white),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
+            if (hasName)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('E$epNum · ', style: AppText.headline.copyWith(color: Colors.white)),
+                  Expanded(
+                    child: AutoTranslatedText(
+                      text: name,
+                      style: AppText.headline.copyWith(color: Colors.white),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      showToggle: false,
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text('Episode $epNum', style: AppText.headline.copyWith(color: Colors.white), maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -3249,6 +3365,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           onColorProfile: _openColorProfileSheet,
                           cinematicLightingActive: _cinematicLighting,
                           onCinematicLighting: _toggleCinematicLighting,
+                          onEpisodeSummary: _showEpisodeSummary,
                         ),
                       ),
                     )

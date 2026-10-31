@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - feat/cinematic-ambient-lighting
+      - feat/auto-translate-synopsis
     paths-ignore:
       - "preview/**"
       - ".github/workflows/preview-pages.yml"

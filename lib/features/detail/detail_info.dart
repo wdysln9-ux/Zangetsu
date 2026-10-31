@@ -67,40 +67,103 @@ class _CreditLine extends StatelessWidget {
 
 class _Description extends StatelessWidget {
   const _Description({required this.text, required this.onReadMore});
-
   final String text;
-
-  /// Jumps to the Details tab (full synopsis) — no inline expansion.
   final VoidCallback onReadMore;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onReadMore,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            text,
-            style: AppText.body,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 6),
-          Text(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: onReadMore,
+          behavior: HitTestBehavior.opaque,
+          child: _SynopsisTranslation(text: text, maxLines: 3),
+        ),
+        const SizedBox(height: 6),
+        GestureDetector(
+          onTap: onReadMore,
+          child: Text(
             context.l10n.readMore,
             style: AppText.caption.copyWith(
               color: AppColors.accent,
               fontWeight: FontWeight.w700,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
+/// Automatically translates the synopsis to Indonesian when available.
+class _SynopsisTranslation extends StatefulWidget {
+  const _SynopsisTranslation({required this.text, this.maxLines});
+  final String text;
+  final int? maxLines;
+
+  @override
+  State<_SynopsisTranslation> createState() => _SynopsisTranslationState();
+}
+
+class _SynopsisTranslationState extends State<_SynopsisTranslation> {
+  String? _translated;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTranslation();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SynopsisTranslation oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _translated = null;
+      _loading = true;
+      _loadTranslation();
+    }
+  }
+
+  Future<void> _loadTranslation() async {
+    final result = await SynopsisTranslator.instance.translateToIndonesian(widget.text);
+    if (!mounted) return;
+    setState(() {
+      _translated = result != widget.text ? result : null;
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final translated = _translated;
+    final shownText = translated ?? widget.text;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (widget.maxLines == null)
+          AniListMarkdown(data: shownText, textStyle: AppText.body)
+        else
+          ClipRect(
+            child: SizedBox(
+              height: (AppText.body.fontSize ?? 14) * 1.55 * widget.maxLines!,
+              child: AniListMarkdown(data: shownText, textStyle: AppText.body),
+            ),
+          ),
+        if (_loading) ...[
+          const SizedBox(height: 5),
+          const SizedBox(
+            width: 10,
+            height: 10,
+            child: CircularProgressIndicator(strokeWidth: 1.5),
+          ),
+        ],
+      ],
+    );
+  }
+}
 // ─────────────────────────────────────────────────────────────────────────────
 // One of the 5 outlined icon actions.
 // ─────────────────────────────────────────────────────────────────────────────

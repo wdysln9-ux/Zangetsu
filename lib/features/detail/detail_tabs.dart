@@ -53,6 +53,14 @@ class _PressableCardState extends State<_PressableCard> {
   );
 }
 
+/// Display character participation roles in Indonesian.
+String _castRoleLabel(String role) => switch (role.trim().toLowerCase()) {
+  'main' => 'Utama',
+  'supporting' => 'Pendukung',
+  'background' => 'Figuran',
+  _ => role,
+};
+
 class _CastTab extends StatelessWidget {
   const _CastTab({required this.cast, this.onOpenPerson, this.loading = false});
   final List<CastMember> cast;
@@ -175,7 +183,7 @@ class _CastTab extends StatelessWidget {
             ),
             if (m.role != null && m.role!.isNotEmpty)
               Text(
-                m.role!,
+                _castRoleLabel(m.role!),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
@@ -245,9 +253,7 @@ class _RelationsTab extends StatelessWidget {
   ) => MediaRelation(
     title: s.title,
     cover: s.cover,
-    relation: s.isCurrent
-        ? '${context.l10n.seasonNumber(s.number)} · ${context.l10n.statusWatching}'
-        : context.l10n.seasonNumber(s.number),
+    relation: 'Season ${s.number}',
     malId: s.malId,
     anilistId: s.anilistId,
   );
@@ -305,7 +311,7 @@ class _RelationsTab extends StatelessWidget {
     final rest = _rest;
     return CustomScrollView(
       slivers: [
-        _header(context, context.l10n.seasons),
+        _header(context, 'Season'),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
           sliver: SliverGrid(
@@ -348,6 +354,15 @@ class _RelationsTab extends StatelessWidget {
     ),
   );
 
+  static String _relationLabel(String value) => switch (value.trim().toLowerCase()) {
+    'side story' => 'Cerita sampingan',
+    'character' => 'Karakter',
+    'summary' => 'Ringkasan',
+    'other' => 'Lainnya',
+    'recommended' => 'Rekomendasi',
+    _ => value,
+  };
+
   Widget _card(BuildContext context, MediaRelation r, int i) {
     {
       final visual = Column(
@@ -374,7 +389,7 @@ class _RelationsTab extends StatelessWidget {
           const SizedBox(height: 6),
           if (r.relation != null && r.relation!.isNotEmpty)
             Text(
-              r.relation!.toUpperCase(),
+              _relationLabel(r.relation!).toUpperCase(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppText.caption.copyWith(
@@ -410,6 +425,17 @@ class _RelationsTab extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+String _yearWithSeason(String year, DateTime? startDate) {
+  if (startDate == null) return year;
+  final season = switch (startDate.month) {
+    <= 3 => 'Winter',
+    <= 6 => 'Spring',
+    <= 9 => 'Summer',
+    _ => 'Fall',
+  };
+  return '$season $year';
+}
+
 // Details tab — source / status / genres / studios / episode count / synopsis.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -448,17 +474,61 @@ class _DetailsTab extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
       children: [
         if (sourceName.isNotEmpty)
-          _DetailRow(label: context.l10n.playerInfoSource, value: sourceName),
+          _DetailRow(
+            label: context.l10n.playerInfoSource,
+            value: sourceName,
+            onTap: sourceName == 'AniList' &&
+                    detail?.sourceId == ZmodeIds.sourceId &&
+                    int.tryParse(detail?.id ?? '') != null
+                ? () {
+                    final kind = reading ? 'manga' : 'anime';
+                    launchUrl(
+                      Uri.https('anilist.co', '/$kind/${detail!.id}'),
+                      mode: LaunchMode.externalApplication,
+                    );
+                  }
+                : null,
+          ),
         if (statusStr.isNotEmpty)
           _DetailRow(label: context.l10n.status, value: statusStr),
         if ((year ?? '').isNotEmpty)
-          _DetailRow(label: context.l10n.year, value: year!),
+          _DetailRow(
+            label: context.l10n.year,
+            value: _yearWithSeason(year!, detail?.startDate),
+          ),
         _DetailRow(
           label: reading ? context.l10n.chapters : context.l10n.episodes,
           value: '$episodeCount',
         ),
-        if (studios.isNotEmpty)
-          _DetailRow(label: context.l10n.studio, value: studios.join(', ')),
+        if (studios.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            context.l10n.studio,
+            style: AppText.caption.copyWith(color: AppColors.textTertiary),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: studios.map((name) => InkWell(
+              borderRadius: BorderRadius.circular(4),
+              onTap: () => Navigator.of(context).push(StudioPage.route(name)),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 1),
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppText.body.copyWith(
+                    color: AppColors.textPrimary,
+                    decoration: TextDecoration.underline,
+                    decorationColor: AppColors.textTertiary,
+                  ),
+                ),
+              ),
+            )).toList(),
+          ),
+        ],
         ..._providerRows(context),
         if (genres.isNotEmpty) ...[
           const SizedBox(height: 14),
@@ -502,7 +572,7 @@ class _DetailsTab extends StatelessWidget {
             style: AppText.caption.copyWith(color: AppColors.textTertiary),
           ),
           const SizedBox(height: 8),
-          Text(desc, style: AppText.body),
+          _SynopsisTranslation(text: desc),
         ],
       ],
     );
@@ -574,7 +644,7 @@ class _DetailsTab extends StatelessWidget {
     final s = '$n';
     final b = StringBuffer();
     for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) b.write(',');
+      if (i > 0 && (s.length - i) % 3 == 0) b.write('.');
       b.write(s[i]);
     }
     return b.toString();
@@ -583,8 +653,8 @@ class _DetailsTab extends StatelessWidget {
   /// The handful that actually appear on animation and comics. Anything else
   /// keeps its code rather than being guessed at.
   static String _countryName(String code) => switch (code.toUpperCase()) {
-    'JP' => 'Japan',
-    'KR' => 'South Korea',
+    'JP' => 'Jepang',
+    'KR' => 'Korea',
     'CN' => 'China',
     'TW' => 'Taiwan',
     'US' => 'United States',
@@ -641,9 +711,10 @@ class _SpoilerTagsState extends State<_SpoilerTags> {
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
+  const _DetailRow({required this.label, required this.value, this.onTap});
   final String label;
   final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -660,11 +731,16 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: AppText.caption.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
+            child: InkWell(
+              onTap: onTap,
+              child: Text(
+                value,
+                style: AppText.caption.copyWith(
+                  color: onTap == null ? AppColors.textPrimary : AppColors.accent,
+                  fontWeight: FontWeight.w600,
+                  decoration: onTap == null ? TextDecoration.none : TextDecoration.underline,
+                  decorationColor: AppColors.accent,
+                ),
               ),
             ),
           ),

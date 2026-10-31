@@ -1,6 +1,8 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/ui/auto_translated_text.dart';
+
 import '../../core/di/injector.dart';
 import '../../core/metadata/people_service.dart';
 import '../detail/open_related.dart';
@@ -164,6 +166,15 @@ class _PersonPageState extends State<PersonPage> {
               children: [
                 const SizedBox(height: 4),
                 Text(p.name, style: AppText.title),
+                if (p.alternativeNames.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    p.alternativeNames.join(' / '),
+                    style: AppText.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
                 if (p.nativeName != null && p.nativeName!.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(p.nativeName!, style: AppText.body),
@@ -205,15 +216,26 @@ class _PersonPageState extends State<PersonPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              text,
-              maxLines: _bioExpanded ? null : 4,
-              overflow: _bioExpanded ? null : TextOverflow.ellipsis,
-              style: AppText.body,
-            ),
+            if (_bioExpanded)
+              AutoTranslatedText(
+                text: text,
+                style: AppText.body,
+              )
+            else
+              ClipRect(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 104),
+                  child: AutoTranslatedText(
+                    text: text,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.body,
+                  ),
+                ),
+              ),
             const SizedBox(height: 4),
             Text(
-              _bioExpanded ? 'Show less' : 'Read more',
+              _bioExpanded ? 'Sembunyikan' : 'Read more',
               style: AppText.caption.copyWith(color: AppColors.accent),
             ),
           ],

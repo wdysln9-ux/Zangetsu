@@ -14,10 +14,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/zmode/season_chain.dart';
 import '../../core/zmode/metadata_provider_prefs.dart';
+import '../../core/ui/auto_translated_text.dart';
+import '../../core/ui/anilist_markdown.dart';
 import '../../core/ui/poster_card.dart';
 import '../../core/ui/poster_palette.dart';
 import '../../core/ui/mobile_hero_art.dart';
 import '../../core/metadata/synopsis.dart';
+import '../../core/metadata/synopsis_translator.dart';
 import '../../core/mode/content_mode_cubit.dart';
 import '../../core/zmode/metadata_filters.dart';
 import '../../core/zmode/zmode_module.dart';
@@ -66,6 +69,7 @@ import '../../core/models/media_extras.dart';
 import '../../core/models/person.dart';
 import '../home/search_screen.dart';
 import '../people/person_page.dart';
+import '../studio/studio_page.dart';
 import '../../core/models/video_source.dart';
 import '../../core/models/provider_info.dart';
 import '../../core/models/watch_status.dart';
@@ -2184,7 +2188,9 @@ class _DetailViewState extends State<_DetailView>
     // duration each got a turn here and each cost more than it paid; they
     // live in the Details tab now, where there is room to read them.
     final metaParts = <String>[];
-    if ((detail.year ?? '').isNotEmpty) metaParts.add(detail.year!);
+    if ((detail.year ?? '').isNotEmpty) {
+      metaParts.add(_yearWithSeason(detail.year!, detail.startDate));
+    }
     // A film has no episode count to fill the middle slot, so its run time
     // takes it — there it IS the thing worth knowing before pressing play.
     if (!isReading && eps.length <= 1 && (detail.durationMins ?? 0) > 0) {
