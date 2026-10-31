@@ -173,7 +173,9 @@ class _CastTab extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            if (m.role != null && m.role!.isNotEmpty)
+            if (m.role != null &&
+                m.role!.isNotEmpty &&
+                m.person?.source != PersonSource.anilistCharacter)
               Text(
                 m.role!,
                 maxLines: 1,
@@ -573,7 +575,7 @@ class _DetailsTab extends StatelessWidget {
     return [
       if (d.format != null) _DetailRow(label: l10n.format, value: d.format!),
       if (d.durationMins != null)
-        _DetailRow(label: l10n.duration, value: '${d.durationMins} min'),
+        _DetailRow(label: l10n.duration, value: '${d.durationMins} menit'),
       if (d.score != null)
         _DetailRow(label: l10n.score, value: '${d.score! / 10} / 10'),
       if (d.popularity != null)
