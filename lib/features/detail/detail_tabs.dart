@@ -580,7 +580,8 @@ class _DetailsTab extends StatelessWidget {
 
     final aired = dates();
     return [
-      if (d.format != null)\n        _DetailRow(label: l10n.format, value: _displayFormat(d.format!)),
+      if (d.format != null)
+        _DetailRow(label: l10n.format, value: _displayFormat(d.format!)),
       if (d.durationMins != null)
         _DetailRow(label: l10n.duration, value: '${d.durationMins} menit'),
       if (d.score != null)
