@@ -289,8 +289,8 @@ class _PersonPageState extends State<PersonPage> {
 
   String _translatedRole(String value) {
     return value
-        .replaceAll(RegExp(r'\\bMain\\b', caseSensitive: false), 'Utama')
-        .replaceAll(RegExp(r'\\bSupporting\\b', caseSensitive: false), 'Pendukung');
+        .replaceAll(RegExp(r'\bMain\b', caseSensitive: false), 'Utama')
+        .replaceAll(RegExp(r'\bSupporting\b', caseSensitive: false), 'Pendukung');
   }
 
   Widget _workCard(PersonWork w) {
