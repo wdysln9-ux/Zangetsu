@@ -57,6 +57,14 @@ class _PersonPageState extends State<PersonPage> {
     fromReadingPage: !w.isReading,
   );
 
+  String _displayName(String value) {
+    if (widget.person.source != PersonSource.anilistCharacter) return value;
+    final parts = value.trim().split(RegExp(r'\\s+'));
+    if (parts.length < 2) return value;
+    return [parts.last, ...parts.sublist(1, parts.length - 1), parts.first]
+        .join(' ');
+  }
+
   void _openRelated(PersonRef ref) {
     Navigator.of(
       context,
@@ -71,7 +79,7 @@ class _PersonPageState extends State<PersonPage> {
         backgroundColor: AppColors.bg,
         elevation: 0,
         title: Text(
-          widget.person.name,
+          _displayName(widget.person.name),
           style: AppText.title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -165,7 +173,19 @@ class _PersonPageState extends State<PersonPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
-                Text(p.name, style: AppText.title),
+                Text(_displayName(p.name), style: AppText.title),
+                if (widget.person.source == PersonSource.anilistCharacter &&
+                    p.alternateNames.isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Text(
+                    p.alternateNames.join(' · '),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
                 if (p.nativeName != null && p.nativeName!.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(p.nativeName!, style: AppText.body),
