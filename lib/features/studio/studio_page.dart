@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/anilist/anilist_graphql.dart';
 import '../../core/di/injector.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
@@ -46,7 +47,7 @@ class _StudioPageState extends State<StudioPage> {
           isAnimationStudio
           siteUrl
           favourites
-          media(sort: $sort, type: ANIME, isAdult: false, page: 1, perPage: 30) {
+          media(sort: $sort, isAdult: false, page: 1, perPage: 30) {
             pageInfo { hasNextPage }
             nodes {
               id
@@ -67,7 +68,7 @@ class _StudioPageState extends State<StudioPage> {
         'https://graphql.anilist.co',
         data: {'query': query, 'variables': {'search': widget.studioName, 'sort': [_sort]}},
         options: Options(
-          headers: const {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          headers: AniListGraphql.headers,
           validateStatus: (status) => status != null && status < 500,
         ),
       );
@@ -109,7 +110,7 @@ class _StudioPageState extends State<StudioPage> {
     const query = r'''
       query ($id: Int!, $page: Int!, $sort: [MediaSort]) {
         Studio(id: $id) {
-          media(sort: $sort, type: ANIME, isAdult: false, page: $page, perPage: 30) {
+          media(sort: $sort, isAdult: false, page: $page, perPage: 30) {
             pageInfo { hasNextPage }
             nodes {
               id
@@ -130,7 +131,7 @@ class _StudioPageState extends State<StudioPage> {
         'https://graphql.anilist.co',
         data: {'query': query, 'variables': {'id': studioId, 'page': _nextPage, 'sort': [_sort]}},
         options: Options(
-          headers: const {'Content-Type': 'application/json', 'Accept': 'application/json'},
+          headers: AniListGraphql.headers,
           validateStatus: (status) => status != null && status < 500,
         ),
       );
