@@ -130,7 +130,7 @@ class ContinueWatchingRow extends StatelessWidget {
     }
     return SliverToBoxAdapter(
       child: ContentRow(
-        title: 'Continue Watching',
+        title: 'Lanjut Tonton',
         // Compact 16:9 landscape card — same design, just smaller/tighter.
         itemWidth: 190,
         itemHeight: 124,
