@@ -230,7 +230,30 @@ class _PersonPageState extends State<PersonPage> {
   }
 
   List<(String, String)> _manualCharacterFacts(String description) {
-    final pattern = RegExp(r'^\\s*__(.+?):__\\s*(.+?)\\s*
+    final pattern = RegExp(r'^\s*__(.+?):__\s*(.+?)\s*$', multiLine: true);
+    return pattern
+        .allMatches(description)
+        .map((match) => (match.group(1)!.trim(), match.group(2)!.trim()))
+        .where((fact) => fact.$1.isNotEmpty && fact.$2.isNotEmpty)
+        .toList();
+  }
+
+  String _bioWithoutManualFacts(String description) {
+    final pattern = RegExp(r'^\s*__.+?:__\s*.+?\s*$', multiLine: true);
+    return description.replaceAll(pattern, '').trim();
+  }
+
+  bool _hasCharacterFacts(PersonProfile p) =>
+      p.age != null ||
+      p.gender != null ||
+      p.birthday != null ||
+      p.bloodType != null ||
+      p.favourites != null ||
+      (p.description != null &&
+          _manualCharacterFacts(p.description!).isNotEmpty);
+
+  Widget _characterFacts(PersonProfile p) {
+    final facts = <(String, String)>[
       if (p.age != null) ('Usia', p.age!),
       if (p.gender != null) ('Gender', _genderLabel(p.gender!)),
       if (p.birthday != null) ('Ulang tahun', p.birthday!),
