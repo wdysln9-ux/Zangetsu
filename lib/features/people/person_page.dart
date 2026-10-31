@@ -110,6 +110,9 @@ class _PersonPageState extends State<PersonPage> {
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(child: _header(p)),
+        if (widget.person.source == PersonSource.anilistCharacter &&
+            _hasCharacterFacts(p))
+          SliverToBoxAdapter(child: _characterFacts(p)),
         if (p.description != null && p.description!.isNotEmpty)
           SliverToBoxAdapter(child: _bio(p.description!)),
         if (p.related.isNotEmpty)
@@ -218,6 +221,88 @@ class _PersonPageState extends State<PersonPage> {
         ],
       ),
     );
+  }
+
+  bool _hasCharacterFacts(PersonProfile p) =>
+      p.age != null ||
+      p.gender != null ||
+      p.birthday != null ||
+      p.bloodType != null ||
+      p.favourites != null;
+
+  Widget _characterFacts(PersonProfile p) {
+    final facts = <(String, String)>[
+      if (p.age != null) ('Usia', p.age!),
+      if (p.gender != null) ('Gender', _genderLabel(p.gender!)),
+      if (p.birthday != null) ('Ulang tahun', p.birthday!),
+      if (p.bloodType != null) ('Golongan darah', p.bloodType!),
+      if (p.favourites != null)
+        ('Favorit AniList', p.favourites!.toString()),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionLabel('Informasi karakter'),
+          const SizedBox(height: 4),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = (constraints.maxWidth - 10) / 2;
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: facts.map((fact) {
+                  return Container(
+                    width: width,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 11,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          fact.$1,
+                          style: AppText.caption.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          fact.$2,
+                          style: AppText.body.copyWith(
+                            color: AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _genderLabel(String value) {
+    switch (value.toLowerCase()) {
+      case 'female':
+        return 'Perempuan';
+      case 'male':
+        return 'Laki-laki';
+      case 'non-binary':
+        return 'Non-biner';
+      default:
+        return value;
+    }
   }
 
   Widget _bio(String text) {
