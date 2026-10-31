@@ -131,9 +131,9 @@ class ContinueWatchingRow extends StatelessWidget {
     return SliverToBoxAdapter(
       child: ContentRow(
         title: 'Lanjut Tonton',
-        // Compact 16:9 landscape card — same design, just smaller/tighter.
-        itemWidth: 146,
-        itemHeight: 95,
+        // 91% of the original 190 × 124 landscape card.
+        itemWidth: 173,
+        itemHeight: 113,
         onSeeAll: onSeeAll,
         itemCount: history.length,
         itemBuilder: (c, i) {
@@ -145,7 +145,7 @@ class ContinueWatchingRow extends StatelessWidget {
             imageUrl: e.thumbnail,
             headers: e.coverHeaders,
             progress: e.progress,
-            cellWidth: 146,
+            cellWidth: 173,
             subtitle: e.episodeNumber != null
                 ? 'Episode ${e.episodeNumber!.toInt()}'
                 : null,
