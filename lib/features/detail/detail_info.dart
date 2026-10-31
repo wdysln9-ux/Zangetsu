@@ -120,7 +120,11 @@ class _DescriptionState extends State<_Description> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SynopsisTranslation(text: widget.text, expanded: _expanded),
+        GestureDetector(
+          onTap: () => setState(() => _expanded = !_expanded),
+          behavior: HitTestBehavior.opaque,
+          child: _SynopsisTranslation(text: widget.text, expanded: _expanded),
+        ),
         const SizedBox(height: 6),
         GestureDetector(
           onTap: () => setState(() => _expanded = !_expanded),
