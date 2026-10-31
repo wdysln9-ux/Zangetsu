@@ -206,7 +206,6 @@ class _ScheduleBodyState extends State<ScheduleBody> {
                       final next = velocity < 0
                           ? selected.add(const Duration(days: 1))
                           : selected.subtract(const Duration(days: 1));
-                      if (next.isBefore(today)) return;
                       cubit.selectDay(next);
                     },
                     child: _page(
@@ -601,7 +600,10 @@ class _ScheduleBodyState extends State<ScheduleBody> {
   ) {
     final l10n = context.l10n;
     final locale = Localizations.localeOf(context).toString();
-    final days = [for (var i = 0; i < 7; i++) today.add(Duration(days: i))];
+    final days = [
+      today.subtract(const Duration(days: 1)),
+      for (var i = 0; i < 7; i++) today.add(Duration(days: i)),
+    ];
     return SizedBox(
       height: 46,
       child: ListView.builder(
