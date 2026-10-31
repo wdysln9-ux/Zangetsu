@@ -219,7 +219,7 @@ class ViewerProfileHomeScreen extends StatelessWidget {
                         const SizedBox(height: 30),
                         Divider(height: 1, color: AppColors.hairline),
                         const SizedBox(height: 22),
-                        const Center(
+                        Center(
                           child: Text(
                             'Fitur lainnya sedang dalam proses...',
                             textAlign: TextAlign.center,
