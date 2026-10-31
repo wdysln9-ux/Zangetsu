@@ -17,6 +17,10 @@ class AniListMarkdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final markdown = data.replaceAll(
+      RegExp(r'<br\\s*/?>', caseSensitive: false),
+      '\n',
+    );
     final base = textStyle ?? Theme.of(context).textTheme.bodyMedium!;
     final sheet = MarkdownStyleSheet.fromTheme(Theme.of(context)).copyWith(
       p: base,
@@ -35,7 +39,7 @@ class AniListMarkdown extends StatelessWidget {
       ),
     );
     return MarkdownBody(
-      data: data,
+      data: markdown,
       styleSheet: sheet,
       onTapLink: (text, href, title) {
         if (href == null) return;
