@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
-import 'package:html/dom.dart' as dom;
+import 'package:url_launcher/url_launcher.dart';
 import 'package:markdown/markdown.dart' as md;
 
 import '../theme/app_colors.dart';
@@ -38,13 +38,16 @@ class AniListMarkdown extends StatelessWidget {
 
     // AniList's image-size shorthand: img420(https://...)
     html = html.replaceAllMapped(
-      RegExp(r'img(\\d{1,4})\\((https?://[^)]+)\\)'),
+      RegExp(r'img(\d{1,4})\((https?://[^)]+)\)'),
       (match) =>
           '<img src="${match[2]}" width="${match[1]}" />',
     );
 
     // Center alignment shorthand used by AniList profiles.
-    html = html.replaceAll('˜˜˜', '<div class="anilist-center">');
+    html = html.replaceAllMapped(
+      RegExp(r'˜˜˜(.*?)˜˜˜', dotAll: true),
+      (match) => '<div style="text-align:center">${match[1] ?? ''}</div>',
+    );
     return html;
   }
 
@@ -57,7 +60,7 @@ class AniListMarkdown extends StatelessWidget {
       renderMode: RenderMode.column,
       onTapUrl: (url) async {
         // Let the host handle external navigation where available.
-        return false;
+        return launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       },
       customStylesBuilder: (element) {
         switch (element.localName) {
