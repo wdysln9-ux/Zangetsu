@@ -11,6 +11,7 @@ import '../../core/profiles/viewer_profile.dart';
 import '../../core/profiles/viewer_profile_avatar.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
+import '../../core/ui/anilist_markdown.dart';
 import '../auth/auth_cubit.dart';
 import '../auth/auth_screens.dart' show ProfileAccountSection;
 import '../auth/pair_tv_screen.dart';
@@ -197,17 +198,21 @@ class ViewerProfileHomeScreen extends StatelessWidget {
                                   _profiles,
                                   profile: profile,
                                 ),
-                                child: Text(
-                                  profile.bio.isEmpty
-                                      ? 'Add a bio'
-                                      : profile.bio,
-                                  style: AppText.body.copyWith(
-                                    fontSize: 14,
-                                    color: profile.bio.isEmpty
-                                        ? AppColors.textTertiary
-                                        : AppColors.textSecondary,
-                                  ),
-                                ),
+                                child: profile.bio.isEmpty
+                                    ? Text(
+                                        'Add a bio',
+                                        style: AppText.body.copyWith(
+                                          fontSize: 14,
+                                          color: AppColors.textTertiary,
+                                        ),
+                                      )
+                                    : AniListMarkdown(
+                                        data: profile.bio,
+                                        textStyle: AppText.body.copyWith(
+                                          fontSize: 14,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
                               ),
                             ],
                           ),
