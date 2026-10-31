@@ -108,25 +108,14 @@ TextStyle buildSubtitleTextStyle(PlaybackPrefs p, {required double fontSize}) {
     height: 1.4,
     fontSize: fontSize,
     fontFamily: p.subtitleFont.isEmpty ? null : p.subtitleFont,
-    fontWeight: FontWeight.values[((p.subtitleFontWeight ~/ 100).clamp(1, 9)) - 1],
+    fontWeight: FontWeight.w600,
     color: parseSubtitleHex(p.subtitleColorHex, opacity: p.subtitleTextOpacity),
     backgroundColor:
         Color.fromRGBO(0, 0, 0, p.subtitleBgOpacity.clamp(0.0, 1.0)),
-    shadows: [
-      ...buildSubtitleShadows(
-        p.subtitleOutlineType,
-        p.subtitleOutlineWidth,
-        parseSubtitleHex(p.subtitleOutlineColorHex),
-      ),
-      if (p.subtitleShadowDistance > 0 || p.subtitleShadowBlur > 0)
-        Shadow(
-          color: parseSubtitleHex(p.subtitleShadowColorHex),
-          offset: Offset(
-            math.cos(p.subtitleShadowAngle * math.pi / 180) * p.subtitleShadowDistance,
-            math.sin(p.subtitleShadowAngle * math.pi / 180) * p.subtitleShadowDistance,
-          ),
-          blurRadius: p.subtitleShadowBlur + p.subtitleShadowThickness,
-        ),
-    ],
+    shadows: buildSubtitleShadows(
+      p.subtitleOutlineType,
+      p.subtitleOutlineWidth,
+      parseSubtitleHex(p.subtitleOutlineColorHex),
+    ),
   );
 }
