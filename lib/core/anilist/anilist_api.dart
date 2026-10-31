@@ -8,19 +8,19 @@ import 'anilist_title.dart';
 import '../models/person.dart';
 import '../tracker/tracker.dart' show MediaKind;
 
-/// AniList's `type:` enum value for [kind].
 /// Convert AniList enum labels such as MAIN to readable title case.
 String? _titleCase(String? value) {
   if (value == null || value.trim().isEmpty) return value;
   return value
       .toLowerCase()
-      .split(RegExp(r'[\\s_]+'))
+      .split(RegExp(r'[\s_]+'))
       .map((word) => word.isEmpty
           ? word
           : '${word[0].toUpperCase()}${word.substring(1)}')
       .join(' ');
 }
 
+/// AniList's `type:` enum value for [kind].
 String _anilistType(MediaKind kind) =>
     kind == MediaKind.manga ? 'MANGA' : 'ANIME';
 
