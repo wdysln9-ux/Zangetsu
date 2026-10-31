@@ -698,7 +698,7 @@ class _ControlsOverlay extends StatelessWidget {
                   );
                 },
               ),
-              if (multiEpisode) ...[
+              if (multiEpisode && !compactEpisodePortrait) ...[
                 const SizedBox(width: 24),
                 _TransportButton(
                   icon: Icons.skip_next_rounded,
