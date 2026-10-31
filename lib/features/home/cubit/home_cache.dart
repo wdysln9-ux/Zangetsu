@@ -87,19 +87,8 @@ class HomeCache {
             // One unreadable row item must not drop the whole home.
           }
         }
-        // Old Home snapshots can outlive catalogue/filter fixes. Never let
-        // a stale Romance row paint titles whose saved metadata lacks the
-        // explicit Romance genre while the fresh catalogue request is running.
-        final title = '${sm['title'] ?? ''}';
-        if (title == 'Romantis' || title == 'Romance') {
-          decoded.removeWhere(
-            (item) => !item.genres.any(
-              (genre) => genre.toLowerCase() == 'romance',
-            ),
-          );
-        }
         if (decoded.isEmpty) continue;
-        out.add(HomeSection(title: title, items: decoded));
+        out.add(HomeSection(title: '${sm['title'] ?? ''}', items: decoded));
       }
       return out.isEmpty ? null : out;
     } catch (_) {
