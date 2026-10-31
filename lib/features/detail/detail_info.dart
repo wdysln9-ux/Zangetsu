@@ -143,7 +143,15 @@ class _SynopsisTranslationState extends State<_SynopsisTranslation> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        AniListMarkdown(data: shownText, textStyle: AppText.body),
+        if (widget.maxLines == null)
+          AniListMarkdown(data: shownText, textStyle: AppText.body)
+        else
+          ClipRect(
+            child: SizedBox(
+              height: (AppText.body.fontSize ?? 14) * 1.55 * widget.maxLines!,
+              child: AniListMarkdown(data: shownText, textStyle: AppText.body),
+            ),
+          ),
         if (_loading) ...[
           const SizedBox(height: 5),
           const SizedBox(
