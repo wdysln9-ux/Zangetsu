@@ -15,6 +15,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../logging/app_logger.dart';
 import '../models/episode.dart';
 import '../models/video_source.dart';
+import '../playback/remote_file_size.dart';
 import '../platform/apple_tv.dart';
 import '../repository/catalogue_repository.dart';
 import '../torrent/torrent_download_service.dart';
@@ -693,6 +694,18 @@ class DownloadManager extends ChangeNotifier {
     if (isTorrentSource(source)) {
       await _startTorrentDownload(rec, source);
       return;
+    }
+    // Read the advertised Content-Length before enqueueing so the Downloads
+    // list can show MB/GB while the file is being fetched. Hosts that do not
+    // support HEAD simply continue with live progress-size reporting.
+    final advertisedSize = await RemoteFileSize.lookup(
+      source.url,
+      headers: source.headers,
+    );
+    if (advertisedSize != null && advertisedSize > 0) {
+      _put(rec.copyWith(bytesTotal: advertisedSize));
+      rec = _records[rec.id] ?? rec;
+      notifyListeners();
     }
     final filename =
         '${_safe(rec.showTitle)}_E${rec.episodeNumber?.toInt() ?? ''}'
