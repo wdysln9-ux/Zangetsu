@@ -1673,6 +1673,7 @@ class _SheetRow extends StatelessWidget {
     required this.onTap,
     this.icon,
     this.subtitle,
+    this.subtitleWidget,
     this.toggleValue,
     this.loading = false,
     this.onRemove,
@@ -1688,6 +1689,7 @@ class _SheetRow extends StatelessWidget {
   /// Optional secondary line under the label — explains what a setting does
   /// (e.g. for jargon like "Audio normalization") so it's self-describing.
   final String? subtitle;
+  final Widget? subtitleWidget;
 
   /// When non-null, the row is a toggle: renders a trailing Switch reflecting
   /// this value (instead of the icon/check), and stays plain (no accent tint).
@@ -1737,13 +1739,11 @@ class _SheetRow extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (subtitle != null) ...[
+                      if (subtitle != null || subtitleWidget != null) ...[
                         const SizedBox(height: 2),
-                        Text(
+                        subtitleWidget ?? Text(
                           subtitle!,
-                          style: AppText.caption.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: AppText.caption.copyWith(color: AppColors.textSecondary),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -2132,4 +2132,33 @@ bool _titlesSaySomething(Iterable<String?> titles) {
   if (named.isEmpty) return false;
   if (named.every((t) => !t.contains(' ') && t.contains('.'))) return false;
   return named.length < 2 || named.toSet().length > 1;
+}
+
+/// Displays the exact size advertised by a direct-file server, when available.
+class _RemoteFileSizeLabel extends StatefulWidget {
+  const _RemoteFileSizeLabel({required this.url, this.headers});
+  final String url;
+  final Map<String, String>? headers;
+  @override
+  State<_RemoteFileSizeLabel> createState() => _RemoteFileSizeLabelState();
+}
+
+class _RemoteFileSizeLabelState extends State<_RemoteFileSizeLabel> {
+  late Future<int?> _size;
+  @override
+  void initState() {
+    super.initState();
+    _size = RemoteFileSize.lookup(widget.url, headers: widget.headers);
+  }
+  @override
+  Widget build(BuildContext context) => FutureBuilder<int?>(
+    future: _size,
+    builder: (context, snapshot) {
+      final size = snapshot.data;
+      final label = snapshot.connectionState != ConnectionState.done
+          ? 'Memeriksa ukuran…'
+          : size == null ? 'Ukuran tidak diketahui' : RemoteFileSize.format(size);
+      return Text(label, style: AppText.caption.copyWith(color: AppColors.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis);
+    },
+  );
 }
