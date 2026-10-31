@@ -431,6 +431,7 @@ class _DetailView extends StatefulWidget {
   /// The catalogue this title was opened from, so the name matches the data.
   final PreferredProvider? prefer;
   final bool autoScrollToResume;
+  final String? targetEpisodeId;
 
   @override
   State<_DetailView> createState() => _DetailViewState();
