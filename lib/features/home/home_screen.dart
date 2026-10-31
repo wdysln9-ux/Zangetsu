@@ -686,6 +686,21 @@ class _HomeViewState extends State<_HomeView>
     if (mounted) setState(() {});
   }
 
+  /// Open the anime detail page when a Continue Watching card is tapped.
+  /// Resuming playback remains available from the detail page's Play action.
+  void _openContinueShowDetail(HistoryEntry e) {
+    final item = MediaItem(
+      id: e.showId,
+      title: e.showTitle,
+      cover: e.cover,
+      coverHeaders: e.coverHeaders,
+      url: e.showUrl,
+      type: ProviderType.anime,
+      sourceId: e.sourceId,
+    );
+    _openDetail(item);
+  }
+
   /// Resume from Continue Watching. Navigates to the player INSTANTLY; the
   /// player resolves the episode list behind its own branded loader (no blocking
   /// pre-navigation spinner).
@@ -1119,7 +1134,7 @@ class _HomeViewState extends State<_HomeView>
   /// Hive/mode behaviour is identical wherever the user drags it.
   Widget _homeRowSliver(HomeRow row) => switch (row) {
     LocalContinueHomeRow() => ContinueSection(
-      onResume: _resume,
+      onResume: _openContinueShowDetail,
       onLongPress: _showContinueInfo,
       onSeeAll: _openHistory,
       onResumeReading: _resumeReading,
@@ -2081,7 +2096,7 @@ class _HomeViewState extends State<_HomeView>
                           ...rows.map(_homeRowSliver)
                       else ...[
                         ContinueSection(
-                          onResume: _resume,
+                          onResume: _openContinueShowDetail,
                           onLongPress: _showContinueInfo,
                           onSeeAll: _openHistory,
                           onResumeReading: _resumeReading,
