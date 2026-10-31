@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:webview_flutter/webview_flutter.dart';
@@ -48,10 +49,17 @@ class AniListMarkdown extends StatelessWidget {
       (match) => '<span class="anilist-spoiler">${match[1] ?? ''}</span>',
     );
 
-    // AniList image-size shorthand: img420(https://...)
+    // Simple image syntax: img(url) or img220(url).
+    // Keep the width optional so img(url) uses the available content width.
     html = html.replaceAllMapped(
-      RegExp(r'img(\d{1,4})\((https?://[^)]+)\)'),
-      (match) => '<img src="${match[2]}" width="${match[1]}" />',
+      RegExp(r'img(\\d{1,4})?\\((https?://[^)\\s]+)\\)'),
+      (match) {
+        final width = match[1];
+        final src = match[2];
+        return width == null
+            ? '<img src="$src" />'
+            : '<img src="$src" width="$width" />';
+      },
     );
 
     html = html.replaceAllMapped(
@@ -171,14 +179,28 @@ class AniListMarkdown extends StatelessWidget {
           if (src == null || src.isEmpty) return const SizedBox.shrink();
           final width = double.tryParse(element.attributes['width'] ?? '');
           return LayoutBuilder(
-            builder: (context, constraints) => Image.network(
-              src,
-              width: width == null
+            builder: (context, constraints) {
+              final displayWidth = width == null
                   ? constraints.maxWidth
-                  : width.clamp(1, constraints.maxWidth).toDouble(),
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
+                  : width.clamp(1, constraints.maxWidth).toDouble();
+              final pixelWidth = (displayWidth *
+                      MediaQuery.devicePixelRatioOf(context))
+                  .round()
+                  .clamp(1, 4096);
+              return CachedNetworkImage(
+                imageUrl: src,
+                width: displayWidth,
+                fit: BoxFit.contain,
+                memCacheWidth: pixelWidth,
+                maxWidthDiskCache: pixelWidth,
+                fadeInDuration: Duration.zero,
+                placeholder: (_, __) => SizedBox(
+                  width: displayWidth,
+                  height: displayWidth * 0.56,
+                ),
+                errorWidget: (_, __, ___) => const SizedBox.shrink(),
+              );
+            },
           );
         }
         if (!element.classes.contains('anilist-spoiler')) return null;
@@ -282,7 +304,16 @@ class _YoutubeMarkdownEmbedState extends State<_YoutubeMarkdownEmbed> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.black)
-      ..loadRequest(widget.uri);
+      // YouTube may return player error 153 when the WebView request has
+      // no referrer. Supply a YouTube referrer and a mobile browser user-agent.
+      ..setUserAgent(
+        'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 '
+        '(KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
+      )
+      ..loadRequest(
+        widget.uri,
+        headers: const {'Referer': 'https://www.youtube.com/'},
+      );
   }
 
   @override
