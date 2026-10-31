@@ -446,12 +446,12 @@ class _HomeViewState extends State<_HomeView>
     sl<TitleLogoService>().prefetch(items);
   }
 
-  void _openDetail(MediaItem item) {
+  void _openDetail(MediaItem item, {bool autoScrollToResume = false}) {
     // Only rebuild Home if this visit actually changed My List — Continue
     // Watching/Reading rows already listen to their Hive boxes, so a blanket
     // setState made every back-press rebuild the whole page for nothing.
     final listRev = _myList.revision.value;
-    Navigator.push(context, DetailScreen.route(item)).then((_) {
+    Navigator.push(context, DetailScreen.route(item, autoScrollToResume: autoScrollToResume)).then((_) {
       if (mounted && _myList.revision.value != listRev) setState(() {});
     });
   }
@@ -698,7 +698,7 @@ class _HomeViewState extends State<_HomeView>
       type: ProviderType.anime,
       sourceId: e.sourceId,
     );
-    _openDetail(item);
+    _openDetail(item, autoScrollToResume: true);
   }
 
   /// Resume from Continue Watching. Navigates to the player INSTANTLY; the
