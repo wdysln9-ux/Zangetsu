@@ -112,7 +112,7 @@ class AniListMarkdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final base = textStyle ?? Theme.of(context).textTheme.bodyMedium;
-    final linkColor = '#${(AppColors.textPrimary.value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
+    final linkColor = '#${(AppColors.accent.value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
     return HtmlWidget(
       _toHtml(data),
       textStyle: base,
