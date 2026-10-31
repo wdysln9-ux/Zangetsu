@@ -1487,24 +1487,24 @@ class _EpisodeRow extends StatelessWidget {
         ? ep.thumbnail!
         : coverUrl;
 
-    // Air date stays as a small line next to the title; the episode synopsis
-    // (AniZip/TMDB, ~3 lines) spans full width below the row — under the image
-    // too, CloudStream-style.
-    final desc = (ep.description != null && ep.description!.trim().isNotEmpty)
-        ? ep.description!.trim()
-        : null;
-    // Runtime · air date. The rating now rides as a chip on the thumbnail
-    // (always fully visible) instead of getting clipped on this cramped line.
+    // Runtime and air date in Indonesian.
+    String formatAirDate(String value) {
+      final parsed = DateTime.tryParse(value.trim());
+      if (parsed == null) return value.trim();
+      const months = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+      ];
+      return '${parsed.day} ${months[parsed.month - 1]} ${parsed.year}';
+    }
+
     final metaLine = unavailable
-        // Already worded by the catalogue layer — "Airs 12 Sep" when the
-        // tracker knows it isn't out, else the one source we actually asked.
-        // Anything stronger would be a claim nobody verified (see
-        // Episode.unavailable).
         ? ep.unavailable!
         : [
-            if (ep.runtimeMinutes != null) '${ep.runtimeMinutes} min',
-            if (ep.date != null && ep.date!.trim().isNotEmpty) ep.date!.trim(),
-          ].join('  ·  ');
+            if (ep.runtimeMinutes != null) '${ep.runtimeMinutes} menit',
+            if (ep.date != null && ep.date!.trim().isNotEmpty)
+              formatAirDate(ep.date!),
+          ].join('  ');
 
     // Prefer the real AniZip/TMDB title when the source only gave a generic
     // "Episode N" (or nothing); keep the source's own title when it has a real
@@ -1702,20 +1702,6 @@ class _EpisodeRow extends StatelessWidget {
                 ],
               ],
             ),
-            // Full-width synopsis under the whole row (under the image too).
-            if (desc != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                desc,
-                style: AppText.caption.copyWith(
-                  color: AppColors.textSecondary,
-                  fontStyle: FontStyle.italic,
-                  height: 1.4,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
           ],
         ),
       ),
