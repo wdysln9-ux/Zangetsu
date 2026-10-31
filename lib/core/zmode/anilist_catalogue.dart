@@ -186,7 +186,16 @@ class AniListCatalogue implements AnimeCatalogue {
     final data = await _gql('query{ $query }', const {});
     final out = <HomeSection>[];
     for (final (i, (title, args)) in rows.indexed) {
-      final items = _itemsFromPage(data?['r$i'], kind);
+      var items = _itemsFromPage(data?['r$i'], kind);
+      // Keep the Romance row strict even if a provider response or stale
+      // catalogue payload contains titles that do not carry the Romance genre.
+      if (title == 'Romantis' || title == 'Romance') {
+        items = items
+            .where((item) => item.genres.any(
+                  (genre) => genre.toLowerCase() == 'romance',
+                ))
+            .toList();
+      }
       if (items.isEmpty) continue;
       // The row's own query fragment IS its identity — hand it back through
       // `more` and [browseRow] can ask for page 2 of exactly this row.
@@ -212,7 +221,15 @@ class AniListCatalogue implements AnimeCatalogue {
       'media(type:${_type(kind)}$_adultExclusion${_format(kind)},$rowId){ $_listFields } }',
       const {},
     );
-    return _itemsFromPage(data?['Page'], kind);
+    final items = _itemsFromPage(data?['Page'], kind);
+    if (rowId.contains('genre_in:["Romance"]')) {
+      return items
+          .where((item) => item.genres.any(
+                (genre) => genre.toLowerCase() == 'romance',
+              ))
+          .toList();
+    }
+    return items;
   }
 
   Future<List<MediaItem>> search(String q, ZKind kind) =>
