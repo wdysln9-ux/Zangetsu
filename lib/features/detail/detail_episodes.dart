@@ -157,9 +157,9 @@ class _EpisodesTabState extends State<_EpisodesTab> {
       // then run this method again and perform the precise key-based scroll.
       if (_autoScrollSeekAttempted) return;
       final episodes = _displayEps;
-      final targetIndex = widget.targetEpisodeId == null
-          ? widget.resumeIndex(widget.eps)
-          : episodes.indexWhere((ep) => ep.id == widget.targetEpisodeId);
+      final targetId = widget.targetEpisodeId ??
+          widget.eps[widget.resumeIndex(widget.eps)].id;
+      final targetIndex = episodes.indexWhere((ep) => ep.id == targetId);
       if (targetIndex < 0 || targetIndex >= episodes.length) return;
 
       final slice = episodeRangeSlice(
@@ -178,7 +178,7 @@ class _EpisodesTabState extends State<_EpisodesTab> {
       // and range controls so the target sliver is built before ensureVisible.
       final estimatedOffset = position.pixels + 150 + (indexInRange * 110);
       await controller.animateTo(
-        estimatedOffset.clamp(0.0, position.maxScrollExtent),
+        estimatedOffset.clamp(0.0, position.maxScrollExtent).toDouble(),
         duration: const Duration(milliseconds: 350),
         curve: Curves.easeOut,
       );
