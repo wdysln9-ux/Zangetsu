@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../metadata/synopsis_translator.dart';
+import 'anilist_markdown.dart';
 
 /// Shows Indonesian text when available. Translation is best-effort;
 /// the source text remains as a fallback if translation fails.
@@ -55,13 +56,17 @@ class _AutoTranslatedTextState extends State<AutoTranslatedText> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              shown,
-              style: widget.style,
-              maxLines: widget.maxLines,
-              overflow: widget.overflow,
-              textAlign: widget.textAlign,
-            ),
+            if (widget.maxLines == null)
+              AniListMarkdown(data: shown, textStyle: widget.style)
+            else
+              ClipRect(
+                child: SizedBox(
+                  height: (widget.style.fontSize ?? 14) *
+                      1.55 *
+                      widget.maxLines!,
+                  child: AniListMarkdown(data: shown, textStyle: widget.style),
+                ),
+              ),
           ],
         );
       },
