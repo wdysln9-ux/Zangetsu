@@ -60,6 +60,46 @@ class _CreditLine extends StatelessWidget {
   }
 }
 
+// Compact credit line with individually tappable values.
+class _InteractiveCreditLine extends StatelessWidget {
+  const _InteractiveCreditLine({
+    required this.label,
+    required this.values,
+    required this.onTap,
+  });
+
+  final String label;
+  final List<String> values;
+  final ValueChanged<String> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = AppText.caption.copyWith(color: AppColors.textSecondary);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 6,
+        runSpacing: 2,
+        children: [
+          Text('$label:', style: style.copyWith(color: AppColors.textTertiary)),
+          for (var i = 0; i < values.length; i++)
+            GestureDetector(
+              onTap: () => onTap(values[i]),
+              child: Text(
+                '${values[i]}${i < values.length - 1 ? ',' : ''}',
+                style: style.copyWith(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Description: synopsis preview with an inline expand/collapse affordance.
 // ─────────────────────────────────────────────────────────────────────────────
