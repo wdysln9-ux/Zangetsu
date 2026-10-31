@@ -2350,6 +2350,20 @@ class _DetailViewState extends State<_DetailView>
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (detail.englishTitle != null &&
+                      detail.englishTitle!.trim().isNotEmpty &&
+                      detail.englishTitle!.trim() != detail.title.trim()) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      detail.englishTitle!.trim(),
+                      style: AppText.body.copyWith(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                   if (metaLine.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Row(
