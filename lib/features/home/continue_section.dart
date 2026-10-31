@@ -140,9 +140,9 @@ class ContinueWatchingRow extends StatelessWidget {
           final e = history[i];
           return ContinueCard(
             title: e.showTitle,
-            // Prefer the landscape episode thumbnail; fall back to the
-            // portrait cover (older entries / sources without them).
-            imageUrl: e.thumbnail ?? e.cover,
+            // Use only the thumbnail for the episode currently being
+            // watched. Do not substitute the anime's portrait poster.
+            imageUrl: e.thumbnail,
             headers: e.coverHeaders,
             progress: e.progress,
             cellWidth: 190,
