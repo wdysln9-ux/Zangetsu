@@ -253,9 +253,7 @@ class _RelationsTab extends StatelessWidget {
   ) => MediaRelation(
     title: s.title,
     cover: s.cover,
-    relation: s.isCurrent
-        ? '${context.l10n.seasonNumber(s.number)} · ${context.l10n.statusWatching}'
-        : context.l10n.seasonNumber(s.number),
+    relation: 'Season ${s.number}',
     malId: s.malId,
     anilistId: s.anilistId,
   );
@@ -313,7 +311,7 @@ class _RelationsTab extends StatelessWidget {
     final rest = _rest;
     return CustomScrollView(
       slivers: [
-        _header(context, context.l10n.seasons),
+        _header(context, 'Season'),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
           sliver: SliverGrid(
@@ -357,9 +355,11 @@ class _RelationsTab extends StatelessWidget {
   );
 
   static String _relationLabel(String value) => switch (value.trim().toLowerCase()) {
-    'side story' => 'Sampingan',
+    'side story' => 'Cerita sampingan',
     'character' => 'Karakter',
     'summary' => 'Ringkasan',
+    'other' => 'Lainnya',
+    'recommended' => 'Rekomendasi',
     _ => value,
   };
 
