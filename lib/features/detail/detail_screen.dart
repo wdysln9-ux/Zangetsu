@@ -2607,7 +2607,7 @@ class _DetailViewState extends State<_DetailView>
                 Tab(
                   text: isReading ? context.l10n.characters : context.l10n.cast,
                 ),
-                Tab(text: context.l10n.relations),
+                const Tab(text: 'Terkait'),
                 Tab(text: context.l10n.details),
               ],
             ),
