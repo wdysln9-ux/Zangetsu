@@ -439,6 +439,10 @@ class _ControlsOverlay extends StatelessWidget {
     // Movies and one-off items have nowhere to step, so they get a lone play
     // button rather than two arrows that can never do anything.
     final multiEpisode = c.episodes.length > 1;
+    // The episode-detail player sits inside a portrait page rather than
+    // occupying the whole display. Keep its controls compact and predictable;
+    // the full set of tools remains available from More / player settings.
+    final compactEpisodePortrait = episodeDetailMode && portraitMode;
 
     return Stack(
       fit: StackFit.expand,
@@ -448,7 +452,7 @@ class _ControlsOverlay extends StatelessWidget {
           top: 0,
           left: 0,
           right: 0,
-          height: 110,
+          height: compactEpisodePortrait ? 76 : 110,
           child: IgnorePointer(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -469,7 +473,7 @@ class _ControlsOverlay extends StatelessWidget {
           bottom: 0,
           left: 0,
           right: 0,
-          height: 170,
+          height: compactEpisodePortrait ? 112 : 170,
           child: IgnorePointer(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -504,7 +508,10 @@ class _ControlsOverlay extends StatelessWidget {
               // 40px button out to the 48px minimum touch target). 32 + 12 puts
               // the back arrow on 44 — the exact line the bottom capsules start
               // at. Writing 44 here would land it at 56 and overshoot inward.
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 4),
+              padding: EdgeInsets.symmetric(
+                horizontal: compactEpisodePortrait ? 10 : 32,
+                vertical: compactEpisodePortrait ? 0 : 4,
+              ),
               child: Row(
                 children: [
                   IconButton(
@@ -531,9 +538,13 @@ class _ControlsOverlay extends StatelessWidget {
                               Flexible(
                                 child: Text(
                                   primaryTitle,
-                                  style: AppText.headline.copyWith(
-                                    color: Colors.white,
-                                  ),
+                                  style: (compactEpisodePortrait
+                                          ? AppText.body
+                                          : AppText.headline)
+                                      .copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -577,12 +588,15 @@ class _ControlsOverlay extends StatelessWidget {
                   // Whatever the user put up here, in their order. Cast and
                   // the ⓘ stats toggle live here by default; anything else in
                   // the registry can be moved up in Settings.
-                  ..._topButtons(context, barConfig.top),
+                  if (!compactEpisodePortrait)
+                    ..._topButtons(context, barConfig.top),
                   // Sleep timer armed — a visible accent moon; tap to adjust or
                   // cancel. Only shown while a timer / end-of-episode is set,
                   // and only when Sleep isn't already placed somewhere, or an
                   // armed timer would show two of the same button.
-                  if (sleepActive && !_placedAnywhere('sleep'))
+                  if (!compactEpisodePortrait &&
+                      sleepActive &&
+                      !_placedAnywhere('sleep'))
                     IconButton(
                       icon: Icon(
                         Icons.bedtime_rounded,
@@ -595,7 +609,8 @@ class _ControlsOverlay extends StatelessWidget {
                   // copy up here just split the same action across two places.
                   // Lock stays: it's the one control you want reachable without
                   // looking down at the bar you're about to hide.
-                  IconButton(
+                  if (!compactEpisodePortrait)
+                    IconButton(
                     icon: const Icon(
                       Icons.lock_open_rounded,
                       color: Colors.white,
@@ -603,7 +618,8 @@ class _ControlsOverlay extends StatelessWidget {
                     tooltip: context.l10n.lockControls,
                     onPressed: onLock,
                   ),
-                  IconButton(
+                  if (!compactEpisodePortrait)
+                    IconButton(
                     icon: const Icon(
                       Icons.settings_rounded,
                       color: Colors.white,
@@ -611,7 +627,7 @@ class _ControlsOverlay extends StatelessWidget {
                     tooltip: context.l10n.settingsTooltip,
                     onPressed: onSettings,
                   ),
-                  if (onChat != null)
+                  if (!compactEpisodePortrait && onChat != null)
                     IconButton(
                       icon: const Icon(
                         Icons.chat_bubble_outline_rounded,
@@ -722,7 +738,12 @@ class _ControlsOverlay extends StatelessWidget {
                 // One margin for the whole block — timestamp, progress bar and
                 // both button groups share it, so every edge lines up. Kept wide
                 // so the controls sit clear of the screen edges.
-                padding: const EdgeInsets.fromLTRB(44, 0, 44, 14),
+                padding: EdgeInsets.fromLTRB(
+                  compactEpisodePortrait ? 12 : 44,
+                  0,
+                  compactEpisodePortrait ? 12 : 44,
+                  compactEpisodePortrait ? 8 : 14,
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -762,8 +783,18 @@ class _ControlsOverlay extends StatelessWidget {
                         // are the exact layout that shipped before the Settings
                         // screen existed — so nobody's bar moves unless they
                         // move it.
-                        final left = _barButtons(context, barConfig.left);
-                        final right = _barButtons(context, barConfig.right);
+                        final left = _barButtons(
+                          context,
+                          compactEpisodePortrait
+                              ? const ['tracks', 'speed', 'more']
+                              : barConfig.left,
+                        );
+                        final right = _barButtons(
+                          context,
+                          compactEpisodePortrait
+                              ? const ['episodes', 'rotate']
+                              : barConfig.right,
+                        );
                         // Buttons are a uniform 48 (12 padding + 24 icon + 12)
                         // and each group adds 8 of its own, so the width the bar
                         // wants is arithmetic rather than something to measure.
