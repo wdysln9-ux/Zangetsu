@@ -33,6 +33,7 @@ class PersonProfile extends Equatable {
   const PersonProfile({
     required this.name,
     this.nativeName,
+    this.alternativeNames = const [],
     this.photo,
     this.description,
     this.subtitle,
@@ -42,6 +43,9 @@ class PersonProfile extends Equatable {
 
   final String name;
   final String? nativeName;
+
+  /// Non-spoiler alternate names supplied by AniList.
+  final List<String> alternativeNames;
   final String? photo;
 
   /// Bio / description. May carry light HTML/markdown from AniList — the page
@@ -61,6 +65,7 @@ class PersonProfile extends Equatable {
   List<Object?> get props => [
     name,
     nativeName,
+    alternativeNames,
     photo,
     description,
     subtitle,
