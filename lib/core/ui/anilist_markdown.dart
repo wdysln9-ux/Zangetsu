@@ -26,7 +26,7 @@ class AniListMarkdown extends StatelessWidget {
       (match) {
         final index = centerBlocks.length;
         centerBlocks.add(match[1] ?? '');
-        return '\n\nANILIST_CENTER_BLOCK_\${index}_PLACEHOLDER\n\n';
+        return '\n\nANILIST_CENTER_BLOCK_${index}_PLACEHOLDER\n\n';
       },
     );
 
@@ -44,13 +44,13 @@ class AniListMarkdown extends StatelessWidget {
 
     html = html.replaceAllMapped(
       RegExp(r'~!(.*?)!~', dotAll: true),
-      (match) => '<span class="anilist-spoiler">\${match[1] ?? ''}</span>',
+      (match) => '<span class="anilist-spoiler">${match[1] ?? ''}</span>',
     );
 
     // AniList image-size shorthand: img420(https://...)
     html = html.replaceAllMapped(
       RegExp(r'img(\d{1,4})\((https?://[^)]+)\)'),
-      (match) => '<img src="\${match[2]}" width="\${match[1]}" />',
+      (match) => '<img src="${match[2]}" width="${match[1]}" />',
     );
 
     html = html.replaceAllMapped(
@@ -82,13 +82,13 @@ class AniListMarkdown extends StatelessWidget {
     html = html.replaceAllMapped(
       RegExp(r'webm\((https?://[^)]+)\)'),
       (match) =>
-          '<video src="\${match[1]}" controls loop muted autoplay></video>',
+          '<video src="${match[1]}" controls loop muted autoplay></video>',
     );
 
     html = html.replaceAllMapped(
       RegExp(r"""<div\s+rel=["']spoiler["']>(.*?)</div>""", dotAll: true),
       (match) =>
-          '<span class="anilist-spoiler">\${match[1] ?? ''}</span>',
+          '<span class="anilist-spoiler">${match[1] ?? ''}</span>',
     );
 
     // Render Markdown inside each center block before inserting its HTML.
@@ -102,7 +102,7 @@ class AniListMarkdown extends StatelessWidget {
         extensionSet: md.ExtensionSet.gitHubFlavored,
         encodeHtml: false,
       );
-      final marker = 'ANILIST_CENTER_BLOCK_\${i}_PLACEHOLDER';
+      final marker = 'ANILIST_CENTER_BLOCK_${i}_PLACEHOLDER';
       final centered = '<div class="anilist-center">$innerHtml</div>';
       html = html.replaceAll('<p>$marker</p>', centered);
       html = html.replaceAll(marker, centered);
