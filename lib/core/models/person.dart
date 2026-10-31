@@ -36,6 +36,7 @@ class PersonProfile extends Equatable {
     this.photo,
     this.description,
     this.subtitle,
+    this.alternateNames = const [],
     this.works = const [],
     this.related = const [],
   });
@@ -51,6 +52,9 @@ class PersonProfile extends Equatable {
   /// Small line under the name, e.g. "Voice Actor" / "Acting".
   final String? subtitle;
 
+  /// Non-spoiler alternate names supplied by AniList (characters only).
+  final List<String> alternateNames;
+
   /// Media this person appears in / worked on.
   final List<PersonWork> works;
 
@@ -64,6 +68,7 @@ class PersonProfile extends Equatable {
     photo,
     description,
     subtitle,
+    alternateNames,
     works,
     related,
   ];
