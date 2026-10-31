@@ -467,7 +467,7 @@ class _PersonPageState extends State<PersonPage> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-          child: Divider(color: AppColors.border, height: 1),
+          child: Divider(color: AppColors.hairline, height: 1),
         ),
         _sectionLabel('Biografi'),
         GestureDetector(
