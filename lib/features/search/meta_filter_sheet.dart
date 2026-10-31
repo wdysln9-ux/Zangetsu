@@ -66,7 +66,7 @@ class _MetaFilterSheetState extends State<_MetaFilterSheet> {
       (_f.format != null ? 1 : 0) +
       (widget.showStatus && _f.status != null ? 1 : 0) +
       (_f.minScore != null ? 1 : 0) +
-      (_f.sort != MetaSort.popularity ? 1 : 0);
+      (_f.sort != MetaSort.trending ? 1 : 0);
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +101,9 @@ class _MetaFilterSheetState extends State<_MetaFilterSheet> {
                   // visible one reads as an action you forgot to take.
                   if (_count > 0)
                     TextButton(
-                      onPressed: () => setState(() => _f = const MetaFilters()),
+                      onPressed: () => setState(
+                        () => _f = const MetaFilters(sort: MetaSort.trending),
+                      ),
                       child: Text(l10n.reset),
                     ),
                 ],

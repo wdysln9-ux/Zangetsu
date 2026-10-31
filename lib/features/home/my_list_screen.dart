@@ -613,8 +613,6 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
     }
     setState(() {
       _categoryFilter = made.id;
-      _openedBuiltInStatus = null;
-      _showingFolder = true;
     });
   }
 
@@ -861,11 +859,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
 
   // ── My List body ───────────────────────────────────────────────────────────
 
-  // Folder-first layout. Built-in watch-status folders and user categories
-  // are opened as simple lists; folders are deliberately not nestable.
-  bool _showingFolder = false;
-  WatchStatus? _openedBuiltInStatus;
-
+  // Folder-first layout. Opening a folder pushes a dedicated page.
   static const List<Color> _folderDotColors = [
     Color(0xFFF04449),
     Color(0xFFAA59F5),
@@ -875,6 +869,106 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
     Color(0xFF4285F4),
     Color(0xFF72B86A),
   ];
+
+  void _openFolderPage(
+    BuildContext context, {
+    required String title,
+    required bool Function(MyListEntry) contains,
+    ListCategory? category,
+  }) {
+    final myListCubit = context.read<MyListCubit>();
+    final trackerListCubit = context.read<TrackerListCubit>();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => MultiBlocProvider(
+          providers: [
+            BlocProvider<MyListCubit>.value(value: myListCubit),
+            BlocProvider<TrackerListCubit>.value(value: trackerListCubit),
+          ],
+          child: Scaffold(
+            backgroundColor: AppColors.bg,
+            appBar: AppBar(
+              backgroundColor: AppColors.bg,
+              surfaceTintColor: Colors.transparent,
+              title: Text(title, style: AppText.title,
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              actions: [
+                if (category != null)
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert_rounded),
+                    onSelected: (_) async {
+                      await _manageCategory(context, category);
+                    },
+                    itemBuilder: (_) => [
+                      PopupMenuItem(value: 'manage',
+                          child: Text(context.l10n.rename)),
+                      PopupMenuItem(value: 'delete',
+                          child: Text(context.l10n.deleteCategory)),
+                    ],
+                  ),
+              ],
+            ),
+            body: BlocBuilder<MyListCubit, List<MyListEntry>>(
+              builder: (pageContext, entries) {
+                final folderEntries = entries
+                    .where((e) => _kind.matchesProvider(e.item.type))
+                    .where(contains)
+                    .toList();
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                      child: Text(
+                        '${folderEntries.length} anime',
+                        style: AppText.caption.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: RefreshIndicator(
+                        color: AppColors.accent,
+                        backgroundColor: AppColors.surface,
+                        onRefresh: () => sl<MyListStore>().pullFromCloud(),
+                        child: folderEntries.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 28),
+                                    child: Center(
+                                      child: Text(
+                                        'Belum ada anime di folder ini',
+                                        style: AppText.body.copyWith(
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : _grid(
+                                pageContext,
+                                folderEntries,
+                                onTap: (item) => _openItem(pageContext, item),
+                                onMore: (entry) => showListStatusSheet(
+                                  pageContext,
+                                  item: entry.item,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _myListBody(BuildContext context) {
     return BlocBuilder<MyListCubit, List<MyListEntry>>(
@@ -887,93 +981,6 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
             .where(_categoryFitsKind(modeEntries))
             .toList()
           ..sort((a, b) => a.position.compareTo(b.position));
-
-        if (_showingFolder) {
-          final category = folders
-              .where((c) => c.id == _categoryFilter)
-              .firstOrNull;
-          final status = _openedBuiltInStatus;
-          if (category == null && status == null) {
-            _showingFolder = false;
-            _categoryFilter = null;
-          } else {
-            final folderEntries = status != null
-                ? modeEntries.where((e) => e.status == status).toList()
-                : modeEntries
-                    .where((e) => _cats?.isIn(e.item, category!.id) ?? false)
-                    .toList();
-            final title = status == null
-                ? category!.name
-                : labelFor(status, reading: _kind.isReading);
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                        visualDensity: VisualDensity.compact,
-                        onPressed: () => setState(() {
-                          _showingFolder = false;
-                          _categoryFilter = null;
-                          _openedBuiltInStatus = null;
-                        }),
-                        icon: const Icon(Icons.arrow_back_rounded),
-                      ),
-                      Expanded(
-                        child: Text(title, style: AppText.title,
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                      ),
-                      Text('${folderEntries.length} anime',
-                          style: AppText.caption),
-                      if (category != null)
-                        PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert_rounded),
-                          onSelected: (_) => _manageCategory(context, category),
-                          itemBuilder: (_) => [
-                            PopupMenuItem(value: 'manage',
-                                child: Text(context.l10n.rename)),
-                            PopupMenuItem(value: 'delete',
-                                child: Text(context.l10n.deleteCategory)),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: RefreshIndicator(
-                    color: AppColors.accent,
-                    backgroundColor: AppColors.surface,
-                    onRefresh: () => sl<MyListStore>().pullFromCloud(),
-                    child: folderEntries.isEmpty
-                        ? ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 28),
-                                child: Center(
-                                  child: Text('Belum ada anime di folder ini',
-                                      style: AppText.body.copyWith(
-                                        color: AppColors.textSecondary)),
-                                ),
-                              ),
-                            ],
-                          )
-                        : _grid(
-                            context,
-                            folderEntries,
-                            onTap: (item) => _openItem(context, item),
-                            onMore: (entry) =>
-                                showListStatusSheet(context, item: entry.item),
-                          ),
-                  ),
-                ),
-              ],
-            );
-          }
-        }
 
         const builtInStatuses = [
           WatchStatus.watching,
@@ -1016,8 +1023,8 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
               for (var i = 0; i < folders.length; i++)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 6),
-                  child: _folderCard(context, folders[i], modeEntries, dotColor:
-                      _folderDotColors[i % _folderDotColors.length]),
+                  child: _folderCard(context, folders[i], modeEntries,
+                      dotColor: _folderDotColors[i % _folderDotColors.length]),
                 ),
               if (visibleStatuses.isEmpty && folders.isEmpty)
                 Padding(
@@ -1028,7 +1035,8 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                           ? context.l10n.noTitlesInThisList
                           : 'Belum ada folder. Buat folder baru untuk mengelompokkan anime.',
                       textAlign: TextAlign.center,
-                      style: AppText.body.copyWith(color: AppColors.textSecondary),
+                      style: AppText.body.copyWith(
+                          color: AppColors.textSecondary),
                     ),
                   ),
                 ),
@@ -1058,11 +1066,11 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
       title: title,
       members: members,
       dotColor: color,
-      onOpen: () => setState(() {
-        _categoryFilter = null;
-        _openedBuiltInStatus = status;
-        _showingFolder = true;
-      }),
+      onOpen: () => _openFolderPage(
+        context,
+        title: title,
+        contains: (entry) => entry.status == status,
+      ),
       menu: false,
     );
   }
@@ -1081,11 +1089,12 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
       title: folder.name,
       members: members,
       dotColor: dotColor,
-      onOpen: () => setState(() {
-        _categoryFilter = folder.id;
-        _openedBuiltInStatus = null;
-        _showingFolder = true;
-      }),
+      onOpen: () => _openFolderPage(
+        context,
+        title: folder.name,
+        category: folder,
+        contains: (entry) => _cats?.isIn(entry.item, folder.id) ?? false,
+      ),
       menu: true,
       category: folder,
     );

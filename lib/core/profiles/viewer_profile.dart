@@ -153,7 +153,6 @@ class ViewerProfileStore {
 
   static const int maxProfiles = 4;
   static const int maxNameLength = 24;
-  static const int maxBioLength = 160;
   static const String boxName = 'viewer_profiles';
   static const String askOnLaunchKey = 'ask_on_launch';
 
@@ -342,9 +341,7 @@ class ViewerProfileStore {
     String? coverUrl,
   }) async {
     final normalized = name.trim();
-    if (!_validName(normalized) ||
-        bio.trim().runes.length > maxBioLength ||
-        _profiles.length >= maxProfiles) {
+    if (!_validName(normalized) || _profiles.length >= maxProfiles) {
       return null;
     }
     final profile = ViewerProfile(
@@ -423,7 +420,7 @@ class ViewerProfileStore {
     bool clearCoverUrl = false,
   }) async {
     final index = _profiles.indexWhere((p) => p.id == profileId);
-    if (index < 0 || (bio != null && bio.trim().runes.length > maxBioLength)) {
+    if (index < 0) {
       return false;
     }
     final profile = _profiles[index].copyWith(

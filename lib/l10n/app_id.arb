@@ -151,7 +151,13 @@
 	"pinAsHomeRow": "Sematkan sebagai baris beranda",
 	"unpinHomeRow": "Lepas",
 	"pinLimitReached": "Kamu bisa menyematkan {count} layanan",
-	"@pinLimitReached": { "placeholders": { "count": { "type": "int" } } },
+	"@pinLimitReached": {
+		"placeholders": {
+			"count": {
+				"type": "int"
+			}
+		}
+	},
 	"streamingRegion": "Wilayah streaming",
 	"streamingRegionSubtitle": "Katalog negara mana yang ditampilkan",
 	"sourceHealth": "Status sumber",
@@ -202,7 +208,9 @@
 	"reportSentBody": "Terima kasih. Jika kamu memberi tahu kami apa yang terjadi, sebutkan kode ini: {ref}",
 	"@reportSentBody": {
 		"placeholders": {
-			"ref": { "type": "String" }
+			"ref": {
+				"type": "String"
+			}
 		}
 	},
 	"about": "Tentang",
@@ -236,7 +244,7 @@
 	"changeProfile": "Ganti profil?",
 	"chooseWhoIsWatching": "Pilih siapa yang menonton.",
 	"home": "Beranda",
-	"myList": "My List",
+	"myList": "Daftar",
 	"schedule": "Jadwal",
 	"pressBackAgainToExit": "Tekan BACK lagi untuk keluar",
 	"pressBackAgainToExitTv": "Tekan kembali lagi untuk keluar",
@@ -618,7 +626,7 @@
 	"snapshot": "Tangkapan layar",
 	"sleepTimer": "Timer tidur",
 	"pictureInPicture": "Gambar dalam gambar",
-	"cast": "Siaran",
+	"cast": "Karakter",
 	"playbackStats": "Statistik pemutaran",
 	"sleepTimerOn": "Timer tidur aktif",
 	"lockControls": "Kunci kontrol",
@@ -729,7 +737,7 @@
 	"noSourcesFoundForThisEpisode": "Tidak ditemukan sumber untuk episode ini",
 	"starring": "Pemain",
 	"creators": "Kreator",
-	"notify": "Beri tahu",
+	"notify": "Notif",
 	"stopAlerts": "Hentikan peringatan",
 	"trackedEditStatusScoreProgress": "Dilacak — ubah status, skor & progres",
 	"openSourceSite": "Buka situs sumber",
@@ -1000,12 +1008,12 @@
 	},
 	"duration": "Durasi",
 	"score": "Skor",
-	"popularity": "Populeritas",
-	"sourceMaterial": "Materi asal",
+	"popularity": "popularitas",
+	"sourceMaterial": "Adaptasi",
 	"country": "Negara",
-	"aired": "Tayang pada",
+	"aired": "Tayang",
 	"nativeTitle": "Judul asli",
-	"alsoKnownAs": "Dikenal juga sebagai",
+	"alsoKnownAs": "Sinonim",
 	"tags": "Tag",
 	"showSpoilerTags": "{count, plural, one{Tampilkan # tag spoiler} other{Tampilkan # tag spoiler}}",
 	"@showSpoilerTags": {
@@ -1120,7 +1128,6 @@
 			}
 		}
 	},
-	"openInBrowser": "Buka di browser",
 	"openInBrowserSubtitle": "Baca bab ini di situs milik sumber",
 	"readingSettings": "Pengaturan baca",
 	"markedAsRead": "Ditandai sudah dibaca",
@@ -2948,22 +2955,52 @@
 	"modeAnime": "Anime",
 	"modeMovieTv": "Film/TV",
 	"sourceLabel": "Sumber: {name}",
-	"@sourceLabel": {"placeholders": {"name": {"type": "String"}}},
+	"@sourceLabel": {
+		"placeholders": {
+			"name": {
+				"type": "String"
+			}
+		}
+	},
 	"wrongTitle": "Judul salah?",
 	"noSourceHasThisYet": "Belum ada sumber yang punya ini",
-  "checkedTopSources": "Sumber teratasmu sudah dicek — tidak satu pun punya ini",
+	"checkedTopSources": "Sumber teratasmu sudah dicek — tidak satu pun punya ini",
 	"pickTheRightTitle": "Pilih judul yang tepat",
 	"searchThisSource": "Cari di sumber ini",
 	"matchSaved": "Tersimpan. Sekarang cocok dengan {name}.",
-	"@matchSaved": {"placeholders": {"name": {"type": "String"}}},
+	"@matchSaved": {
+		"placeholders": {
+			"name": {
+				"type": "String"
+			}
+		}
+	},
 	"chooseSource": "Pilih sumber",
 	"whichOneIsIt": "Yang mana?",
 	"searchingSourceShort": "Mencari {name}",
-	"@searchingSourceShort": {"placeholders": {"name": {"type": "String"}}},
+	"@searchingSourceShort": {
+		"placeholders": {
+			"name": {
+				"type": "String"
+			}
+		}
+	},
 	"matchResultCount": "{count, plural, one{1 hasil} other{{count} hasil}}",
-	"@matchResultCount": {"placeholders": {"count": {"type": "int"}}},
+	"@matchResultCount": {
+		"placeholders": {
+			"count": {
+				"type": "int"
+			}
+		}
+	},
 	"nothingOnSource": "Tidak ada di {name}",
-	"@nothingOnSource": {"placeholders": {"name": {"type": "String"}}},
+	"@nothingOnSource": {
+		"placeholders": {
+			"name": {
+				"type": "String"
+			}
+		}
+	},
 	"sourceMayNotCarryIt": "Sumber ini mungkin tidak mempunya. Coba yang lain.",
 	"currentMatchBadge": "SEKARANG",
 	"scheduleAndLists": "Jadwal & daftar",
@@ -2980,7 +3017,13 @@
 	"sortNewest": "Terbaru",
 	"sortTitle": "A-Z",
 	"filtersNeedProvider": "Filter butuh {provider}. Ganti di Pengaturan.",
-	"@filtersNeedProvider": {"placeholders": {"provider": {"type": "String"}}},
+	"@filtersNeedProvider": {
+		"placeholders": {
+			"provider": {
+				"type": "String"
+			}
+		}
+	},
 	"format": "Format",
 	"minimumScore": "Skor minimum",
 	"searchAnime": "Cari anime",
@@ -2998,7 +3041,16 @@
 	"epub": "EPUB",
 	"exportAsEpub": "Ekspor sebagai EPUB",
 	"chaptersDownloadedCount": "{done} dari {total} bab terunduh",
-	"@chaptersDownloadedCount": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
+	"@chaptersDownloadedCount": {
+		"placeholders": {
+			"done": {
+				"type": "int"
+			},
+			"total": {
+				"type": "int"
+			}
+		}
+	},
 	"noChaptersDownloadedToExport": "Belum ada bab terunduh — unduh dulu beberapa.",
 	"allChapters": "Semua bab",
 	"startChapter": "Awal",
@@ -3008,11 +3060,92 @@
 	"fileNameLabel": "Nama file",
 	"folderLabel": "Folder",
 	"exportingChapterProgress": "Bab {done} dari {total}",
-	"@exportingChapterProgress": {"placeholders": {"done": {"type": "int"}, "total": {"type": "int"}}},
+	"@exportingChapterProgress": {
+		"placeholders": {
+			"done": {
+				"type": "int"
+			},
+			"total": {
+				"type": "int"
+			}
+		}
+	},
 	"exportedToFolder": "Diekspor ke {folder}",
-	"@exportedToFolder": {"placeholders": {"folder": {"type": "String"}}},
+	"@exportedToFolder": {
+		"placeholders": {
+			"folder": {
+				"type": "String"
+			}
+		}
+	},
 	"epubExportFailed": "Tidak bisa menyimpan EPUB",
 	"export": "Ekspor",
 	"keepDownloadsPrivate": "Jaga unduhan tetap privat",
-	"keepDownloadsPrivateSubtitle": "Unduhan video baru tetap di dalam Zangetsu, bukan di folder Unduhan. Unduhan itu dihapus saat kamu mencopot Zangetsu. Bab dan hasil ekspor tidak terpengaruh."
+	"keepDownloadsPrivateSubtitle": "Unduhan video baru tetap di dalam Zangetsu, bukan di folder Unduhan. Unduhan itu dihapus saat kamu mencopot Zangetsu. Bab dan hasil ekspor tidak terpengaruh.",
+	"customRange": "Rentang khusus",
+	"tvDecoderMode": "Prioritas dekoder TV",
+	"tvDecoderHardwareOnly": "Hardware saja",
+	"tvDecoderHardwareFirst": "Hardware terlebih dahulu (software sebagai cadangan)",
+	"tvDecoderSoftwareFirst": "Software terlebih dahulu (hardware sebagai cadangan)",
+	"findChapter": "Cari bab",
+	"navDockBehavior": "Perilaku bilah navigasi",
+	"keepDockExpanded": "Jaga bilah navigasi tetap terbuka",
+	"keepDockExpandedSubtitle": "Label tetap terlihat saat kamu menggulir",
+	"favourites": "Favorit",
+	"allowNotificationsForAlerts": "Izinkan notifikasi di pengaturan Android agar kamu menerima pemberitahuan.",
+	"downloadFileGone": "File itu sudah tidak ada. Mungkin sudah dihapus dari luar aplikasi.",
+	"mangaPageTranslationTitle": "Terjemahkan halaman",
+	"mangaTranslationSourceLanguage": "Bahasa sumber",
+	"mangaTranslationTargetLanguage": "Bahasa tujuan",
+	"mangaTranslationEngine": "Mesin terjemahan",
+	"mangaTranslationSection": "Terjemahan",
+	"mangaTranslationSettings": "Terjemahan halaman manga",
+	"mangaTranslationProvider": "Layanan terjemahan online",
+	"mangaTranslationGoogle": "Google",
+	"mangaTranslationGemini": "Gemini",
+	"mangaTranslationGroq": "Groq",
+	"mangaTranslationApiKey": "Kunci API",
+	"mangaTranslationApiKeyTitle": "Atur kunci API",
+	"mangaTranslationApiKeyHint": "Tempel kunci API dari penyedia layanan",
+	"mangaTranslationAddApiKey": "Tambahkan kunci API",
+	"mangaTranslationChangeApiKey": "Ganti kunci",
+	"mangaTranslationRemoveApiKey": "Hapus kunci API",
+	"mangaTranslationApiKeySaved": "Kunci API berhasil disimpan dengan aman",
+	"mangaTranslationApiKeyMissing": "Tambahkan kunci API untuk layanan ini agar bisa menerjemahkan.",
+	"mangaTranslationProviderBillingNote": "Hanya teks yang berhasil dikenali yang dikirim ke layanan ini. Penggunaan dapat dibatasi atau dikenai biaya sesuai ketentuan akun penyedia layananmu.",
+	"mangaTranslationInvalidApiKey": "Kunci API ditolak oleh penyedia layanan. Periksa kuncinya, lalu coba lagi.",
+	"mangaTranslationRateLimited": "Batas penggunaan layanan tercapai. Periksa akun penyedia layanan atau coba lagi nanti.",
+	"mangaTranslationProviderError": "Halaman ini tidak dapat diterjemahkan. Periksa koneksi dan pengaturan layanan terjemahanmu.",
+	"mangaTranslationInvalidResponse": "Hasil terjemahan dari layanan tidak dapat dibaca. Coba lagi.",
+	"mangaTranslationApiKeySaveFailed": "Kunci API tidak dapat disimpan dengan aman. Coba lagi.",
+	"mangaTranslationOnline": "Online",
+	"mangaTranslationOffline": "Offline",
+	"mangaTranslationAction": "Terjemahkan bab",
+	"mangaTranslationTurnOff": "Matikan terjemahan",
+	"mangaTranslationRetryFailed": "Coba terjemahkan ulang halaman yang gagal",
+	"mangaTranslationContinue": "Lanjutkan terjemahan",
+	"mangaTranslationStop": "Hentikan terjemahan",
+	"mangaTranslationInProgress": "Sedang menerjemahkan…",
+	"mangaTranslationSuccess": "Terjemahan siap",
+	"mangaTranslationError": "Terjemahan gagal",
+	"mangaTranslationNoResult": "Tidak ada hasil terjemahan yang diterima",
+	"mangaTranslationModelConsentTitle": "Siapkan terjemahan?",
+	"mangaTranslationOnlineModelConsent": "Komponen OCR di perangkat mungkin perlu diunduh sebelum halaman bisa dibaca. Gambar halaman tetap tersimpan di perangkatmu. Untuk terjemahan online, hanya teks yang berhasil dikenali yang dikirim ke layanan terjemahan.",
+	"mangaTranslationOfflineModelConsent": "Model OCR dan bahasa mungkin perlu diunduh ke perangkat. Gambar halaman dan teks yang dikenali tetap tersimpan di perangkatmu, dan proses terjemahan berjalan tanpa internet.",
+	"mangaTranslationDownloadingOcr": "Mengunduh OCR",
+	"mangaTranslationDownloadingOfflineModels": "Mengunduh model OCR dan terjemahan",
+	"mangaTranslationDownloadingMessage": "Proses ini mungkin perlu waktu. Terjemahan akan dimulai otomatis setelah unduhan selesai.",
+	"mangaTranslationRestartRequiredTitle": "Perlu memulai ulang aplikasi",
+	"mangaTranslationRestartRequiredMessage": "Tutup Zangetsu sepenuhnya, lalu buka kembali agar persiapan OCR di perangkat selesai. Setelah itu, coba lagi.",
+	"mangaTranslationSearchLanguages": "Cari bahasa",
+	"mangaTranslationNoLanguages": "Tidak ada bahasa yang tersedia",
+	"mangaTranslationNoLanguageMatch": "Tidak ada bahasa yang cocok",
+	"mangaTranslationAppearance": "Tampilan terjemahan manga",
+	"mangaTranslationAppearanceSubtitle": "Ukuran teks, warna teks, dan latar belakang",
+	"mangaTranslationBackgroundColour": "Warna latar belakang",
+	"mangaTranslationBackgroundOpacity": "Opasitas latar belakang",
+	"mangaTranslationPreview": "Pratinjau terjemahan",
+	"mangaTranslationAppearanceFitNote": "Teks yang panjang mungkin otomatis diperkecil agar tetap berada di area yang terdeteksi dan tidak bertumpuk.",
+	"mangaTranslationShowOriginal": "Tampilkan halaman asli",
+	"mangaTranslationShowTranslations": "Tampilkan hasil terjemahan"
 }

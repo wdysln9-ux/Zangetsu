@@ -175,7 +175,7 @@ class _CastTab extends StatelessWidget {
             ),
             if (m.role != null && m.role!.isNotEmpty)
               Text(
-                m.role!,
+                _indonesianCharacterRole(m.role!),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
@@ -206,6 +206,39 @@ class _AvatarFallback extends StatelessWidget {
       size: 30,
     ),
   );
+}
+
+String _indonesianCharacterRole(String value) {
+  return switch (value.trim().toLowerCase().replaceAll('_', ' ')) {
+    'main' => 'Utama',
+    'supporting' => 'Pendukung',
+    'background' => 'Figuran',
+    _ => value,
+  };
+}
+
+String _indonesianRelationLabel(String value) {
+  final normalized = value.trim().toLowerCase().replaceAll('_', ' ');
+  const translations = {
+    'adaptation': 'Adaptasi',
+    'prequel': 'Prekuel',
+    'sequel': 'Sekuel',
+    'parent story': 'Cerita utama',
+    'side story': 'Cerita sampingan',
+    'character': 'Karakter',
+    'summary': 'Ringkasan',
+    'alternative': 'Alternatif',
+    'spin off': 'Spin-off',
+    'spin-off': 'Spin-off',
+    'other': 'Lainnya',
+    'source': 'Sumber',
+    'compilation': 'Kompilasi',
+    'full story': 'Cerita lengkap',
+    'season': 'Season',
+    'recommended': 'Rekomendasi',
+    'recommendation': 'Rekomendasi',
+  };
+  return translations[normalized] ?? value;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -245,20 +278,13 @@ class _RelationsTab extends StatelessWidget {
   ) => MediaRelation(
     title: s.title,
     cover: s.cover,
-    relation: s.isCurrent
-        ? '${context.l10n.seasonNumber(s.number)} · ${context.l10n.statusWatching}'
-        : context.l10n.seasonNumber(s.number),
+    relation: 'Season ${s.number}',
     malId: s.malId,
     anilistId: s.anilistId,
   );
 
-  /// The relations left once the seasons have been lifted out.
-  ///
-  /// A prequel is also season 2; showing it in both places is the same title
-  /// twice on one screen. Everything that is NOT a season — films, the source
-  /// manga, side stories, recaps — is untouched.
+  /// Relations that are not seasons, after removing season duplicates.
   List<MediaRelation> get _rest {
-    if (seasons.isEmpty) return relations;
     final taken = {
       for (final s in seasons) ...[
         if (s.anilistId != null) 'a:${s.anilistId}',
@@ -272,6 +298,17 @@ class _RelationsTab extends StatelessWidget {
           r,
     ];
   }
+
+  bool _isRecommended(MediaRelation relation) {
+    final value = relation.relation?.trim().toLowerCase().replaceAll('_', ' ');
+    return value == 'recommended' || value == 'recommendation';
+  }
+
+  List<MediaRelation> get _related =>
+      _rest.where((r) => !_isRecommended(r)).toList();
+
+  List<MediaRelation> get _recommendations =>
+      _rest.where(_isRecommended).toList();
 
   SliverGridDelegate _grid(BuildContext context) =>
       SliverGridDelegateWithFixedCrossAxisCount(
@@ -292,43 +329,54 @@ class _RelationsTab extends StatelessWidget {
         context.l10n.noRelatedTitles,
       );
     }
-    // One grid and no headings when there are no seasons — byte-identical to
-    // what this tab rendered before seasons existed.
-    if (seasons.isEmpty) {
-      return GridView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 18, 16, 40),
-        gridDelegate: _grid(context),
-        itemCount: relations.length,
-        itemBuilder: (_, i) => _card(context, relations[i], i),
-      );
-    }
-    final rest = _rest;
+    final related = _related;
+    final recommendations = _recommendations;
     return CustomScrollView(
       slivers: [
-        _header(context, context.l10n.seasons),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-          sliver: SliverGrid(
-            gridDelegate: _grid(context),
-            delegate: SliverChildBuilderDelegate(
-              (_, i) => _card(context, _asRelation(context, seasons[i]), i),
-              childCount: seasons.length,
+        if (seasons.isNotEmpty) ...[
+          _header(context, 'Season'),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            sliver: SliverGrid(
+              gridDelegate: _grid(context),
+              delegate: SliverChildBuilderDelegate(
+                (_, i) => _card(context, _asRelation(context, seasons[i]), i),
+                childCount: seasons.length,
+              ),
             ),
           ),
-        ),
-        if (rest.isNotEmpty) ...[
+        ],
+        if (related.isNotEmpty) ...[
           _header(context, context.l10n.relations),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            sliver: SliverGrid(
+              gridDelegate: _grid(context),
+              delegate: SliverChildBuilderDelegate(
+                (_, i) => _card(context, related[i], seasons.length + i),
+                childCount: related.length,
+              ),
+            ),
+          ),
+        ],
+        if (recommendations.isNotEmpty) ...[
+          _header(context, 'Rekomendasi'),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
             sliver: SliverGrid(
               gridDelegate: _grid(context),
               delegate: SliverChildBuilderDelegate(
-                (_, i) => _card(context, rest[i], seasons.length + i),
-                childCount: rest.length,
+                (_, i) => _card(
+                  context,
+                  recommendations[i],
+                  seasons.length + related.length + i,
+                ),
+                childCount: recommendations.length,
               ),
             ),
           ),
-        ],
+        ] else if (related.isNotEmpty || seasons.isNotEmpty)
+          const SliverToBoxAdapter(child: SizedBox(height: 40)),
       ],
     );
   }
@@ -374,7 +422,7 @@ class _RelationsTab extends StatelessWidget {
           const SizedBox(height: 6),
           if (r.relation != null && r.relation!.isNotEmpty)
             Text(
-              r.relation!.toUpperCase(),
+              _indonesianRelationLabel(r.relation!),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppText.caption.copyWith(
@@ -424,6 +472,13 @@ String _yearWithSeason(String year, DateTime? startDate) {
 // Details tab — source / status / genres / studios / episode count / synopsis.
 // ─────────────────────────────────────────────────────────────────────────────
 
+String _displayFormat(String format) => switch (format.toLowerCase()) {
+  'ova' => 'OVA',
+  'ona' => 'ONA',
+  'tv' => 'TV',
+  _ => format,
+};
+
 class _DetailsTab extends StatelessWidget {
   const _DetailsTab({
     required this.sourceName,
@@ -459,7 +514,34 @@ class _DetailsTab extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
       children: [
         if (sourceName.isNotEmpty)
-          _DetailRow(label: context.l10n.playerInfoSource, value: sourceName),
+          _DetailRow(
+            label: context.l10n.playerInfoSource,
+            value: sourceName,
+            onTap: sourceName.toLowerCase().contains('anilist')
+                ? () async {
+                    final sourceUri = Uri.tryParse(detail?.url ?? '');
+                    final isAniListUrl = sourceUri != null &&
+                        sourceUri.host.toLowerCase().endsWith('anilist.co');
+                    final segments = isAniListUrl
+                        ? sourceUri.pathSegments
+                        : const <String>[];
+                    final urlKind = segments.length >= 2 &&
+                            (segments[0] == 'anime' || segments[0] == 'manga')
+                        ? segments[0]
+                        : null;
+                    final sourceId = urlKind == null ? null : segments[1];
+                    final kind = urlKind ?? (reading ? 'manga' : 'anime');
+                    final uri = sourceId != null
+                        ? Uri.https('anilist.co', '/$kind/$sourceId')
+                        : Uri.https(
+                            'anilist.co',
+                            '/search/$kind',
+                            {'search': detail?.title ?? sourceName},
+                          );
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                : null,
+          ),
         if (statusStr.isNotEmpty)
           _DetailRow(label: context.l10n.status, value: statusStr),
         if ((year ?? '').isNotEmpty)
@@ -471,35 +553,40 @@ class _DetailsTab extends StatelessWidget {
           label: reading ? context.l10n.chapters : context.l10n.episodes,
           value: '$episodeCount',
         ),
-        if (studios.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(
-            context.l10n.studio,
-            style: AppText.caption.copyWith(color: AppColors.textTertiary),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: studios.map((name) => InkWell(
-              borderRadius: BorderRadius.circular(4),
-              onTap: () => Navigator.of(context).push(StudioPage.route(name)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 1),
-                child: Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.body.copyWith(
-                    color: AppColors.textPrimary,
-                    decoration: TextDecoration.underline,
-                    decorationColor: AppColors.textTertiary,
+        if (studios.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 96,
+                  child: Text(
+                    context.l10n.studio,
+                    style: AppText.caption.copyWith(color: AppColors.textTertiary),
                   ),
                 ),
-              ),
-            )).toList(),
+                Expanded(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: studios.map((name) => InkWell(
+                      borderRadius: BorderRadius.circular(4),
+                      onTap: () => Navigator.of(context).push(StudioPage.route(name)),
+                      child: Text(
+                        name,
+                        style: AppText.caption.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    )).toList(),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
         ..._providerRows(context),
         if (genres.isNotEmpty) ...[
           const SizedBox(height: 14),
@@ -543,7 +630,7 @@ class _DetailsTab extends StatelessWidget {
             style: AppText.caption.copyWith(color: AppColors.textTertiary),
           ),
           const SizedBox(height: 8),
-          _SynopsisTranslation(text: desc),
+          _SynopsisTranslation(text: desc, expanded: true),
         ],
       ],
     );
@@ -565,13 +652,14 @@ class _DetailsTab extends StatelessWidget {
 
     final aired = dates();
     return [
-      if (d.format != null) _DetailRow(label: l10n.format, value: d.format!),
+      if (d.format != null)
+        _DetailRow(label: l10n.format, value: _displayFormat(d.format!)),
       if (d.durationMins != null)
-        _DetailRow(label: l10n.duration, value: '${d.durationMins} min'),
+        _DetailRow(label: l10n.duration, value: '${d.durationMins} menit'),
       if (d.score != null)
         _DetailRow(label: l10n.score, value: '${d.score! / 10} / 10'),
       if (d.popularity != null)
-        _DetailRow(label: l10n.popularity, value: _thousands(d.popularity!)),
+        _DetailRow(label: 'Popularitas', value: _thousands(d.popularity!)),
       if (d.favourites != null)
         _DetailRow(label: l10n.favourites, value: _thousands(d.favourites!)),
       if (d.sourceMaterial != null)
@@ -590,7 +678,7 @@ class _DetailsTab extends StatelessWidget {
     ];
   }
 
-  /// AniList's tags, which say more than the genres do — "Time Travel 92%"
+/// AniList's tags, which say more than the genres do — "Time Travel 92%"
   /// against "Sci-Fi". Spoiler tags are hidden behind a tap rather than
   /// dropped, so the choice stays the reader's.
   List<Widget> _tagChips(BuildContext context) {
@@ -615,7 +703,7 @@ class _DetailsTab extends StatelessWidget {
     final s = '$n';
     final b = StringBuffer();
     for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) b.write(',');
+      if (i > 0 && (s.length - i) % 3 == 0) b.write('.');
       b.write(s[i]);
     }
     return b.toString();
@@ -624,8 +712,8 @@ class _DetailsTab extends StatelessWidget {
   /// The handful that actually appear on animation and comics. Anything else
   /// keeps its code rather than being guessed at.
   static String _countryName(String code) => switch (code.toUpperCase()) {
-    'JP' => 'Japan',
-    'KR' => 'South Korea',
+    'JP' => 'Jepang',
+    'KR' => 'Korea',
     'CN' => 'China',
     'TW' => 'Taiwan',
     'US' => 'United States',
@@ -682,9 +770,10 @@ class _SpoilerTagsState extends State<_SpoilerTags> {
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
+  const _DetailRow({required this.label, required this.value, this.onTap});
   final String label;
   final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -701,11 +790,22 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: AppText.caption.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 1),
+                  child: Text(
+                    value,
+                    style: AppText.caption.copyWith(
+                      color: AppColors.textPrimary,
+                      decoration: TextDecoration.none,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

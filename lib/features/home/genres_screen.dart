@@ -66,8 +66,11 @@ Map<String, GenreArt> genreArtFrom(List<HomeSection> sections) {
 /// [MetaFilters.adult] returns an empty grid every time. Every other genre
 /// keeps Search's own default, where 18+ stays a toggle the user reaches for
 /// rather than something a tap turns on behind their back.
-MetaFilters genreFilters(String genre) =>
-    MetaFilters(genres: [genre], adult: genre == kAdultGenre);
+MetaFilters genreFilters(String genre) => MetaFilters(
+  genres: [genre],
+  adult: genre == kAdultGenre,
+  sort: MetaSort.trending,
+);
 
 /// A stable colour for [genre] when there is no cover to show.
 ///

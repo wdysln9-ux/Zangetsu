@@ -13,6 +13,7 @@ Map<String, dynamic> _media({
   String status = 'FINISHED',
   int? nextEp,
   String? banner = 'https://img/banner.jpg',
+  List<String> genres = const ['Action'],
 }) => {
   'id': id,
   'idMal': idMal,
@@ -22,7 +23,7 @@ Map<String, dynamic> _media({
   'episodes': episodes,
   'chapters': chapters,
   'status': status,
-  'genres': ['Action'],
+  'genres': genres,
   'description': 'desc',
   'seasonYear': 2009,
   'studios': {'nodes': [{'name': 'Bones'}]},
@@ -59,6 +60,20 @@ void main() {
     expect(item.title, 'Fullmetal Alchemist');
     expect(item.englishTitle, 'FMA');
     expect(item.banner, 'https://img/banner.jpg');
+  });
+
+  test('Romantis home row contains only anime tagged with Romance', () async {
+    final items = [
+      _media(id: 1, romaji: 'Romance title', genres: ['Romance', 'Drama']),
+      _media(id: 2, romaji: 'Action title', genres: ['Action']),
+    ];
+    final cat = AniListCatalogue((q, v) async {
+      expect(q, contains('genre_in:["Romance"]'));
+      return _aliasedResponse(q, media: items);
+    });
+    final rows = await cat.home(ZKind.anime);
+    final romance = rows.singleWhere((row) => row.title == 'Romantis');
+    expect(romance.items.map((item) => item.title), ['Romance title']);
   });
 
   test('home for manga/novel also issues one request and maps items', () async {

@@ -1,5 +1,6 @@
 name: Build Android APK
 # Feature branches run the same arm64 release build for validation.
+# Build trigger refreshed for the latest episode detail layout changes.
 
 on:
   push:
@@ -10,6 +11,7 @@ on:
       - feat/portrait-episode-details
       - fix/preserve-latest-features-ui
       - fix/episode-detail-resume-ui-bugs
+      - fix/episode-cards-border-autoscroll
     paths-ignore:
       - "preview/**"
       - ".github/workflows/preview-pages.yml"

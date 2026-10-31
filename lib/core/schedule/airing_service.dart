@@ -7,10 +7,11 @@ import 'schedule_models.dart';
 
 const String _kAniListEndpoint = AniListGraphql.endpoint;
 
-/// UTC-epoch-seconds window: local midnight today .. +7 days.
+/// UTC-epoch-seconds window: local midnight yesterday .. +7 days.
 ({int startSec, int endSec}) weekWindowUtc(DateTime nowLocal) {
-  final startLocal = DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
-  final endLocal = startLocal.add(const Duration(days: 7));
+  final today = DateTime(nowLocal.year, nowLocal.month, nowLocal.day);
+  final startLocal = today.subtract(const Duration(days: 1));
+  final endLocal = today.add(const Duration(days: 7));
   return (
     startSec: startLocal.toUtc().millisecondsSinceEpoch ~/ 1000,
     endSec: endLocal.toUtc().millisecondsSinceEpoch ~/ 1000,
@@ -125,7 +126,7 @@ List<AiringEntry> filterByFollowed(
 ) =>
     entries.where(followed.matches).toList();
 
-/// Fetches this week's anime airing schedule from AniList (public, no auth).
+/// Fetches yesterday through the next six days of anime airing schedules from AniList (public, no auth).
 class AiringService {
   AiringService(this._dio);
   final Dio _dio;
@@ -150,7 +151,7 @@ query ($start: Int, $end: Int, $page: Int) {
   }
 }''';
 
-  /// Returns every SFW airing event in the next 7 days, or `[]` on any error.
+  /// Returns every SFW airing event from yesterday through the next 6 days, or `[]` on any error.
   /// Whether the LAST attempt failed because nothing could reach the network.
   ///
   /// This service returns `[]` for every failure so a bad response never

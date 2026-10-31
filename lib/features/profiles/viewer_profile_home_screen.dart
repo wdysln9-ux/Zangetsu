@@ -11,6 +11,7 @@ import '../../core/profiles/viewer_profile.dart';
 import '../../core/profiles/viewer_profile_avatar.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
+import '../../core/ui/anilist_markdown.dart';
 import '../auth/auth_cubit.dart';
 import '../auth/auth_screens.dart' show ProfileAccountSection;
 import '../auth/pair_tv_screen.dart';
@@ -21,9 +22,6 @@ import 'viewer_profiles_screen.dart';
 
 class ViewerProfileHomeScreen extends StatelessWidget {
   const ViewerProfileHomeScreen({super.key});
-
-  static const _zoroGifUrl =
-      'https://custom-doodle.com/wp-content/uploads/doodle/auto-draft/one-piece-dancing-roronoa-zoro-doodle.gif';
 
   ViewerProfileStore get _profiles => sl<ViewerProfileStore>();
 
@@ -197,17 +195,21 @@ class ViewerProfileHomeScreen extends StatelessWidget {
                                   _profiles,
                                   profile: profile,
                                 ),
-                                child: Text(
-                                  profile.bio.isEmpty
-                                      ? 'Add a bio'
-                                      : profile.bio,
-                                  style: AppText.body.copyWith(
-                                    fontSize: 14,
-                                    color: profile.bio.isEmpty
-                                        ? AppColors.textTertiary
-                                        : AppColors.textSecondary,
-                                  ),
-                                ),
+                                child: profile.bio.isEmpty
+                                    ? Text(
+                                        'Add a bio',
+                                        style: AppText.body.copyWith(
+                                          fontSize: 14,
+                                          color: AppColors.textTertiary,
+                                        ),
+                                      )
+                                    : AniListMarkdown(
+                                        data: profile.bio,
+                                        textStyle: AppText.body.copyWith(
+                                          fontSize: 14,
+                                          color: AppColors.textSecondary,
+                                        ),
+                                      ),
                               ),
                             ],
                           ),
@@ -217,7 +219,13 @@ class ViewerProfileHomeScreen extends StatelessWidget {
                         const SizedBox(height: 30),
                         Divider(height: 1, color: AppColors.hairline),
                         const SizedBox(height: 22),
-                        _comingSoonCard(),
+                        Center(
+                          child: Text(
+                            'Fitur lainnya sedang dalam proses...',
+                            textAlign: TextAlign.center,
+                            style: AppText.body,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -419,33 +427,6 @@ class ViewerProfileHomeScreen extends StatelessWidget {
       _stat('$inProgress', 'In progress'),
       _stat('$completed', 'Completed'),
     ],
-  );
-
-  Widget _comingSoonCard() => Center(
-    key: const ValueKey('zoro-coming-soon-section'),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        CachedNetworkImage(
-          key: const ValueKey('zoro-coming-soon-gif'),
-          imageUrl: _zoroGifUrl,
-          cacheManager: AppImageCache.cacheManagerOrDefault,
-          width: 148,
-          height: 148,
-          fit: BoxFit.contain,
-          fadeInDuration: const Duration(milliseconds: 240),
-          placeholder: (_, _) => const SizedBox(width: 148, height: 148),
-          errorWidget: (_, _, _) => const SizedBox.shrink(),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'More features are on their way with Zoro… he just got lost again.',
-          textAlign: TextAlign.center,
-          style: AppText.body.copyWith(color: AppColors.textSecondary),
-        ),
-      ],
-    ),
   );
 
   Widget _stat(String value, String label) => Expanded(

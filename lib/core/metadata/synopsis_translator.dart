@@ -19,11 +19,17 @@ class SynopsisTranslator {
     ),
   );
 
+  // Titles and episode headings must resolve to one identical Indonesian
+  // result wherever they appear (anime detail, episode detail, player and
+  // playlist). A shared cache key prevents separate translation paths from
+  // storing different wording for the same source text.
+  static const _indonesianTextCachePrefix = 'indonesian_text_v2_';
+
   Future<String?> translateToIndonesian(String raw) =>
-      _translate(raw, cachePrefix: 'synopsis_id_');
+      _translate(raw, cachePrefix: _indonesianTextCachePrefix);
 
   Future<String?> translateTextToIndonesian(String raw) =>
-      _translate(raw, cachePrefix: 'text_id_');
+      _translate(raw, cachePrefix: _indonesianTextCachePrefix);
 
   Future<String?> _translate(
     String raw, {

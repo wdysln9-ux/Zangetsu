@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
+import '../../core/anilist/anilist_graphql.dart';
 import '../../core/di/injector.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
@@ -26,10 +27,6 @@ class _StudioPageState extends State<StudioPage> {
   late Future<Map<String, dynamic>?> _future;
   String? _loadError;
   String _sort = 'START_DATE_DESC';
-  final List<Map<String, dynamic>> _extraAnime = [];
-  int _nextPage = 2;
-  bool _loadingMore = false;
-  bool _hasMore = true;
 
   @override
   void initState() {
@@ -39,14 +36,14 @@ class _StudioPageState extends State<StudioPage> {
 
   Future<Map<String, dynamic>?> _load() async {
     const query = r'''
-      query ($search: String, $sort: [MediaSort]) {
+      query ($search: String, $sort: [MediaSort], $page: Int!) {
         Studio(search: $search) {
           id
           name
           isAnimationStudio
           siteUrl
           favourites
-          media(sort: $sort, type: ANIME, isAdult: false, page: 1, perPage: 30) {
+          media(sort: $sort, page: $page, perPage: 50) {
             pageInfo { hasNextPage }
             nodes {
               id
@@ -63,106 +60,87 @@ class _StudioPageState extends State<StudioPage> {
       }
     ''';
     try {
-      final response = await sl<Dio>().post<dynamic>(
-        'https://graphql.anilist.co',
-        data: {'query': query, 'variables': {'search': widget.studioName, 'sort': [_sort]}},
-        options: Options(
-          headers: const {'Content-Type': 'application/json', 'Accept': 'application/json'},
-          validateStatus: (status) => status != null && status < 500,
-        ),
-      );
-      final data = response.data;
-      if (data is Map && data['data'] is Map) {
-        final studio = (data['data'] as Map)['Studio'];
-        if (studio is Map) {
-          final result = Map<String, dynamic>.from(studio);
-          final media = result['media'];
-          final pageInfo = media is Map ? media['pageInfo'] : null;
-          _nextPage = 2;
-          _extraAnime.clear();
-          _hasMore = pageInfo is Map && pageInfo['hasNextPage'] == true;
-          return result;
+      final dio = sl<Dio>();
+      final allAnime = <Map<String, dynamic>>[];
+      var page = 1;
+      var hasNextPage = true;
+      Map<String, dynamic>? result;
+
+      // AniList paginates studio credits (maximum 50 per request). Fetch each
+      // page automatically so the Studio screen can show the complete list.
+      while (hasNextPage) {
+        final response = await dio.post<dynamic>(
+          'https://graphql.anilist.co',
+          data: {
+            'query': query,
+            'variables': {
+              'search': widget.studioName,
+              'sort': [_sort],
+              'page': page,
+            },
+          },
+          options: Options(
+            headers: AniListGraphql.headers,
+            validateStatus: (status) => status != null && status < 500,
+          ),
+        );
+        final data = response.data;
+        if (data is! Map || data['data'] is! Map ||
+            (data['data'] as Map)['Studio'] is! Map) {
+          if (data is Map && data['errors'] is List) {
+            final errors = data['errors'] as List;
+            if (errors.isNotEmpty && errors.first is Map) {
+              _loadError = (errors.first as Map)['message']?.toString();
+            }
+          }
+          if (page == 1) {
+            _loadError ??= 'Studio ini tidak ditemukan di AniList.';
+            return null;
+          }
+          break;
         }
-      }
-      if (data is Map && data['errors'] is List) {
-        final errors = data['errors'] as List;
-        if (errors.isNotEmpty && errors.first is Map) {
-          _loadError = (errors.first as Map)['message']?.toString();
+
+        final studio = Map<String, dynamic>.from(
+          (data['data'] as Map)['Studio'] as Map,
+        );
+        result ??= studio;
+        final media = studio['media'];
+        final nodes = media is Map ? media['nodes'] : null;
+        if (nodes is List) {
+          allAnime.addAll(
+            nodes.whereType<Map>().map(
+              (item) => Map<String, dynamic>.from(item),
+            ),
+          );
         }
+        final pageInfo = media is Map ? media['pageInfo'] : null;
+        hasNextPage = pageInfo is Map &&
+            pageInfo['hasNextPage'] == true;
+        page++;
       }
-      _loadError ??= 'Studio ini tidak ditemukan di AniList.';
+
+      if (result == null) return null;
+      result['media'] = {
+        'nodes': allAnime,
+        'pageInfo': {'hasNextPage': false},
+      };
+      return result;
     } on DioException catch (error) {
       _loadError = error.response?.statusCode == 429
           ? 'AniList sedang membatasi permintaan. Coba lagi sebentar.'
           : error.response == null
               ? 'Tidak bisa terhubung ke AniList. Periksa koneksi internet.'
               : 'AniList gagal memuat data (HTTP ${error.response?.statusCode}).';
-    } catch (error) {
+    } catch (_) {
       _loadError = 'Terjadi kesalahan saat memuat data studio.';
     }
     return null;
-  }
-
-  Future<void> _loadMore(int studioId) async {
-    if (_loadingMore || !_hasMore) return;
-    setState(() => _loadingMore = true);
-    const query = r'''
-      query ($id: Int!, $page: Int!, $sort: [MediaSort]) {
-        Studio(id: $id) {
-          media(sort: $sort, type: ANIME, isAdult: false, page: $page, perPage: 30) {
-            pageInfo { hasNextPage }
-            nodes {
-              id
-              idMal
-              title { romaji english }
-              coverImage { large }
-              averageScore
-              episodes
-              seasonYear
-              format
-            }
-          }
-        }
-      }
-    ''';
-    try {
-      final response = await sl<Dio>().post<dynamic>(
-        'https://graphql.anilist.co',
-        data: {'query': query, 'variables': {'id': studioId, 'page': _nextPage, 'sort': [_sort]}},
-        options: Options(
-          headers: const {'Content-Type': 'application/json', 'Accept': 'application/json'},
-          validateStatus: (status) => status != null && status < 500,
-        ),
-      );
-      final data = response.data;
-      final root = data is Map && data['data'] is Map ? (data['data'] as Map)['Studio'] : null;
-      final media = root is Map ? root['media'] : null;
-      final nodes = media is Map ? media['nodes'] : null;
-      final pageInfo = media is Map ? media['pageInfo'] : null;
-      if (nodes is List && mounted) {
-        setState(() {
-          _extraAnime.addAll(nodes.whereType<Map>().map((item) => Map<String, dynamic>.from(item)));
-          _nextPage++;
-          _hasMore = pageInfo is Map && pageInfo['hasNextPage'] == true;
-        });
-      } else if (mounted) {
-        setState(() => _hasMore = false);
-      }
-    } catch (_) {
-      // Keep the current anime list if another page fails to load.
-    } finally {
-      if (mounted) setState(() => _loadingMore = false);
-    }
   }
 
   void _changeSort(String? value) {
     if (value == null || value == _sort) return;
     setState(() {
       _sort = value;
-      _extraAnime.clear();
-      _nextPage = 2;
-      _hasMore = true;
-      _loadingMore = false;
       _loadError = null;
       _future = _load();
     });
@@ -218,7 +196,7 @@ class _StudioPageState extends State<StudioPage> {
           );
         }
         final media = studio['media'] is Map ? (studio['media'] as Map)['nodes'] : null;
-        final anime = <Map>[if (media is List) ...media.whereType<Map>(), ..._extraAnime];
+        final anime = <Map>[if (media is List) ...media.whereType<Map>()];
         final name = (studio['name'] as String?) ?? widget.studioName;
         return CustomScrollView(
           slivers: [
@@ -300,10 +278,10 @@ class _StudioPageState extends State<StudioPage> {
                             borderRadius: BorderRadius.circular(12),
                             style: AppText.caption.copyWith(color: AppColors.textPrimary),
                             items: const [
-                              DropdownMenuItem(value: 'START_DATE_DESC', child: Text('Newest')),
-                              DropdownMenuItem(value: 'POPULARITY_DESC', child: Text('Popularity')),
-                              DropdownMenuItem(value: 'START_DATE', child: Text('Oldest')),
-                              DropdownMenuItem(value: 'SCORE_DESC', child: Text('Score')),
+                              DropdownMenuItem(value: 'START_DATE_DESC', child: Text('Paling baru')),
+                              DropdownMenuItem(value: 'POPULARITY_DESC', child: Text('Popularitas')),
+                              DropdownMenuItem(value: 'START_DATE', child: Text('Paling lama')),
+                              DropdownMenuItem(value: 'SCORE_DESC', child: Text('Rating tertinggi')),
                             ],
                             onChanged: _changeSort,
                           ),
@@ -375,11 +353,42 @@ class _StudioPageState extends State<StudioPage> {
                             const SizedBox(height: 7),
                             Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppText.body.copyWith(fontSize: 12)),
                             const SizedBox(height: 3),
-                            Text(
-                              [if (year is int) '$year', if (episodes is int) '$episodes eps', if (score is int && score > 0) '★ ${(score / 10).toStringAsFixed(1)}'].join(' · '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppText.caption.copyWith(color: AppColors.textSecondary),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    [if (year is int) '$year', if (episodes is int) '$episodes eps'].join(' · '),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppText.caption.copyWith(color: AppColors.textSecondary),
+                                  ),
+                                ),
+                                if (score is int && score > 0) ...[
+                                  const SizedBox(width: 5),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surface2,
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.star_rounded, size: 12, color: AppColors.accent),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          '$score/100',
+                                          style: AppText.caption.copyWith(
+                                            color: AppColors.textPrimary,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
                         ),
@@ -389,21 +398,7 @@ class _StudioPageState extends State<StudioPage> {
                   ),
                 ),
               ),
-            if (anime.isNotEmpty && (_hasMore || _loadingMore))
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
-                  child: Center(
-                    child: OutlinedButton.icon(
-                      onPressed: _loadingMore ? null : () => _loadMore(studio['id'] as int),
-                      icon: _loadingMore
-                          ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent))
-                          : const Icon(Icons.expand_more_rounded),
-                      label: Text(_loadingMore ? 'Memuat...' : 'Muat lebih banyak anime'),
-                    ),
-                  ),
-                ),
-              ),
+
           ],
         );
       },

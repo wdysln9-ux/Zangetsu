@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -17,6 +18,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../../core/cache/app_image_cache.dart';
 import '../../core/di/injector.dart';
+import '../../core/anilist/anilist_service.dart';
 import '../../core/repository/source_repository.dart';
 import '../../core/zmode/playback_resolver.dart';
 import '../../core/tracker/tracker_hub.dart';
@@ -483,6 +485,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _showEpisodeDetails = widget.episodeDetailMode;
     _portraitMode = widget.episodeDetailMode;
     _loadCinematicLightingPrefs();
+    if (widget.episodeDetailMode) _loadShowPopularity();
     // Refresh the "enhancement shaders downloaded?" flag so the in-player picker
     // gates correctly (they're fetched on demand from Settings). Fire-and-forget.
     unawaited(ShaderPresets.refreshDownloaded());
@@ -501,6 +504,31 @@ class _PlayerScreenState extends State<PlayerScreen> {
   /// landscape, as it always has.
   bool _portraitMode = false;
   bool _showEpisodeDetails = false;
+
+  int? _showPopularity;
+  bool _showPopularityLoaded = false;
+
+  Future<void> _loadShowPopularity() async {
+    if (_showPopularityLoaded) return;
+    _showPopularityLoaded = true;
+    try {
+      final api = sl<AniListService>().api;
+      final malId = widget.malId;
+      var popularity = malId != null
+          ? await api.popularityByMalId(malId)
+          : null;
+      popularity ??= await api.popularityBySearch(
+        widget.scrobbleTitle ?? widget.showTitle ?? '',
+      );
+      if (!mounted || popularity == null) return;
+      setState(() => _showPopularity = popularity);
+    } catch (_) {
+      // Viewer estimates are optional; keep the page usable if AniList is down.
+    }
+  }
+
+  final ScrollController _episodeCardsScroll = ScrollController();
+  int _lastEpisodeCardsIndex = -1;
 
   /// The orientation this player holds right now. Single source of truth: the
   /// screen pins orientation in more than one place (open, and either side of
@@ -1332,6 +1360,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   void dispose() {
+    _episodeCardsScroll.dispose();
     AppLogger.instance.log(
       '[player-route] dispose ready=$_ready '
       'loading=${_ready ? _c.state.loadingSources : 'uninitialized'} '
@@ -1762,7 +1791,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     setState(() {
       _cinematicLighting = prefs.cinematicLightingEnabled;
       _cinematicBrightness = prefs.cinematicBrightness.clamp(-1.0, 1.0).toDouble();
-      _cinematicBlur = prefs.cinematicBlur.clamp(0.0, 24.0).toDouble();
+      _cinematicBlur = prefs.cinematicBlur.clamp(0.0, 48.0).toDouble();
       _cinematicZoom = prefs.cinematicZoom.clamp(1.0, 1.8).toDouble();
       _cinematicVignette = prefs.cinematicVignette.clamp(0.0, 1.0).toDouble();
     });
@@ -1802,7 +1831,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   min: -1, max: 1, displayValue: _cinematicBrightness.toStringAsFixed(1),
                   onChanged: (value) { setState(() => _cinematicBrightness = value); unawaited(sl<PlaybackPrefs>().setCinematicBrightness(value)); refreshDialog(() {}); }),
                 _CinematicSlider(label: 'Blur', value: _cinematicBlur,
-                  min: 0, max: 24, displayValue: _cinematicBlur.toStringAsFixed(0),
+                  min: 0, max: 48, displayValue: _cinematicBlur.toStringAsFixed(0),
                   onChanged: (value) { setState(() => _cinematicBlur = value); unawaited(sl<PlaybackPrefs>().setCinematicBlur(value)); refreshDialog(() {}); }),
                 _CinematicSlider(label: 'Zoom', value: _cinematicZoom,
                   min: 1, max: 1.8, displayValue: '${_cinematicZoom.toStringAsFixed(2)}x',
@@ -1850,7 +1879,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         return _SkipButton(
           // Only a recap is named. An opening/ending keeps the plain "Skip"
           // it has always had — no reason to reword what already works.
-          label: isRecapSkip(iv.type) ? 'Skip Recap' : 'Skip',
+          label: isRecapSkip(iv.type) ? context.l10n.skipRecap : context.l10n.skip,
           onTap: () {
             _c.seekTo(iv.end);
             _bumpControls();
@@ -1884,10 +1913,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         : episode.number == episode.number!.truncateToDouble()
             ? episode.number!.toInt().toString()
             : episode.number!.toString();
-    final episodeHeading = [
-      if (episodeNumber != null) 'Episode $episodeNumber',
-      if (title.isNotEmpty) title,
-    ].join(' · ');
+    final hasHeading = episodeNumber != null || title.isNotEmpty;
     final description = episode.description?.trim();
 
     _bumpControls();
@@ -1928,25 +1954,45 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   ),
                 ),
                 const SizedBox(height: 5),
-                if (episodeNumber != null)
-                  Text(
-                    'Episode $episodeNumber',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                    ),
-                  ),
-                if (title.isNotEmpty)
-                  AutoTranslatedText(
-                    text: title,
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                if (episodeHeading.isEmpty)
+                if (hasHeading)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (episodeNumber != null)
+                        Text(
+                          'Episode $episodeNumber',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      if (episodeNumber != null && title.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 7),
+                          child: Text(
+                            '·',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      if (title.isNotEmpty)
+                        Expanded(
+                          child: AutoTranslatedText(
+                            text: title,
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                  )
+                else
                   const Text(
                     'Episode tidak diketahui',
                     style: TextStyle(
@@ -1981,7 +2027,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: const Text('Tutup'),
+                    child: Text(context.l10n.close),
                   ),
                 ),
               ],
@@ -2120,7 +2166,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'Episodes',
+      barrierLabel: context.l10n.episodes,
       barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 240),
       pageBuilder: (ctx, _, _) => Align(
@@ -2209,7 +2255,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         : d != null
         ? 'Sleep timer set for ${d.inMinutes} min'
               '${_sleepCloseApp ? ' · closes the app' : ''}'
-        : 'Sleep timer off';
+        : context.l10n.off;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -2285,7 +2331,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ],
               )
             else
-              Text('Episode $epNum', style: AppText.headline.copyWith(color: Colors.white), maxLines: 2, overflow: TextOverflow.ellipsis),
+              Text('${context.l10n.episodes} $epNum', style: AppText.headline.copyWith(color: Colors.white), maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -2299,17 +2345,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         borderRadius: BorderRadius.circular(9),
                       ),
                       alignment: Alignment.center,
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.play_arrow_rounded,
                             color: Colors.white,
                             size: 20,
                           ),
-                          SizedBox(width: 4),
+                          const SizedBox(width: 4),
                           Text(
-                            'Play now',
+                            context.l10n.play,
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -2376,13 +2422,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: AppColors.hairline, width: 0.5),
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.skip_next, color: Colors.white, size: 20),
-                  SizedBox(width: 6),
+                  const Icon(Icons.skip_next, color: Colors.white, size: 20),
+                  const SizedBox(width: 6),
                   Text(
-                    'Next Episode',
+                    context.l10n.nextEpisode,
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -2747,6 +2793,25 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final number = episode.number?.toString().replaceFirst(RegExp(r'\.0$'), '');
     final episodes = _c.episodes;
     final activeIndex = _c.state.currentIndex;
+    // Keep the active episode card visible whenever the detail page opens
+    // or playback moves to another episode.
+    if (_lastEpisodeCardsIndex != activeIndex) {
+      _lastEpisodeCardsIndex = activeIndex;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_episodeCardsScroll.hasClients) return;
+        final position = _episodeCardsScroll.position;
+        const cardWidth = 168.0;
+        const itemExtent = 178.0; // card + horizontal gap
+        final target = (activeIndex * itemExtent -
+                (position.viewportDimension - cardWidth) / 2)
+            .clamp(0.0, position.maxScrollExtent);
+        _episodeCardsScroll.animateTo(
+          target,
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+        );
+      });
+    }
 
     Widget roundAction(IconData icon, VoidCallback? onPressed) => SizedBox(
       width: 44,
@@ -2784,8 +2849,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ),
               ),
             const SizedBox(height: 6),
-            Text(
-              title.isEmpty ? ('Episode ' + (number ?? '')) : title,
+            AutoTranslatedText(
+              text: title.isEmpty ? ('${context.l10n.episodes} ' + (number ?? '')) : title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: AppText.body.copyWith(
@@ -2797,7 +2862,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             Row(
               children: [
                 Text(
-                  number == null ? 'Episode' : 'Ep ' + number,
+                  number == null ? context.l10n.episodes : 'Ep ' + number,
                   style: AppText.body.copyWith(
                     color: Colors.white,
                     fontSize: 15,
@@ -2808,14 +2873,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 const Icon(Icons.visibility_outlined,
                     color: Color(0xFF91A396), size: 17),
                 const SizedBox(width: 6),
-                Text(
-                  episode.rating != null && episode.rating! > 0
-                      ? episode.rating!.toStringAsFixed(0)
-                      : '—',
-                  style: AppText.body.copyWith(
-                    color: const Color(0xFF91A396),
-                    fontSize: 14,
-                  ),
+                Builder(
+                  builder: (context) {
+                    final episodeNumber = episode.number ?? (activeIndex + 1);
+                    final exponent = (episodeNumber - 1).clamp(0.0, 1000.0);
+                    final estimatedViewers = _showPopularity == null
+                        ? null
+                        : (_showPopularity! / math.pow(1.02, exponent)).round();
+                    final viewerLabel = estimatedViewers == null
+                        ? '—'
+                        : estimatedViewers >= 100000
+                            ? '${(estimatedViewers / 1000).round()}k'
+                            : estimatedViewers >= 1000
+                                ? '${(estimatedViewers / 1000).toStringAsFixed(1)}k'
+                                : estimatedViewers.toString();
+                    return Text(
+                      viewerLabel,
+                      style: AppText.body.copyWith(
+                        color: const Color(0xFF91A396),
+                        fontSize: 14,
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -2837,7 +2916,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ? null
                           : () => widget.onDownloadEpisode!(episode),
                       icon: const Icon(Icons.download_rounded, size: 19),
-                      label: const Text('Unduh'),
+                      label: Text(context.l10n.download),
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFF100D0B),
                         foregroundColor: Colors.white,
@@ -2861,7 +2940,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  'Episode',
+                  context.l10n.episodes,
                   style: AppText.title.copyWith(
                     color: Colors.white,
                     fontSize: 19,
@@ -2879,12 +2958,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              height: 104,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: episodes.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+            Transform.translate(
+              offset: const Offset(-16, 0),
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width + 32,
+                child: SizedBox(
+                  height: 112,
+                  child: ListView.separated(
+                  padding: const EdgeInsets.only(left: 16, right: 64),
+                  controller: _episodeCardsScroll,
+                  scrollDirection: Axis.horizontal,
+                  itemCount: episodes.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
                   final item = episodes[index];
                   final selected = index == activeIndex;
@@ -2901,87 +2986,75 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       _bumpControls();
                     },
                     child: Container(
-                      width: 185,
-                      clipBehavior: Clip.antiAlias,
+                      width: 168,
+                      height: 104,
                       decoration: BoxDecoration(
                         color: const Color(0xFF171717),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(9),
                         border: Border.all(
                           color: selected
                               ? AppColors.accent
-                              : const Color(0xFF242424),
-                          width: 1,
+                              : const Color(0xFF514D55),
+                          width: selected ? 1.6 : 1.2,
                         ),
                       ),
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          if (image != null && image.isNotEmpty)
-                            CachedNetworkImage(
-                              imageUrl: image,
-                              fit: BoxFit.cover,
-                              errorWidget: (_, __, ___) =>
-                                  const ColoredBox(color: Color(0xFF202020)),
-                            )
-                          else
-                            const ColoredBox(color: Color(0xFF202020)),
-                          const DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Color(0xCC000000),
-                                ],
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(7.5),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            if (image != null && image.isNotEmpty)
+                              CachedNetworkImage(
+                                imageUrl: image,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, __, ___) =>
+                                    const ColoredBox(color: Color(0xFF202020)),
+                              )
+                            else
+                              const ColoredBox(color: Color(0xFF202020)),
+                            const DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Color(0xD9000000),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                          Positioned(
-                            left: 10,
-                            right: 8,
-                            bottom: 9,
-                            child: Text(
-                              'Episode ' + itemNumber,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppText.body.copyWith(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                          if (selected)
                             Positioned(
-                              top: 7,
-                              right: 7,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 7,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.accent,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  'Sedang ditonton',
-                                  style: AppText.caption.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                              left: 9,
+                              right: 9,
+                              bottom: 8,
+                              child: Text(
+                                'Episode $itemNumber',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppText.caption.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  shadows: const [
+                                    Shadow(
+                                      color: Colors.black,
+                                      blurRadius: 5,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                          
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );
-                },
+                    },
+                  ),
+                ),
               ),
-            ),
+              ),
             if (summary.isNotEmpty) ...[
               const SizedBox(height: 20),
               Container(
@@ -3010,8 +3083,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             ),
                           ),
                         ),
-                        const Icon(Icons.keyboard_arrow_down_rounded,
-                            color: Color(0xFF91A396)),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -3181,7 +3252,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       TextButton(
                         onPressed: () => _c.openEpisode(state.currentIndex),
                         child: Text(
-                          'Try again',
+                          context.l10n.retry,
                           style: AppText.body.copyWith(color: AppColors.accent),
                         ),
                       ),
@@ -3755,11 +3826,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               _RoundIconButton(
                                 icon: Icons.lock_rounded,
                                 onTap: _toggleLock,
-                                semanticLabel: 'Unlock controls',
+                                semanticLabel: context.l10n.unlockControls,
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Tap to unlock',
+                                context.l10n.tapToUnlock,
                                 style: AppText.caption.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,

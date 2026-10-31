@@ -200,10 +200,7 @@ class _ViewerProfileEditorScreenState extends State<ViewerProfileEditorScreen> {
   String? _uploadToken;
   bool _saved = false;
 
-  bool get _canSave =>
-      _name.text.trim().isNotEmpty &&
-      _bio.text.trim().runes.length <= ViewerProfileStore.maxBioLength &&
-      !_uploading;
+  bool get _canSave => _name.text.trim().isNotEmpty && !_uploading;
 
   @override
   void dispose() {
@@ -640,19 +637,13 @@ class _ViewerProfileEditorScreenState extends State<ViewerProfileEditorScreen> {
                     TextField(
                       key: const ValueKey('profile-editor-bio'),
                       controller: _bio,
-                      maxLength: ViewerProfileStore.maxBioLength,
-                      maxLines: 3,
+                      maxLines: null,
                       minLines: 2,
                       onChanged: (_) => setState(() {}),
                       textCapitalization: TextCapitalization.sentences,
                       decoration: _fieldDecoration(
                         label: 'Bio',
                         hint: 'Add a short bio',
-                        errorText:
-                            _bio.text.trim().runes.length >
-                                ViewerProfileStore.maxBioLength
-                            ? 'Bio is too long'
-                            : null,
                       ),
                     ),
                   ],

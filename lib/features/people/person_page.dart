@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-import '../../core/ui/auto_translated_text.dart';
+import '../../core/ui/anilist_markdown.dart';
 
 import '../../core/di/injector.dart';
 import '../../core/metadata/people_service.dart';
@@ -57,6 +57,14 @@ class _PersonPageState extends State<PersonPage> {
     fromReadingPage: !w.isReading,
   );
 
+  String _displayName(String value) {
+    if (widget.person.source != PersonSource.anilistCharacter) return value;
+    final parts = value.trim().split(RegExp(r'\s+'));
+    if (parts.length < 2) return value;
+    return [parts.last, ...parts.sublist(1, parts.length - 1), parts.first]
+        .join(' ');
+  }
+
   void _openRelated(PersonRef ref) {
     Navigator.of(
       context,
@@ -71,7 +79,7 @@ class _PersonPageState extends State<PersonPage> {
         backgroundColor: AppColors.bg,
         elevation: 0,
         title: Text(
-          widget.person.name,
+          _displayName(widget.person.name),
           style: AppText.title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -111,7 +119,7 @@ class _PersonPageState extends State<PersonPage> {
             child: _sectionLabel(
               widget.person.source == PersonSource.anilistStaff
                   ? 'Roles'
-                  : 'Appears in',
+                  : 'Peran',
             ),
           ),
           SliverPadding(
@@ -165,12 +173,26 @@ class _PersonPageState extends State<PersonPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 4),
-                Text(p.name, style: AppText.title),
+                Text(_displayName(p.name), style: AppText.title),
+                if (widget.person.source == PersonSource.anilistCharacter &&
+                    p.alternateNames.isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Text(
+                    p.alternateNames.join(' · '),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
                 if (p.nativeName != null && p.nativeName!.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(p.nativeName!, style: AppText.body),
                 ],
-                if (p.subtitle != null && p.subtitle!.isNotEmpty) ...[
+                if (widget.person.source != PersonSource.anilistCharacter &&
+                    p.subtitle != null &&
+                    p.subtitle!.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -207,15 +229,20 @@ class _PersonPageState extends State<PersonPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AutoTranslatedText(
-              text: text,
-              maxLines: _bioExpanded ? null : 4,
-              overflow: _bioExpanded ? null : TextOverflow.ellipsis,
-              style: AppText.body,
+            ClipRect(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: _bioExpanded ? double.infinity : 112,
+                ),
+                child: AutoTranslatedAniListMarkdown(
+                  data: text,
+                  textStyle: AppText.body,
+                ),
+              ),
             ),
             const SizedBox(height: 4),
             Text(
-              _bioExpanded ? 'Show less' : 'Read more',
+              _bioExpanded ? 'Sembunyikan' : 'Baca selengkapnya',
               style: AppText.caption.copyWith(color: AppColors.accent),
             ),
           ],
@@ -228,7 +255,7 @@ class _PersonPageState extends State<PersonPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionLabel('Voiced by'),
+        _sectionLabel('Pengisi suara'),
         SizedBox(
           height: 108,
           child: ListView.separated(
@@ -285,6 +312,12 @@ class _PersonPageState extends State<PersonPage> {
     child: Text(text, style: AppText.overline),
   );
 
+  String _translatedRole(String value) {
+    return value
+        .replaceAll(RegExp(r'\bMain\b', caseSensitive: false), 'Utama')
+        .replaceAll(RegExp(r'\bSupporting\b', caseSensitive: false), 'Pendukung');
+  }
+
   Widget _workCard(PersonWork w) {
     return GestureDetector(
       onTap: () => _openWork(w),
@@ -317,7 +350,7 @@ class _PersonPageState extends State<PersonPage> {
           ),
           if (w.subtitle != null && w.subtitle!.isNotEmpty)
             Text(
-              w.subtitle!,
+              _translatedRole(w.subtitle!),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppText.caption.copyWith(fontSize: 11),

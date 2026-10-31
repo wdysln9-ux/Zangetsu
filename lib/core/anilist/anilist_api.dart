@@ -8,6 +8,18 @@ import 'anilist_title.dart';
 import '../models/person.dart';
 import '../tracker/tracker.dart' show MediaKind;
 
+/// Convert AniList enum labels such as MAIN to readable title case.
+String? _titleCase(String? value) {
+  if (value == null || value.trim().isEmpty) return value;
+  return value
+      .toLowerCase()
+      .split(RegExp(r'[\s_]+'))
+      .map((word) => word.isEmpty
+          ? word
+          : '${word[0].toUpperCase()}${word.substring(1)}')
+      .join(' ');
+}
+
 /// AniList's `type:` enum value for [kind].
 String _anilistType(MediaKind kind) =>
     kind == MediaKind.manga ? 'MANGA' : 'ANIME';
@@ -560,7 +572,7 @@ class AniListApi {
         cast.add(
           CastMember(
             name: name,
-            role: va,
+            role: _titleCase(e['role'] as String?),
             photo: img,
             person: charId == null
                 ? null
@@ -698,6 +710,29 @@ class AniListApi {
       auth: true,
     );
     return (r?['DeleteMediaListEntry'] as Map?)?['deleted'] == true;
+  }
+
+  /// AniList's total popularity for an anime, resolved by MAL id.
+  /// Read-only and works without an authenticated AniList account.
+  Future<int?> popularityByMalId(int malId) async {
+    final d = await _gql(
+      'query(\$idMal:Int){ Media(idMal:\$idMal,type:ANIME){ popularity } }',
+      {'idMal': malId},
+    );
+    final value = (d?['Media'] as Map?)?['popularity'];
+    return (value as num?)?.toInt();
+  }
+
+  /// AniList popularity fallback when a MAL id is unavailable.
+  Future<int?> popularityBySearch(String title) async {
+    final query = title.trim();
+    if (query.isEmpty) return null;
+    final d = await _gql(
+      'query(\$search:String){ Media(search:\$search,type:ANIME){ popularity } }',
+      {'search': query},
+    );
+    final value = (d?['Media'] as Map?)?['popularity'];
+    return (value as num?)?.toInt();
   }
 
   /// The user's list entry for [mediaId] plus the media's episode/chapter +

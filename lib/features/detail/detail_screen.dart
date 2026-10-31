@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/zmode/season_chain.dart';
 import '../../core/zmode/metadata_provider_prefs.dart';
 import '../../core/ui/auto_translated_text.dart';
+import '../../core/ui/anilist_markdown.dart';
 import '../../core/ui/poster_card.dart';
 import '../../core/ui/poster_palette.dart';
 import '../../core/ui/mobile_hero_art.dart';
@@ -2250,6 +2251,8 @@ class _DetailViewState extends State<_DetailView>
       );
     }
     if (statusStr.isNotEmpty) metaParts.add(statusStr);
+    final formatStr = detail.format?.trim();
+    if (formatStr != null && formatStr.isNotEmpty) metaParts.add(formatStr);
     final metaLine = metaParts.join('  ·  ');
 
     // ── Download button label: "Download S{season}:E{n}" when we can derive
@@ -2261,21 +2264,8 @@ class _DetailViewState extends State<_DetailView>
       currentSeason,
     );
 
-    // ── Starring / Creators (Genres fallback) muted lines ───────────────────
-    // Prefer enriched cast (AniList/TMDB) when available, else the provider's.
-    final castNames = state.cast.isNotEmpty
-        ? state.cast.map((c) => c.name).toList()
-        : detail.cast;
-    final starring = castNames.isNotEmpty ? castNames.take(3).join(', ') : null;
-    final starringMore = castNames.length > 3;
-    final creators = detail.studios.isNotEmpty
-        ? detail.studios.join(', ')
-        : null;
-    // For anime (or anything without cast) surface Genres instead of an empty
-    // Starring line — never show an empty label.
-    final genresLine = (starring == null && detail.genres.isNotEmpty)
-        ? detail.genres.take(4).join(', ')
-        : null;
+    // Keep a compact Genres fallback on the main page; cast and creator
+    // information remain available in their dedicated tabs.
 
     // Friendly provider name + its origin repo, so the user can tell which repo
     // a source came from. JS providers live in the registry; CloudStream sources
@@ -2362,6 +2352,20 @@ class _DetailViewState extends State<_DetailView>
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (detail.englishTitle != null &&
+                      detail.englishTitle!.trim().isNotEmpty &&
+                      detail.englishTitle!.trim() != detail.title.trim()) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      detail.englishTitle!.trim(),
+                      style: AppText.body.copyWith(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                   if (metaLine.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Row(
@@ -2470,33 +2474,40 @@ class _DetailViewState extends State<_DetailView>
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
               child: _Description(
                 text: cleanSynopsis(detail.description) ?? '',
-                // "Read more" reveals the Details tab (full synopsis) rather
-                // than expanding inline; the header stays clamped to 3 lines.
-                onReadMore: () => _revealTab(3),
               ),
             ),
           ),
 
-        // ── 5. Starring / Creators / Genres muted lines ─────────────────────
-        if (starring != null || creators != null || genresLine != null)
+        // ── 5. Interactive genres and studio ──────────────────────────────
+        if (detail.genres.isNotEmpty || detail.studios.isNotEmpty)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (starring != null)
-                    _CreditLine(
-                      label: context.l10n.starring,
-                      value: starring,
-                      more: starringMore,
-                      // Tapping the line (or its "… more") reveals the Cast tab.
-                      onMore: starringMore ? () => _revealTab(1) : null,
+                  if (detail.genres.isNotEmpty)
+                    _InteractiveCreditLine(
+                      label: context.l10n.genres,
+                      values: detail.genres.take(4).toList(),
+                      onTap: (genre) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => SearchScreen(
+                              initialFilters: MetaFilters(genres: [genre]),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  if (genresLine != null)
-                    _CreditLine(label: context.l10n.genres, value: genresLine),
-                  if (creators != null)
-                    _CreditLine(label: context.l10n.creators, value: creators),
+                  if (detail.studios.isNotEmpty)
+                    _InteractiveCreditLine(
+                      label: 'Studio',
+                      values: detail.studios.take(3).toList(),
+                      onTap: (studio) => Navigator.of(context).push(
+                        StudioPage.route(studio),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -2633,7 +2644,7 @@ class _DetailViewState extends State<_DetailView>
                 Tab(
                   text: isReading ? context.l10n.characters : context.l10n.cast,
                 ),
-                Tab(text: context.l10n.relations),
+                const Tab(text: 'Terkait'),
                 Tab(text: context.l10n.details),
               ],
             ),

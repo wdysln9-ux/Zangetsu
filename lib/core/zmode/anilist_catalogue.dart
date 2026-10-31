@@ -153,21 +153,21 @@ class AniListCatalogue implements AnimeCatalogue {
       _ => ('WINTER', now.year + 1),
     };
     return [
-      ('Recently released', recent(2000)),
+      ('Baru dirilis', recent(2000)),
       ('Trending', 'sort:TRENDING_DESC'),
       (
-        'Popular this season',
+        'Populer musim ini',
         'sort:POPULARITY_DESC,season:$season,seasonYear:${now.year}',
       ),
       (
-        'Upcoming next season',
+        'Paling ditunggu',
         'sort:POPULARITY_DESC,season:$nextSeason,seasonYear:$nextYear,'
             'status:NOT_YET_RELEASED',
       ),
-      ('All-time popular', 'sort:POPULARITY_DESC'),
-      ('Top rated', 'sort:SCORE_DESC'),
-      ('Action', 'genre_in:["Action"],sort:POPULARITY_DESC'),
-      ('Romance', 'genre_in:["Romance"],sort:POPULARITY_DESC'),
+      ('Populer', 'sort:POPULARITY_DESC'),
+      ('Rating tertinggi', 'sort:SCORE_DESC'),
+      ('Action', 'genre_in:["Action"],sort:TRENDING_DESC'),
+      ('Romantis', 'genre_in:["Romance"],sort:TRENDING_DESC'),
     ];
   }
 
@@ -186,7 +186,16 @@ class AniListCatalogue implements AnimeCatalogue {
     final data = await _gql('query{ $query }', const {});
     final out = <HomeSection>[];
     for (final (i, (title, args)) in rows.indexed) {
-      final items = _itemsFromPage(data?['r$i'], kind);
+      var items = _itemsFromPage(data?['r$i'], kind);
+      // Keep the Romance row strict even if a provider response or stale
+      // catalogue payload contains titles that do not carry the Romance genre.
+      if (title == 'Romantis' || title == 'Romance') {
+        items = items
+            .where((item) => item.genres.any(
+                  (genre) => genre.toLowerCase() == 'romance',
+                ))
+            .toList();
+      }
       if (items.isEmpty) continue;
       // The row's own query fragment IS its identity — hand it back through
       // `more` and [browseRow] can ask for page 2 of exactly this row.
@@ -212,7 +221,15 @@ class AniListCatalogue implements AnimeCatalogue {
       'media(type:${_type(kind)}$_adultExclusion${_format(kind)},$rowId){ $_listFields } }',
       const {},
     );
-    return _itemsFromPage(data?['Page'], kind);
+    final items = _itemsFromPage(data?['Page'], kind);
+    if (rowId.contains('genre_in:["Romance"]')) {
+      return items
+          .where((item) => item.genres.any(
+                (genre) => genre.toLowerCase() == 'romance',
+              ))
+          .toList();
+    }
+    return items;
   }
 
   Future<List<MediaItem>> search(String q, ZKind kind) =>

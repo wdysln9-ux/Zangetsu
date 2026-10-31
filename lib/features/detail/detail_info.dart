@@ -60,15 +60,60 @@ class _CreditLine extends StatelessWidget {
   }
 }
 
+// Compact credit line with individually tappable values.
+class _InteractiveCreditLine extends StatelessWidget {
+  const _InteractiveCreditLine({
+    required this.label,
+    required this.values,
+    required this.onTap,
+  });
+
+  final String label;
+  final List<String> values;
+  final ValueChanged<String> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = AppText.caption.copyWith(color: AppColors.textSecondary);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Wrap(
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 6,
+        runSpacing: 2,
+        children: [
+          Text('$label:', style: style.copyWith(color: AppColors.textTertiary)),
+          for (var i = 0; i < values.length; i++)
+            GestureDetector(
+              onTap: () => onTap(values[i]),
+              child: Text(
+                '${values[i]}${i < values.length - 1 ? ',' : ''}',
+                style: style.copyWith(
+                  color: AppColors.accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Description: synopsis clamped to 3 lines + a red "Read more" that opens the
-// Details tab (which shows the full synopsis). No inline expand.
+// Description: synopsis preview with an inline expand/collapse affordance.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _Description extends StatelessWidget {
-  const _Description({required this.text, required this.onReadMore});
+class _Description extends StatefulWidget {
+  const _Description({required this.text});
   final String text;
-  final VoidCallback onReadMore;
+
+  @override
+  State<_Description> createState() => _DescriptionState();
+}
+
+class _DescriptionState extends State<_Description> {
+  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -76,15 +121,16 @@ class _Description extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GestureDetector(
-          onTap: onReadMore,
+          onTap: () => setState(() => _expanded = !_expanded),
           behavior: HitTestBehavior.opaque,
-          child: _SynopsisTranslation(text: text, maxLines: 3),
+          child: _SynopsisTranslation(text: widget.text, expanded: _expanded),
         ),
         const SizedBox(height: 6),
         GestureDetector(
-          onTap: onReadMore,
+          onTap: () => setState(() => _expanded = !_expanded),
+          behavior: HitTestBehavior.opaque,
           child: Text(
-            context.l10n.readMore,
+            _expanded ? 'Lebih sedikit' : context.l10n.readMore,
             style: AppText.caption.copyWith(
               color: AppColors.accent,
               fontWeight: FontWeight.w700,
@@ -98,9 +144,9 @@ class _Description extends StatelessWidget {
 
 /// Automatically translates the synopsis while keeping the source text intact.
 class _SynopsisTranslation extends StatefulWidget {
-  const _SynopsisTranslation({required this.text, this.maxLines});
+  const _SynopsisTranslation({required this.text, required this.expanded});
   final String text;
-  final int? maxLines;
+  final bool expanded;
 
   @override
   State<_SynopsisTranslation> createState() => _SynopsisTranslationState();
@@ -108,8 +154,6 @@ class _SynopsisTranslation extends StatefulWidget {
 
 class _SynopsisTranslationState extends State<_SynopsisTranslation> {
   String? _translated;
-  bool _showOriginal = false;
-  bool _loading = true;
 
   @override
   void initState() {
@@ -122,8 +166,6 @@ class _SynopsisTranslationState extends State<_SynopsisTranslation> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text) {
       _translated = null;
-      _showOriginal = false;
-      _loading = true;
       _loadTranslation();
     }
   }
@@ -133,51 +175,30 @@ class _SynopsisTranslationState extends State<_SynopsisTranslation> {
     if (!mounted) return;
     setState(() {
       _translated = result != widget.text ? result : null;
-      _loading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final translated = _translated;
-    final shownText = !_showOriginal && translated != null ? translated : widget.text;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          shownText,
-          style: AppText.body,
-          maxLines: widget.maxLines,
-          overflow: widget.maxLines == null ? null : TextOverflow.ellipsis,
-        ),
-        if (translated != null || _loading) ...[
-          const SizedBox(height: 5),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_loading)
-                const SizedBox(
-                  width: 10,
-                  height: 10,
-                  child: CircularProgressIndicator(strokeWidth: 1.5),
-                ),
-              if (_loading && translated != null) const SizedBox(width: 8),
-              if (translated != null)
-                GestureDetector(
-                  onTap: () => setState(() => _showOriginal = !_showOriginal),
-                  child: Text(
-                    _showOriginal ? 'Terjemahan' : 'Asli',
-                    style: AppText.caption.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ],
+    final markdown = AniListMarkdown(
+      data: _translated ?? widget.text,
+      textStyle: AppText.body,
+    );
+    if (widget.expanded) {
+      return AnimatedSize(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOut,
+        alignment: Alignment.topCenter,
+        child: markdown,
+      );
+    }
+    final lineHeight = (AppText.body.fontSize ?? 14) *
+        (AppText.body.height ?? 1.45);
+    return ClipRect(
+      child: SizedBox(
+        height: lineHeight * 3,
+        child: markdown,
+      ),
     );
   }
 }
