@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../models/person.dart';
+import '../anilist/anilist_title.dart';
 
 /// Loads person pages — anime characters + voice actors/staff from AniList,
 /// movie/TV people from TMDB. Read-only, best-effort: any miss/failure returns
@@ -220,10 +221,8 @@ class PeopleService {
   }
 
   String? _aniTitle(dynamic node) {
-    if (node is! Map || node['title'] is! Map) return null;
-    final t = node['title'] as Map;
-    final title = (t['english'] ?? t['romaji']) as String?;
-    return (title != null && title.isNotEmpty) ? title : null;
+    if (node is! Map) return null;
+    return aniListTitle(node['title'], titleLanguagePref);
   }
 
   String? _aniRomaji(dynamic node) {
