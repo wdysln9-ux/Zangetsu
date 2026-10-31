@@ -977,6 +977,30 @@ class PlaybackPrefs {
   Future<void> setSubtitleOutlineColorHex(String value) =>
       _box.put('subtitleOutlineColorHex', value);
 
+  /// Subtitle shadow angle in degrees (0–360).
+  double get subtitleShadowAngle =>
+      (_box.get('subtitleShadowAngle', defaultValue: 45.0) as num)
+          .toDouble()
+          .clamp(0.0, 360.0);
+  Future<void> setSubtitleShadowAngle(double value) =>
+      _box.put('subtitleShadowAngle', value.clamp(0.0, 360.0));
+
+  /// Subtitle shadow offset distance in pixels (0–20).
+  double get subtitleShadowDistance =>
+      (_box.get('subtitleShadowDistance', defaultValue: 2.0) as num)
+          .toDouble()
+          .clamp(0.0, 20.0);
+  Future<void> setSubtitleShadowDistance(double value) =>
+      _box.put('subtitleShadowDistance', value.clamp(0.0, 20.0));
+
+  /// Subtitle shadow blur radius in pixels (0–20).
+  double get subtitleShadowBlur =>
+      (_box.get('subtitleShadowBlur', defaultValue: 2.0) as num)
+          .toDouble()
+          .clamp(0.0, 20.0);
+  Future<void> setSubtitleShadowBlur(double value) =>
+      _box.put('subtitleShadowBlur', value.clamp(0.0, 20.0));
+
   /// Subtitle shadow colour as `#RRGGBBAA` (default opaque black).
   String get subtitleShadowColorHex =>
       _box.get('subtitleShadowColorHex', defaultValue: '#000000FF') as String;
