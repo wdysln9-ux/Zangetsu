@@ -54,7 +54,7 @@ class PeopleService {
   Future<PersonProfile?> _character(int id) async {
     const q =
         'query(\$id:Int){ Character(id:\$id){ '
-        'name{ full native } image{ large } description(asHtml:false) '
+        'name{ full native alternative } image{ large } description(asHtml:false) '
         // No type filter: a manga character's appearances ARE manga, and
         // pinning this to ANIME left every reading character empty.
         'media(sort:[POPULARITY_DESC],perPage:25){ edges{ characterRole '
@@ -96,6 +96,7 @@ class PeopleService {
     return PersonProfile(
       name: _aniName(c) ?? 'Character',
       nativeName: _aniNative(c),
+      alternateNames: _aniAlternatives(c),
       photo: _aniImage(c, 'image'),
       description: _plain(c['description'] as String?),
       subtitle: 'Character',
@@ -202,6 +203,17 @@ class PeopleService {
 
   String? _aniName(Map m) =>
       (m['name'] is Map) ? m['name']['full'] as String? : null;
+  List<String> _aniAlternatives(Map m) {
+    final n = m['name'];
+    final values = n is Map ? n['alternative'] : null;
+    if (values is! List) return const [];
+    return values
+        .whereType<String>()
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
   String? _aniNative(Map m) {
     final n = (m['name'] is Map) ? m['name']['native'] as String? : null;
     return (n != null && n.isNotEmpty) ? n : null;
