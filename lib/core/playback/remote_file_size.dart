@@ -12,6 +12,9 @@ class RemoteFileSize {
   static Future<int?> lookup(String url, {Map<String, String>? headers}) async {
     final uri = Uri.tryParse(url);
     if (uri == null || (uri.scheme != 'http' && uri.scheme != 'https')) return null;
+    final path = uri.path.toLowerCase();
+    // A playlist/manifest's Content-Length is not the size of its video.
+    if (path.endsWith('.m3u8') || path.endsWith('.mpd')) return null;
     try {
       final response = await _dio.head(url, options: Options(headers: headers));
       final length = int.tryParse(response.headers.value(Headers.contentLengthHeader) ?? '');
