@@ -24,6 +24,7 @@ class _EpisodesTab extends StatefulWidget {
     required this.showUrl,
     required this.resumeIndex,
     required this.hasAnyMark,
+    this.autoScrollToResume = false,
     this.trackerProgress,
     this.nextAiringEpisode,
     this.nextAiringAt,
@@ -70,6 +71,7 @@ class _EpisodesTab extends StatefulWidget {
   final String showUrl;
   final int Function(List<Episode>) resumeIndex;
   final bool hasAnyMark;
+  final bool autoScrollToResume;
 
   /// The connected tracker's watched-episode count, or null. Episodes at or
   /// below it render as watched (grey-out), merged with local playback marks.
@@ -120,16 +122,30 @@ class _EpisodesTabState extends State<_EpisodesTab> {
   String? _scanlator;
   int _rangeIndex = 0;
   String? _highlightEpId; // outlines a grid tile right after a jump
+  final GlobalKey _resumeEpisodeKey = GlobalKey();
+  bool _autoScrollAttempted = false;
 
   @override
   void initState() {
     super.initState();
     _rangeIndex = _initialRange();
+    if (widget.autoScrollToResume) _scheduleResumeAutoScroll();
+  }
+
+  void _scheduleResumeAutoScroll() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _autoScrollAttempted) return;
+      final target = _resumeEpisodeKey.currentContext;
+      if (target == null) return;
+      _autoScrollAttempted = true;
+      Scrollable.ensureVisible(target, alignment: 0.18, duration: const Duration(milliseconds: 650), curve: Curves.easeInOutCubic);
+    });
   }
 
   @override
   void didUpdateWidget(covariant _EpisodesTab old) {
     super.didUpdateWidget(old);
+    if (widget.autoScrollToResume && old.loading && !widget.loading) _scheduleResumeAutoScroll();
     // Season switched (or the episode set changed) → reset to the resume chunk.
     if (old.currentSeason != widget.currentSeason ||
         old.seasonEps.length != widget.seasonEps.length) {
@@ -647,6 +663,7 @@ class _EpisodesTabState extends State<_EpisodesTab> {
           );
         }
         return RepaintBoundary(
+          key: widget.autoScrollToResume && fullIndex == widget.resumeIndex(widget.eps) ? _resumeEpisodeKey : null,
           child: _EpisodeRow(
             ep: ep,
             epNum: epNum,
