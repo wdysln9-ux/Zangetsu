@@ -175,7 +175,7 @@ class _CastTab extends StatelessWidget {
             ),
             if (m.role != null &&
                 m.role!.isNotEmpty &&
-                m.person?.source != PersonSource.anilistCharacter)
+                true)
               Text(
                 m.role!,
                 maxLines: 1,
