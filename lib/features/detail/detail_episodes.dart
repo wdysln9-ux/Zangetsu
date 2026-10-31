@@ -126,6 +126,7 @@ class _EpisodesTabState extends State<_EpisodesTab> {
   String? _highlightEpId; // outlines a grid tile right after a jump
   final GlobalKey _resumeEpisodeKey = GlobalKey();
   bool _autoScrollAttempted = false;
+  bool _autoScrollSeekAttempted = false;
 
   @override
   void initState() {
@@ -136,12 +137,53 @@ class _EpisodesTabState extends State<_EpisodesTab> {
   }
 
   void _scheduleResumeAutoScroll() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted || _autoScrollAttempted) return;
       final target = _resumeEpisodeKey.currentContext;
-      if (target == null) return;
-      _autoScrollAttempted = true;
-      Scrollable.ensureVisible(target, alignment: 0.18, duration: const Duration(milliseconds: 650), curve: Curves.easeInOutCubic);
+      if (target != null) {
+        _autoScrollAttempted = true;
+        await Scrollable.ensureVisible(
+          target,
+          alignment: 0.18,
+          duration: const Duration(milliseconds: 650),
+          curve: Curves.easeInOutCubic,
+        );
+        return;
+      }
+
+      // SliverList/SliverGrid build lazily: a saved episode below the first
+      // viewport has no BuildContext yet, so ensureVisible alone cannot find it.
+      // First move the inner NestedScrollView position close enough to build it,
+      // then run this method again and perform the precise key-based scroll.
+      if (_autoScrollSeekAttempted) return;
+      final episodes = _displayEps;
+      final targetIndex = widget.targetEpisodeId == null
+          ? widget.resumeIndex(widget.eps)
+          : episodes.indexWhere((ep) => ep.id == widget.targetEpisodeId);
+      if (targetIndex < 0 || targetIndex >= episodes.length) return;
+
+      final slice = episodeRangeSlice(
+        _rangeIndex,
+        episodes.length,
+        reversed: _reverseList,
+      );
+      final indexInRange = targetIndex - slice.start;
+      if (indexInRange < 0 || targetIndex >= slice.end) return;
+
+      final controller = PrimaryScrollController.maybeOf(context);
+      if (controller == null || !controller.hasClients) return;
+      _autoScrollSeekAttempted = true;
+      final position = controller.position;
+      // Episode rows are approximately 100 px tall; include the list header
+      // and range controls so the target sliver is built before ensureVisible.
+      final estimatedOffset = position.pixels + 150 + (indexInRange * 110);
+      await controller.animateTo(
+        estimatedOffset.clamp(0.0, position.maxScrollExtent),
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOut,
+      );
+      if (!mounted) return;
+      _scheduleResumeAutoScroll();
     });
   }
 
