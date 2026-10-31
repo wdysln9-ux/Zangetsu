@@ -20,6 +20,7 @@ class ContinueCard extends StatefulWidget {
     this.headers,
     required this.progress,
     this.subtitle,
+    this.recentlyWatched,
     this.onTap,
     this.onLongPress,
     this.cellWidth = 140,
@@ -33,12 +34,25 @@ class ContinueCard extends StatefulWidget {
   final double progress;
 
   final String? subtitle;
+  final String? recentlyWatched;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final double cellWidth;
 
   @override
   State<ContinueCard> createState() => _ContinueCardState();
+}
+
+class _ContinueInfoPill extends StatelessWidget {
+  const _ContinueInfoPill({required this.text});
+  final String text;
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.72), borderRadius: BorderRadius.circular(7)),
+    child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+      child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis,
+        style: AppText.caption.copyWith(color: Colors.white, fontSize: 9))),
+  );
 }
 
 class _ContinueCardState extends State<ContinueCard> {
@@ -107,6 +121,11 @@ class _ContinueCardState extends State<ContinueCard> {
                     errorWidget: (context, url, err) =>
                         ColoredBox(color: AppColors.surface2),
                   ),
+
+                if (widget.subtitle != null)
+                  Positioned(top: 7, left: 8, child: _ContinueInfoPill(text: widget.subtitle!)),
+                if (widget.recentlyWatched != null)
+                  Positioned(top: 7, right: 8, child: _ContinueInfoPill(text: widget.recentlyWatched!)),
 
                 // ── Bottom scrim so the title/episode stay legible ──────────
                 const DecoratedBox(
