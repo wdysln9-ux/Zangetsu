@@ -37,6 +37,7 @@ import '../../core/playback/resume_store.dart';
 import '../../core/playback/skip_service.dart';
 import '../../core/playback/source_selection.dart';
 import '../../core/playback/remote_file_size.dart';
+import '../../core/playback/hls.dart';
 import '../../core/playback/subtitle_language.dart';
 import '../../core/playback/subtitle_search_service.dart';
 import '../../core/playback/watch_history.dart';
