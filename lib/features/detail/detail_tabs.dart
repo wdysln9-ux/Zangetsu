@@ -173,11 +173,9 @@ class _CastTab extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            if (m.role != null &&
-                m.role!.isNotEmpty &&
-                true)
+            if (m.role != null && m.role!.isNotEmpty)
               Text(
-                m.role!,
+                _indonesianCharacterRole(m.role!),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
@@ -208,6 +206,15 @@ class _AvatarFallback extends StatelessWidget {
       size: 30,
     ),
   );
+}
+
+String _indonesianCharacterRole(String value) {
+  return switch (value.trim().toLowerCase().replaceAll('_', ' ')) {
+    'main' => 'Utama',
+    'supporting' => 'Pendukung',
+    'background' => 'Figuran',
+    _ => value,
+  };
 }
 
 String _indonesianRelationLabel(String value) {
