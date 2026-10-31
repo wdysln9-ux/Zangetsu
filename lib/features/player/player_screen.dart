@@ -36,6 +36,7 @@ import '../../core/models/video_source.dart';
 import '../../core/playback/resume_store.dart';
 import '../../core/playback/skip_service.dart';
 import '../../core/playback/source_selection.dart';
+import '../../core/playback/remote_file_size.dart';
 import '../../core/playback/subtitle_language.dart';
 import '../../core/playback/subtitle_search_service.dart';
 import '../../core/playback/watch_history.dart';
@@ -2656,6 +2657,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
+  Widget _qualitySizeEstimate(HlsVariant variant) {
+    final seconds = _c.player.state.duration.inSeconds;
+    final bytes = variant.bandwidth > 0 && seconds > 0
+        ? (variant.bandwidth * seconds / 8).round()
+        : 0;
+    final label = bytes > 0
+        ? '~ ${RemoteFileSize.format(bytes)} · perkiraan'
+        : 'Ukuran tidak diketahui';
+    return Text(label, style: AppText.caption.copyWith(color: AppColors.textSecondary));
+  }
   void _openQualitySheet() {
     // Prefer adaptive HLS-master variants when present (Auto + variants);
     // otherwise fall back to the distinct per-source qualities (e.g. AllAnime
@@ -2675,6 +2686,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         for (final v in _c.state.qualities)
           _SheetRow(
             label: v.quality,
+            subtitleWidget: _qualitySizeEstimate(v),
             active: _c.state.activeQuality?.url == v.url,
             onTap: () {
               Navigator.pop(context);
@@ -2730,6 +2742,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     // as a stray "UNKNOWN •".
                     : '${k != AudioKind.unknown ? '${k.name.toUpperCase()} • ' : ''}'
                           '${s.quality?.isNotEmpty == true ? s.quality : s.container.name}',
+                subtitleWidget: _RemoteFileSizeLabel(url: s.url, headers: s.headers),
                 active: s == _c.state.active,
                 onTap: () async {
                   Navigator.pop(context);
