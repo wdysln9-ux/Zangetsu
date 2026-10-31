@@ -146,7 +146,6 @@ class ContinueWatchingRow extends StatelessWidget {
             headers: e.coverHeaders,
             progress: e.progress,
             cellWidth: 190,
-            recentlyWatched: _timeAgo(e.updatedAt),
             subtitle: e.episodeNumber != null
                 ? 'Episode ${e.episodeNumber!.toInt()}'
                 : null,
@@ -157,16 +156,6 @@ class ContinueWatchingRow extends StatelessWidget {
       ),
     );
   }
-}
-
-String _timeAgo(int timestamp) {
-  final elapsed = DateTime.now().difference(
-    DateTime.fromMillisecondsSinceEpoch(timestamp),
-  );
-  if (elapsed.inMinutes < 1) return 'Baru saja';
-  if (elapsed.inHours < 1) return '${elapsed.inMinutes}m lalu';
-  if (elapsed.inDays < 1) return '${elapsed.inHours}j lalu';
-  return '${elapsed.inDays}h lalu';
 }
 
 /// Continue Reading row content, given an already-resolved [history] list —
