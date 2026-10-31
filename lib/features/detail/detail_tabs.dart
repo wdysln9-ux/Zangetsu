@@ -459,7 +459,21 @@ class _DetailsTab extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
       children: [
         if (sourceName.isNotEmpty)
-          _DetailRow(label: context.l10n.playerInfoSource, value: sourceName),
+          _DetailRow(
+            label: context.l10n.playerInfoSource,
+            value: sourceName,
+            onTap: sourceName == 'AniList' &&
+                    detail?.sourceId == ZmodeIds.sourceId &&
+                    int.tryParse(detail?.id ?? '') != null
+                ? () {
+                    final kind = reading ? 'manga' : 'anime';
+                    launchUrl(
+                      Uri.https('anilist.co', '/$kind/${detail!.id}'),
+                      mode: LaunchMode.externalApplication,
+                    );
+                  }
+                : null,
+          ),
         if (statusStr.isNotEmpty)
           _DetailRow(label: context.l10n.status, value: statusStr),
         if ((year ?? '').isNotEmpty)
@@ -682,9 +696,10 @@ class _SpoilerTagsState extends State<_SpoilerTags> {
 }
 
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
+  const _DetailRow({required this.label, required this.value, this.onTap});
   final String label;
   final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -701,11 +716,16 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
-              value,
-              style: AppText.caption.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
+            child: InkWell(
+              onTap: onTap,
+              child: Text(
+                value,
+                style: AppText.caption.copyWith(
+                  color: onTap == null ? AppColors.textPrimary : AppColors.accent,
+                  fontWeight: FontWeight.w600,
+                  decoration: onTap == null ? TextDecoration.none : TextDecoration.underline,
+                  decorationColor: AppColors.accent,
+                ),
               ),
             ),
           ),
