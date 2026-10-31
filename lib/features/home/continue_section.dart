@@ -133,7 +133,7 @@ class ContinueWatchingRow extends StatelessWidget {
         title: 'Continue Watching',
         // Compact 16:9 landscape card — same design, just smaller/tighter.
         itemWidth: 190,
-        itemHeight: 107,
+        itemHeight: 124,
         onSeeAll: onSeeAll,
         itemCount: history.length,
         itemBuilder: (c, i) {
@@ -149,6 +149,7 @@ class ContinueWatchingRow extends StatelessWidget {
             subtitle: e.episodeNumber != null
                 ? 'Episode ${e.episodeNumber!.toInt()}'
                 : null,
+            recentlyWatched: _recentLabel(e.updatedAt),
             onTap: () => onResume(e),
             onLongPress: () => onLongPress(e),
           );
@@ -156,6 +157,14 @@ class ContinueWatchingRow extends StatelessWidget {
       ),
     );
   }
+}
+
+String _recentLabel(int timestamp) {
+  final elapsed = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(timestamp));
+  if (elapsed.inMinutes < 1) return 'Baru saja';
+  if (elapsed.inHours < 1) return '${elapsed.inMinutes} menit lalu';
+  if (elapsed.inDays < 1) return '${elapsed.inHours} jam lalu';
+  return '${elapsed.inDays} hari lalu';
 }
 
 /// Continue Reading row content, given an already-resolved [history] list —
