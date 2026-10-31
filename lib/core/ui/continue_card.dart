@@ -154,21 +154,9 @@ class _ContinueCardState extends State<ContinueCard> {
                         style: AppText.body.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
+                          fontSize: 13,
                         ),
                       ),
-                      if (widget.subtitle != null &&
-                          widget.subtitle!.isNotEmpty) ...[
-                        const SizedBox(height: 1),
-                        Text(
-                          widget.subtitle!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppText.caption.copyWith(
-                            color: Colors.white.withValues(alpha: 0.75),
-                            fontSize: 11,
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),
