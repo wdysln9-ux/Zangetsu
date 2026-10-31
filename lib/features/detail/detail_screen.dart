@@ -355,7 +355,7 @@ class _DetailCloudflareBlockedState extends State<_DetailCloudflareBlocked> {
 }
 
 class DetailScreen extends StatelessWidget {
-  const DetailScreen({super.key, required this.item, this.prefer, this.autoScrollToResume = false});
+  const DetailScreen({super.key, required this.item, this.prefer, this.autoScrollToResume = false, this.targetEpisodeId});
   final MediaItem item;
 
   /// Read this title from a specific metadata catalogue. Set when it was
@@ -363,14 +363,15 @@ class DetailScreen extends StatelessWidget {
   /// AniList's page even when MyAnimeList is the app-wide choice.
   final PreferredProvider? prefer;
   final bool autoScrollToResume;
+  final String? targetEpisodeId;
 
   /// Opening transition: the page fades in while sliding up and scaling from
   /// 0.96 — a smooth "rise" into the detail rather than the platform push.
-  static Route<void> route(MediaItem item, {PreferredProvider? prefer, bool autoScrollToResume = false}) =>
+  static Route<void> route(MediaItem item, {PreferredProvider? prefer, bool autoScrollToResume = false, String? targetEpisodeId}) =>
       PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 340),
         reverseTransitionDuration: const Duration(milliseconds: 260),
-        pageBuilder: (_, _, _) => DetailScreen(item: item, prefer: prefer, autoScrollToResume: autoScrollToResume),
+        pageBuilder: (_, _, _) => DetailScreen(item: item, prefer: prefer, autoScrollToResume: autoScrollToResume, targetEpisodeId: targetEpisodeId),
         transitionsBuilder: (_, animation, _, child) {
           final curved = CurvedAnimation(
             parent: animation,
@@ -410,7 +411,7 @@ class DetailScreen extends StatelessWidget {
         // label agree instead of one naming AniList over MAL's data.
         prefer: prefer ?? _preferFromName(item.savedFrom),
       )..load(),
-      child: _DetailView(item: item, prefer: prefer, autoScrollToResume: autoScrollToResume),
+      child: _DetailView(item: item, prefer: prefer, autoScrollToResume: autoScrollToResume, targetEpisodeId: targetEpisodeId),
     );
   }
 }
@@ -424,7 +425,7 @@ class DetailScreen extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DetailView extends StatefulWidget {
-  const _DetailView({required this.item, this.prefer, this.autoScrollToResume = false});
+  const _DetailView({required this.item, this.prefer, this.autoScrollToResume = false, this.targetEpisodeId});
   final MediaItem item;
 
   /// The catalogue this title was opened from, so the name matches the data.
@@ -2680,6 +2681,7 @@ class _DetailViewState extends State<_DetailView>
             resumeIndex: _resumeIndex,
             hasAnyMark: hasAnyMark,
             autoScrollToResume: widget.autoScrollToResume,
+            targetEpisodeId: widget.targetEpisodeId,
             trackerProgress: _trackerProgress,
             nextAiringEpisode: _nextAiringEpisode,
             nextAiringAt: _nextAiringAt,
