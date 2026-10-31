@@ -2458,9 +2458,6 @@ class _DetailViewState extends State<_DetailView>
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
               child: _Description(
                 text: cleanSynopsis(detail.description) ?? '',
-                // "Read more" reveals the Details tab (full synopsis) rather
-                // than expanding inline; the header stays clamped to 3 lines.
-                onReadMore: () => _revealTab(3),
               ),
             ),
           ),
