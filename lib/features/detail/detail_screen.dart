@@ -2261,21 +2261,8 @@ class _DetailViewState extends State<_DetailView>
       currentSeason,
     );
 
-    // ── Starring / Creators (Genres fallback) muted lines ───────────────────
-    // Prefer enriched cast (AniList/TMDB) when available, else the provider's.
-    final castNames = state.cast.isNotEmpty
-        ? state.cast.map((c) => c.name).toList()
-        : detail.cast;
-    final starring = castNames.isNotEmpty ? castNames.take(3).join(', ') : null;
-    final starringMore = castNames.length > 3;
-    final creators = detail.studios.isNotEmpty
-        ? detail.studios.join(', ')
-        : null;
-    // For anime (or anything without cast) surface Genres instead of an empty
-    // Starring line — never show an empty label.
-    final genresLine = (starring == null && detail.genres.isNotEmpty)
-        ? detail.genres.take(4).join(', ')
-        : null;
+    // Keep a compact Genres fallback on the main page; cast and creator
+    // information remain available in their dedicated tabs.
 
     // Friendly provider name + its origin repo, so the user can tell which repo
     // a source came from. JS providers live in the registry; CloudStream sources
@@ -2477,27 +2464,14 @@ class _DetailViewState extends State<_DetailView>
             ),
           ),
 
-        // ── 5. Starring / Creators / Genres muted lines ─────────────────────
-        if (starring != null || creators != null || genresLine != null)
+        // ── 5. Genres fallback ─────────────────────────────────────────────
+        if (detail.genres.isNotEmpty)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (starring != null)
-                    _CreditLine(
-                      label: context.l10n.starring,
-                      value: starring,
-                      more: starringMore,
-                      // Tapping the line (or its "… more") reveals the Cast tab.
-                      onMore: starringMore ? () => _revealTab(1) : null,
-                    ),
-                  if (genresLine != null)
-                    _CreditLine(label: context.l10n.genres, value: genresLine),
-                  if (creators != null)
-                    _CreditLine(label: context.l10n.creators, value: creators),
-                ],
+              child: _CreditLine(
+                label: context.l10n.genres,
+                value: detail.genres.take(4).join(', '),
               ),
             ),
           ),
