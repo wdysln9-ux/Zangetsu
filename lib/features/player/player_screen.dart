@@ -514,9 +514,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
     try {
       final api = sl<AniListService>().api;
       final malId = widget.malId;
-      final popularity = malId != null
+      var popularity = malId != null
           ? await api.popularityByMalId(malId)
-          : await api.popularityBySearch(widget.scrobbleTitle ?? widget.showTitle ?? '');
+          : null;
+      popularity ??= await api.popularityBySearch(
+        widget.scrobbleTitle ?? widget.showTitle ?? '',
+      );
       if (!mounted || popularity == null) return;
       setState(() => _showPopularity = popularity);
     } catch (_) {
