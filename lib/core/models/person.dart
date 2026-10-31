@@ -34,6 +34,7 @@ class PersonProfile extends Equatable {
     required this.name,
     this.nativeName,
     this.photo,
+    this.malId,
     this.description,
     this.subtitle,
     this.alternateNames = const [],
@@ -49,6 +50,7 @@ class PersonProfile extends Equatable {
   final String name;
   final String? nativeName;
   final String? photo;
+  final int? malId;
 
   /// Bio / description. May carry light HTML/markdown from AniList — the page
   /// strips tags and renders it as plain text.
@@ -78,6 +80,7 @@ class PersonProfile extends Equatable {
     name,
     nativeName,
     photo,
+    malId,
     description,
     subtitle,
     alternateNames,
