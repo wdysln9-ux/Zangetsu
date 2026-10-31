@@ -573,7 +573,7 @@ class _DetailsTab extends StatelessWidget {
 
     final aired = dates();
     return [
-      if (d.format != null) _DetailRow(label: l10n.format, value: d.format!),
+      if (d.format != null)\n        _DetailRow(label: l10n.format, value: _displayFormat(d.format!)),
       if (d.durationMins != null)
         _DetailRow(label: l10n.duration, value: '${d.durationMins} menit'),
       if (d.score != null)
@@ -598,7 +598,7 @@ class _DetailsTab extends StatelessWidget {
     ];
   }
 
-  /// AniList's tags, which say more than the genres do — "Time Travel 92%"
+  String _displayFormat(String format) => switch (format.toLowerCase()) {\n  'ova' => 'OVA',\n  'ona' => 'ONA',\n  'tv' => 'TV',\n  _ => format,\n};\n\n/// AniList's tags, which say more than the genres do — "Time Travel 92%"
   /// against "Sci-Fi". Spoiler tags are hidden behind a tap rather than
   /// dropped, so the choice stays the reader's.
   List<Widget> _tagChips(BuildContext context) {
