@@ -712,6 +712,29 @@ class AniListApi {
     return (r?['DeleteMediaListEntry'] as Map?)?['deleted'] == true;
   }
 
+  /// AniList's total popularity for an anime, resolved by MAL id.
+  /// Read-only and works without an authenticated AniList account.
+  Future<int?> popularityByMalId(int malId) async {
+    final d = await _gql(
+      'query(\$idMal:Int){ Media(idMal:\$idMal,type:ANIME){ popularity } }',
+      {'idMal': malId},
+    );
+    final value = (d?['Media'] as Map?)?['popularity'];
+    return (value as num?)?.toInt();
+  }
+
+  /// AniList popularity fallback when a MAL id is unavailable.
+  Future<int?> popularityBySearch(String title) async {
+    final query = title.trim();
+    if (query.isEmpty) return null;
+    final d = await _gql(
+      'query(\$search:String){ Media(search:\$search,type:ANIME){ popularity } }',
+      {'search': query},
+    );
+    final value = (d?['Media'] as Map?)?['popularity'];
+    return (value as num?)?.toInt();
+  }
+
   /// The user's list entry for [mediaId] plus the media's episode/chapter +
   /// next-airing meta, for the sync sheet. `mediaListEntry` is null when the
   /// title isn't on the user's list. Returns null on error. Score is read on
