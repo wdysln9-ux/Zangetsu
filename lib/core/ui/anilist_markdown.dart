@@ -19,8 +19,19 @@ class AniListMarkdown extends StatelessWidget {
   final TextStyle? textStyle;
 
   String _toHtml(String source) {
+    // Parse AniList's center blocks separately so Markdown inside them is kept.
+    final centerBlocks = <String>[];
+    var prepared = source.replaceAllMapped(
+      RegExp(r'˜˜˜([\\s\\S]*?)˜˜˜'),
+      (match) {
+        final index = centerBlocks.length;
+        centerBlocks.add(match[1] ?? '');
+        return '\\n\\nANILIST_CENTER_BLOCK_${index}_PLACEHOLDER\\n\\n';
+      },
+    );
+
     // AniList treats single newlines as visible line breaks.
-    final withBreaks = source.replaceAllMapped(
+    final withBreaks = prepared.replaceAllMapped(
       RegExp(r'(?<!\n)\n(?!\n)'),
       (_) => '  \n',
     );
@@ -120,7 +131,10 @@ class AniListMarkdown extends StatelessWidget {
               'background-color': '#242424',
             };
           case 'a':
-            return {'color': '#F47521'};
+            return {
+              'color': AppColors.textPrimary.toString(),
+              'text-decoration': 'underline',
+            };
           case 'img':
             return {'max-width': '100%'};
           case 'div':
@@ -132,6 +146,21 @@ class AniListMarkdown extends StatelessWidget {
         return null;
       },
       customWidgetBuilder: (element) {
+        if (element.localName == 'img') {
+          final src = element.attributes['src'];
+          if (src == null || src.isEmpty) return const SizedBox.shrink();
+          final width = double.tryParse(element.attributes['width'] ?? '');
+          return LayoutBuilder(
+            builder: (context, constraints) => Image.network(
+              src,
+              width: width == null
+                  ? constraints.maxWidth
+                  : width.clamp(1, constraints.maxWidth),
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          );
+        }
         if (!element.classes.contains('anilist-spoiler')) return null;
         var revealed = false;
         return StatefulBuilder(
