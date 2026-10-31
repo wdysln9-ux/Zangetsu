@@ -44,7 +44,38 @@ class AniListMarkdown extends StatelessWidget {
           '<img src="${match[2]}" width="${match[1]}" />',
     );
 
-    // Center alignment shorthand used by AniList profiles.
+    // AniList's video shorthands are converted after Markdown parsing,
+    // matching AniList's own behavior (including inside code examples).
+    html = html.replaceAllMapped(
+      RegExp(r'youtube\\(([^)]+)\\)'),
+      (match) {
+        final value = match[1]!.trim();
+        final uri = Uri.tryParse(
+          value.startsWith('http') ? value : 'https://youtu.be/$value',
+        );
+        final id = uri?.host.contains('youtu.be') == true
+            ? uri!.pathSegments.firstOrNull
+            : uri?.queryParameters['v'] ??
+                (uri?.pathSegments.contains('embed') == true
+                    ? uri!.pathSegments.last
+                    : null);
+        if (id == null || id.isEmpty) return match[0]!;
+        return '<iframe src="https://www.youtube.com/embed/$id" '
+            'width="560" height="315"></iframe>';
+      },
+    );
+    html = html.replaceAllMapped(
+      RegExp(r'webm\\((https?://[^)]+)\\)'),
+      (match) =>
+          '<video src="${match[1]}" controls loop muted autoplay></video>',
+    );
+
+    // AniList's spoiler and alignment shorthands.
+    html = html.replaceAllMapped(
+      RegExp(r'<div\\s+rel=["\\']spoiler["\\']>(.*?)</div>', dotAll: true),
+      (match) =>
+          '<span class="anilist-spoiler">${match[1] ?? ''}</span>',
+    );
     html = html.replaceAllMapped(
       RegExp(r'˜˜˜(.*?)˜˜˜', dotAll: true),
       (match) => '<div style="text-align:center">${match[1] ?? ''}</div>',
