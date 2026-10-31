@@ -624,8 +624,8 @@ class _DetailsTab extends StatelessWidget {
   /// The handful that actually appear on animation and comics. Anything else
   /// keeps its code rather than being guessed at.
   static String _countryName(String code) => switch (code.toUpperCase()) {
-    'JP' => 'Japan',
-    'KR' => 'South Korea',
+    'JP' => 'Jepang',
+    'KR' => 'Korea',
     'CN' => 'China',
     'TW' => 'Taiwan',
     'US' => 'United States',
