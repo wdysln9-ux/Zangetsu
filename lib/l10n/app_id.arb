@@ -618,7 +618,7 @@
 	"snapshot": "Tangkapan layar",
 	"sleepTimer": "Timer tidur",
 	"pictureInPicture": "Gambar dalam gambar",
-	"cast": "Siaran",
+	"cast": "Karakter",
 	"playbackStats": "Statistik pemutaran",
 	"sleepTimerOn": "Timer tidur aktif",
 	"lockControls": "Kunci kontrol",
@@ -1005,7 +1005,7 @@
 	"country": "Negara",
 	"aired": "Tayang pada",
 	"nativeTitle": "Judul asli",
-	"alsoKnownAs": "Dikenal juga sebagai",
+	"alsoKnownAs": "Sinonim",
 	"tags": "Tag",
 	"showSpoilerTags": "{count, plural, one{Tampilkan # tag spoiler} other{Tampilkan # tag spoiler}}",
 	"@showSpoilerTags": {
