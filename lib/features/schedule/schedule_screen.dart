@@ -614,7 +614,10 @@ class _ScheduleBodyState extends State<ScheduleBody> {
           final d = days[i];
           final on = d == selected;
           final n = counts[d]?.count ?? 0;
-          final label = d == today
+          final yesterday = today.subtract(const Duration(days: 1));
+          final label = d == yesterday
+              ? '${l10n.relativeYesterday} · ${DateFormat('MMM d', locale).format(d)}'
+              : d == today
               ? l10n.todayWithDate(DateFormat('MMM d', locale).format(d))
               : DateFormat('EEE, MMM d', locale).format(d);
           return GestureDetector(
