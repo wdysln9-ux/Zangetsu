@@ -1040,9 +1040,13 @@ class _HomeViewState extends State<_HomeView>
   /// already guaranteed non-empty by [SourceRepository.home].
   Widget _sectionRow(HomeSection section, {bool sourceCatalogue = false}) {
     final items = section.items;
+    final rawTitle = section.title.trim();
+    final displayTitle = rawTitle.toLowerCase() == 'baru dirilis'
+        ? 'Anime baru'
+        : section.title;
     return _animated(
       ContentRow(
-        title: section.title,
+        title: displayTitle,
         itemWidth: posterRowWidth(context),
         itemHeight: posterRowHeight(context),
         itemCount: items.length,
