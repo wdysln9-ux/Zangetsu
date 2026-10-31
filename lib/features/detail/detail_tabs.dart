@@ -499,25 +499,27 @@ class _DetailsTab extends StatelessWidget {
             label: context.l10n.playerInfoSource,
             value: sourceName,
             onTap: sourceName.toLowerCase().contains('anilist')
-                ? () {
+                ? () async {
                     final sourceUri = Uri.tryParse(detail?.url ?? '');
-                    final segments = sourceUri?.pathSegments ?? const <String>[];
+                    final isAniListUrl = sourceUri != null &&
+                        sourceUri.host.toLowerCase().endsWith('anilist.co');
+                    final segments = isAniListUrl
+                        ? sourceUri.pathSegments
+                        : const <String>[];
                     final urlKind = segments.length >= 2 &&
                             (segments[0] == 'anime' || segments[0] == 'manga')
                         ? segments[0]
                         : null;
                     final sourceId = urlKind == null ? null : segments[1];
-                    final id = sourceId ??
-                        int.tryParse(detail?.id ?? '')?.toString();
                     final kind = urlKind ?? (reading ? 'manga' : 'anime');
-                    final uri = id != null
-                        ? Uri.parse('https://anilist.co/$kind/$id')
+                    final uri = sourceId != null
+                        ? Uri.https('anilist.co', '/$kind/$sourceId')
                         : Uri.https(
                             'anilist.co',
                             '/search/$kind',
                             {'search': detail?.title ?? sourceName},
                           );
-                    launchUrl(uri, mode: LaunchMode.externalApplication);
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
                   }
                 : null,
           ),
@@ -557,8 +559,7 @@ class _DetailsTab extends StatelessWidget {
                         style: AppText.caption.copyWith(
                           color: AppColors.textPrimary,
                           fontWeight: FontWeight.w600,
-                          decoration: TextDecoration.underline,
-                          decorationColor: AppColors.textTertiary,
+                          decoration: TextDecoration.none,
                         ),
                       ),
                     )).toList(),
