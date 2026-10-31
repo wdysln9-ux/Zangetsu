@@ -48,10 +48,10 @@ class _ContinueInfoPill extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.72), borderRadius: BorderRadius.circular(7)),
-    child: Padding(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.72), borderRadius: BorderRadius.circular(6.5)),
+    child: Padding(padding: const EdgeInsets.symmetric(horizontal: 5.5, vertical: 3.5),
       child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis,
-        style: AppText.caption.copyWith(color: Colors.white, fontSize: 9))),
+        style: AppText.caption.copyWith(color: Colors.white, fontSize: 8.2))),
   );
 }
 
@@ -80,7 +80,7 @@ class _ContinueCardState extends State<ContinueCard> {
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOut,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(13),
             child: Stack(
               fit: StackFit.expand,
               children: [
@@ -123,9 +123,9 @@ class _ContinueCardState extends State<ContinueCard> {
                   ),
 
                 if (widget.subtitle != null)
-                  Positioned(top: 7, left: 8, child: _ContinueInfoPill(text: widget.subtitle!)),
+                  Positioned(top: 6.5, left: 7.3, child: _ContinueInfoPill(text: widget.subtitle!)),
                 if (widget.recentlyWatched != null)
-                  Positioned(top: 7, right: 8, child: _ContinueInfoPill(text: widget.recentlyWatched!)),
+                  Positioned(top: 6.5, right: 7.3, child: _ContinueInfoPill(text: widget.recentlyWatched!)),
 
                 // ── Bottom scrim so the title/episode stay legible ──────────
                 const DecoratedBox(
@@ -140,9 +140,9 @@ class _ContinueCardState extends State<ContinueCard> {
 
                 // ── Title + episode label, bottom-left (above the bar) ──────
                 Positioned(
-                  left: 10,
-                  right: 10,
-                  bottom: 9,
+                  left: 9,
+                  right: 9,
+                  bottom: 8.2,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +154,7 @@ class _ContinueCardState extends State<ContinueCard> {
                         style: AppText.body.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
-                          fontSize: 13,
+                          fontSize: 12,
                         ),
                       ),
                     ],
@@ -168,7 +168,7 @@ class _ContinueCardState extends State<ContinueCard> {
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  height: 4,
+                  height: 3.6,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
