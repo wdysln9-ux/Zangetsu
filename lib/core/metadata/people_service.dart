@@ -56,6 +56,7 @@ class PeopleService {
     const q =
         'query(\$id:Int){ Character(id:\$id){ '
         'name{ full native alternative } image{ large } description(asHtml:false) '
+        'age gender dateOfBirth{ year month day } bloodType favourites '
         // No type filter: a manga character's appearances ARE manga, and
         // pinning this to ANIME left every reading character empty.
         'media(sort:[POPULARITY_DESC],perPage:25){ edges{ characterRole '
@@ -98,6 +99,17 @@ class PeopleService {
       name: _aniName(c) ?? 'Character',
       nativeName: _aniNative(c),
       alternateNames: _aniAlternatives(c),
+      age: (c['age'] as String?)?.trim().isNotEmpty == true
+          ? (c['age'] as String).trim()
+          : null,
+      gender: (c['gender'] as String?)?.trim().isNotEmpty == true
+          ? (c['gender'] as String).trim()
+          : null,
+      birthday: _aniBirthday(c['dateOfBirth']),
+      bloodType: (c['bloodType'] as String?)?.trim().isNotEmpty == true
+          ? (c['bloodType'] as String).trim()
+          : null,
+      favourites: (c['favourites'] as num?)?.toInt(),
       photo: _aniImage(c, 'image'),
       description: _plain(c['description'] as String?),
       subtitle: 'Character',
@@ -213,6 +225,21 @@ class PeopleService {
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
         .toList();
+  }
+
+  String? _aniBirthday(dynamic value) {
+    if (value is! Map) return null;
+    final day = (value['day'] as num?)?.toInt();
+    final month = (value['month'] as num?)?.toInt();
+    final year = (value['year'] as num?)?.toInt();
+    if (day == null || month == null || day < 1 || month < 1 || month > 12) {
+      return null;
+    }
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
+    return '$day ${months[month - 1]}${year != null && year > 0 ? ' $year' : ''}';
   }
 
   String? _aniNative(Map m) {
