@@ -426,6 +426,13 @@ String _yearWithSeason(String year, DateTime? startDate) {
 // Details tab — source / status / genres / studios / episode count / synopsis.
 // ─────────────────────────────────────────────────────────────────────────────
 
+String _displayFormat(String format) => switch (format.toLowerCase()) {
+  'ova' => 'OVA',
+  'ona' => 'ONA',
+  'tv' => 'TV',
+  _ => format,
+};
+
 class _DetailsTab extends StatelessWidget {
   const _DetailsTab({
     required this.sourceName,
@@ -598,7 +605,7 @@ class _DetailsTab extends StatelessWidget {
     ];
   }
 
-  String _displayFormat(String format) => switch (format.toLowerCase()) {\n  'ova' => 'OVA',\n  'ona' => 'ONA',\n  'tv' => 'TV',\n  _ => format,\n};\n\n/// AniList's tags, which say more than the genres do — "Time Travel 92%"
+/// AniList's tags, which say more than the genres do — "Time Travel 92%"
   /// against "Sci-Fi". Spoiler tags are hidden behind a tap rather than
   /// dropped, so the choice stays the reader's.
   List<Widget> _tagChips(BuildContext context) {
