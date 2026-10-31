@@ -61,30 +61,32 @@ class _CreditLine extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Description: synopsis clamped to 3 lines + a red "Read more" that opens the
-// Details tab (which shows the full synopsis). No inline expand.
+// Description: synopsis preview with an inline expand/collapse affordance.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _Description extends StatelessWidget {
-  const _Description({required this.text, required this.onReadMore});
+class _Description extends StatefulWidget {
+  const _Description({required this.text});
   final String text;
-  final VoidCallback onReadMore;
+
+  @override
+  State<_Description> createState() => _DescriptionState();
+}
+
+class _DescriptionState extends State<_Description> {
+  bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        GestureDetector(
-          onTap: onReadMore,
-          behavior: HitTestBehavior.opaque,
-          child: _SynopsisTranslation(text: text),
-        ),
+        _SynopsisTranslation(text: widget.text, expanded: _expanded),
         const SizedBox(height: 6),
         GestureDetector(
-          onTap: onReadMore,
+          onTap: () => setState(() => _expanded = !_expanded),
+          behavior: HitTestBehavior.opaque,
           child: Text(
-            context.l10n.readMore,
+            _expanded ? 'Lebih sedikit' : context.l10n.readMore,
             style: AppText.caption.copyWith(
               color: AppColors.accent,
               fontWeight: FontWeight.w700,
@@ -98,8 +100,9 @@ class _Description extends StatelessWidget {
 
 /// Automatically translates the synopsis while keeping the source text intact.
 class _SynopsisTranslation extends StatefulWidget {
-  const _SynopsisTranslation({required this.text});
+  const _SynopsisTranslation({required this.text, required this.expanded});
   final String text;
+  final bool expanded;
 
   @override
   State<_SynopsisTranslation> createState() => _SynopsisTranslationState();
@@ -133,17 +136,24 @@ class _SynopsisTranslationState extends State<_SynopsisTranslation> {
 
   @override
   Widget build(BuildContext context) {
-    // Keep the synopsis preview compact on the main anime page.
-    // The full Markdown remains available from the Details tab via Read more.
+    final markdown = AniListMarkdown(
+      data: _translated ?? widget.text,
+      textStyle: AppText.body,
+    );
+    if (widget.expanded) {
+      return AnimatedSize(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeInOut,
+        alignment: Alignment.topCenter,
+        child: markdown,
+      );
+    }
     final lineHeight = (AppText.body.fontSize ?? 14) *
         (AppText.body.height ?? 1.45);
     return ClipRect(
       child: SizedBox(
         height: lineHeight * 3,
-        child: AniListMarkdown(
-          data: _translated ?? widget.text,
-          textStyle: AppText.body,
-        ),
+        child: markdown,
       ),
     );
   }
