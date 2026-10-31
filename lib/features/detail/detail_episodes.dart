@@ -25,6 +25,7 @@ class _EpisodesTab extends StatefulWidget {
     required this.resumeIndex,
     required this.hasAnyMark,
     this.autoScrollToResume = false,
+    this.targetEpisodeId,
     this.trackerProgress,
     this.nextAiringEpisode,
     this.nextAiringAt,
@@ -72,6 +73,7 @@ class _EpisodesTab extends StatefulWidget {
   final int Function(List<Episode>) resumeIndex;
   final bool hasAnyMark;
   final bool autoScrollToResume;
+  final String? targetEpisodeId;
 
   /// The connected tracker's watched-episode count, or null. Episodes at or
   /// below it render as watched (grey-out), merged with local playback marks.
@@ -129,6 +131,7 @@ class _EpisodesTabState extends State<_EpisodesTab> {
   void initState() {
     super.initState();
     _rangeIndex = _initialRange();
+    _highlightEpId = widget.targetEpisodeId;
     if (widget.autoScrollToResume) _scheduleResumeAutoScroll();
   }
 
@@ -158,7 +161,12 @@ class _EpisodesTabState extends State<_EpisodesTab> {
   /// off instead of always at episode 1.
   int _initialRange() {
     if (!widget.hasAnyMark || widget.seasonEps.isEmpty) return 0;
-    final resumeEp = widget.eps[widget.resumeIndex(widget.eps)];
+    final targetIndex = widget.targetEpisodeId == null
+        ? -1
+        : widget.eps.indexWhere((e) => e.id == widget.targetEpisodeId);
+    final resumeEp = targetIndex >= 0
+        ? widget.eps[targetIndex]
+        : widget.eps[widget.resumeIndex(widget.eps)];
     // Against the filtered display order so reversed lists open at the range
     // containing the saved resume episode.
     final local = _displayEps.indexOf(resumeEp);
@@ -663,7 +671,7 @@ class _EpisodesTabState extends State<_EpisodesTab> {
           );
         }
         return RepaintBoundary(
-          key: widget.autoScrollToResume && fullIndex == widget.resumeIndex(widget.eps) ? _resumeEpisodeKey : null,
+          key: widget.autoScrollToResume && ep.id == (widget.targetEpisodeId ?? widget.eps[widget.resumeIndex(widget.eps)].id) ? _resumeEpisodeKey : null,
           child: _EpisodeRow(
             ep: ep,
             epNum: epNum,
@@ -713,6 +721,7 @@ class _EpisodesTabState extends State<_EpisodesTab> {
               : offset + i + 1;
           final epNum = ep.number?.toInt() ?? fallbackNumber;
           return _EpisodeGridTile(
+            key: widget.autoScrollToResume && ep.id == (widget.targetEpisodeId ?? widget.eps[widget.resumeIndex(widget.eps)].id) ? _resumeEpisodeKey : null,
             number: epNum,
             isWatched: st.watched,
             isInProgress: st.inProgress,
