@@ -107,6 +107,7 @@ dependencies:
   # transitively (flutter_widget_from_html), now a direct dependency since we
   # use it ourselves.
   html: ^0.15.6
+  markdown: ^7.3.0
   # Dominant-colour extraction for the colour-matched hero banner
   palette_generator: ^0.3.3+3
 
