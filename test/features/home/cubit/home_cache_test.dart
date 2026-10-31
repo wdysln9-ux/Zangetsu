@@ -44,4 +44,63 @@ void main() {
     expect(HomeCache.read('zm', 'anime'), isNull);
     expect(HomeCache.read('other-source', 'all'), isNotNull);
   });
+  test('cached Romance row drops titles without the explicit Romance genre', () async {
+    final rows = [
+      HomeSection(
+        title: 'Romantis',
+        items: [
+          MediaItem(
+            id: '1',
+            title: 'Romance title',
+            url: 'zm://anime/mal:1',
+            type: ProviderType.anime,
+            sourceId: 'zm',
+            genres: const ['Romance', 'Drama'],
+          ),
+          MediaItem(
+            id: '2',
+            title: 'Action title',
+            url: 'zm://anime/mal:2',
+            type: ProviderType.anime,
+            sourceId: 'zm',
+            genres: const ['Action'],
+          ),
+          MediaItem(
+            id: '3',
+            title: 'Unknown genres',
+            url: 'zm://anime/mal:3',
+            type: ProviderType.anime,
+            sourceId: 'zm',
+          ),
+        ],
+      ),
+    ];
+    await HomeCache.write('zm', 'anime', rows);
+
+    final cached = HomeCache.read('zm', 'anime');
+    expect(cached, isNotNull);
+    expect(cached!.single.items.map((item) => item.title), ['Romance title']);
+  });
+
+  test('cached Romance row is omitted when no item has Romance genre', () async {
+    final rows = [
+      HomeSection(
+        title: 'Romantis',
+        items: [
+          MediaItem(
+            id: '1',
+            title: 'Action title',
+            url: 'zm://anime/mal:1',
+            type: ProviderType.anime,
+            sourceId: 'zm',
+            genres: const ['Action'],
+          ),
+        ],
+      ),
+    ];
+    await HomeCache.write('zm', 'anime', rows);
+
+    expect(HomeCache.read('zm', 'anime'), isNull);
+  });
+
 }
