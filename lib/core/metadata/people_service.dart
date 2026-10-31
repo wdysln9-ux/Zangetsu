@@ -207,7 +207,7 @@ class PeopleService {
   static String? _japaneseOrderName(String? full, String? native) {
     if (full == null || full.trim().isEmpty) return full;
     if (native == null || native.trim().isEmpty) return full;
-    final parts = full.trim().split(RegExp(r'\\s+'));
+    final parts = full.trim().split(RegExp(r'\s+'));
     if (parts.length < 2) return full.trim();
     return [parts.last, ...parts.sublist(1, parts.length - 1), parts.first]
         .join(' ');
