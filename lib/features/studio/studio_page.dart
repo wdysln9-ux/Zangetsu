@@ -353,11 +353,42 @@ class _StudioPageState extends State<StudioPage> {
                             const SizedBox(height: 7),
                             Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppText.body.copyWith(fontSize: 12)),
                             const SizedBox(height: 3),
-                            Text(
-                              [if (year is int) '$year', if (episodes is int) '$episodes eps', if (score is int && score > 0) '★ ${(score / 10).toStringAsFixed(1)}'].join(' · '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppText.caption.copyWith(color: AppColors.textSecondary),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    [if (year is int) '$year', if (episodes is int) '$episodes eps'].join(' · '),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppText.caption.copyWith(color: AppColors.textSecondary),
+                                  ),
+                                ),
+                                if (score is int && score > 0) ...[
+                                  const SizedBox(width: 5),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.surface2,
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.star_rounded, size: 12, color: AppColors.accent),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          '$score/100',
+                                          style: AppText.caption.copyWith(
+                                            color: AppColors.textPrimary,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ],
                         ),
