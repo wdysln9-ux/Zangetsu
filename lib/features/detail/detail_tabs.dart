@@ -499,11 +499,9 @@ class _DetailsTab extends StatelessWidget {
             label: context.l10n.playerInfoSource,
             value: sourceName,
             onTap: sourceName.toLowerCase().contains('anilist') &&
-                    (detail?.title.trim().isNotEmpty ?? false)
+                    int.tryParse(detail?.id ?? '') != null
                 ? () => launchUrl(
-                      Uri.parse(
-                        'https://anilist.co/search/anime?search=${Uri.encodeQueryComponent(detail!.title)}',
-                      ),
+                      Uri.parse('https://anilist.co/anime/${detail!.id}'),
                       mode: LaunchMode.externalApplication,
                     )
                 : null,
@@ -763,8 +761,8 @@ class _DetailRow extends StatelessWidget {
               child: Text(
                 value,
                 style: AppText.caption.copyWith(
-                  color: onTap == null ? AppColors.textPrimary : AppColors.accent,
-                  decoration: onTap == null ? TextDecoration.none : TextDecoration.underline,
+                  color: AppColors.textPrimary,
+                  decoration: TextDecoration.none,
                   fontWeight: FontWeight.w600,
                 ),
               ),
