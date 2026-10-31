@@ -234,7 +234,7 @@ class _PersonPageState extends State<PersonPage> {
                 constraints: BoxConstraints(
                   maxHeight: _bioExpanded ? double.infinity : 112,
                 ),
-                child: AniListMarkdown(
+                child: AutoTranslatedAniListMarkdown(
                   data: text,
                   textStyle: AppText.body,
                 ),
