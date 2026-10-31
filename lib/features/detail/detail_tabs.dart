@@ -498,12 +498,15 @@ class _DetailsTab extends StatelessWidget {
           _DetailRow(
             label: context.l10n.playerInfoSource,
             value: sourceName,
-            onTap: sourceName.toLowerCase().contains('anilist') &&
-                    int.tryParse(detail?.id ?? '') != null
-                ? () => launchUrl(
-                      Uri.parse('https://anilist.co/anime/${detail!.id}'),
+            onTap: sourceName.toLowerCase().contains('anilist')
+                ? () {
+                    final id = int.tryParse(detail?.id ?? '');
+                    if (id == null) return;
+                    launchUrl(
+                      Uri.parse('https://anilist.co/anime/$id'),
                       mode: LaunchMode.externalApplication,
-                    )
+                    );
+                  }
                 : null,
           ),
         if (statusStr.isNotEmpty)
