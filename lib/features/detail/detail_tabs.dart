@@ -356,6 +356,13 @@ class _RelationsTab extends StatelessWidget {
     ),
   );
 
+  static String _relationLabel(String value) => switch (value.trim().toLowerCase()) {
+    'side story' => 'Sampingan',
+    'character' => 'Karakter',
+    'summary' => 'Ringkasan',
+    _ => value,
+  };
+
   Widget _card(BuildContext context, MediaRelation r, int i) {
     {
       final visual = Column(
@@ -382,7 +389,7 @@ class _RelationsTab extends StatelessWidget {
           const SizedBox(height: 6),
           if (r.relation != null && r.relation!.isNotEmpty)
             Text(
-              r.relation!.toUpperCase(),
+              _relationLabel(r.relation!).toUpperCase(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppText.caption.copyWith(
