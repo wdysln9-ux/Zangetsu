@@ -2879,7 +2879,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     final exponent = (episodeNumber - 1).clamp(0.0, 1000.0);
                     final estimatedViewers = _showPopularity == null
                         ? null
-                        : (_showPopularity! / math.pow(1.07, exponent)).round();
+                        : (_showPopularity! / math.pow(1.02, exponent)).round();
                     final viewerLabel = estimatedViewers == null
                         ? '—'
                         : estimatedViewers >= 100000
