@@ -285,17 +285,29 @@ class _PersonPageState extends State<PersonPage> {
                   height: 168,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    child: (p.photo != null && p.photo!.isNotEmpty)
-                        ? CachedNetworkImage(
-                            imageUrl: p.photo!,
-                            fit: BoxFit.cover,
-                            memCacheWidth: 378,
-                            placeholder: (_, _) =>
-                                Container(color: AppColors.surface2),
-                            errorWidget: (_, _, _) =>
-                                const _PortraitFallback(),
-                          )
-                        : const _PortraitFallback(),
+                    child: GestureDetector(
+                      onTap: p.malId == null
+                          ? null
+                          : () => Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (_) => CharacterGalleryPage(
+                                    name: _displayName(p.name),
+                                    malId: p.malId!,
+                                  ),
+                                ),
+                              ),
+                      child: (p.photo != null && p.photo!.isNotEmpty)
+                          ? CachedNetworkImage(
+                              imageUrl: p.photo!,
+                              fit: BoxFit.cover,
+                              memCacheWidth: 378,
+                              placeholder: (_, _) =>
+                                  Container(color: AppColors.surface2),
+                              errorWidget: (_, _, _) =>
+                                  const _PortraitFallback(),
+                            )
+                          : const _PortraitFallback(),
+                    ),
                   ),
                 ),
               ),
@@ -1102,4 +1114,101 @@ class _PortraitFallback extends StatelessWidget {
       size: 34,
     ),
   );
+}
+
+
+class CharacterGalleryPage extends StatefulWidget {
+  const CharacterGalleryPage({
+    super.key,
+    required this.name,
+    required this.malId,
+  });
+
+  final String name;
+  final int malId;
+
+  @override
+  State<CharacterGalleryPage> createState() => _CharacterGalleryPageState();
+}
+
+class _CharacterGalleryPageState extends State<CharacterGalleryPage> {
+  late final Future<List<String>> _gallery =
+      sl<PeopleService>().loadCharacterGallery(widget.malId);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      appBar: AppBar(
+        backgroundColor: AppColors.bg,
+        elevation: 0,
+        title: Text('Gallery', style: AppText.title),
+      ),
+      body: FutureBuilder<List<String>>(
+        future: _gallery,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return Center(
+              child: CircularProgressIndicator(color: AppColors.accent),
+            );
+          }
+          final images = snapshot.data ?? const <String>[];
+          if (images.isEmpty) {
+            return const EmptyState(
+              icon: Icons.photo_library_outlined,
+              message: 'Gallery belum tersedia',
+            );
+          }
+          return GridView.builder(
+            padding: const EdgeInsets.all(12),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 0.78,
+            ),
+            itemCount: images.length,
+            itemBuilder: (context, index) => GestureDetector(
+              onTap: () => showDialog<void>(
+                context: context,
+                builder: (_) => Dialog(
+                  backgroundColor: Colors.transparent,
+                  insetPadding: const EdgeInsets.all(12),
+                  child: InteractiveViewer(
+                    minScale: 0.8,
+                    maxScale: 4,
+                    child: CachedNetworkImage(
+                      imageUrl: images[index],
+                      fit: BoxFit.contain,
+                      placeholder: (_, _) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                      errorWidget: (_, _, _) => const Icon(
+                        Icons.broken_image_outlined,
+                        color: Colors.white,
+                        size: 48,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: CachedNetworkImage(
+                  imageUrl: images[index],
+                  fit: BoxFit.cover,
+                  placeholder: (_, _) =>
+                      Container(color: AppColors.surface2),
+                  errorWidget: (_, _, _) => Container(
+                    color: AppColors.surface2,
+                    child: const Icon(Icons.broken_image_outlined),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }
