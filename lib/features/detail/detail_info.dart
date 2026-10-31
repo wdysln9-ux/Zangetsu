@@ -78,7 +78,7 @@ class _Description extends StatelessWidget {
         GestureDetector(
           onTap: onReadMore,
           behavior: HitTestBehavior.opaque,
-          child: _SynopsisTranslation(text: text, maxLines: 3),
+          child: _SynopsisTranslation(text: text),
         ),
         const SizedBox(height: 6),
         GestureDetector(
@@ -98,9 +98,8 @@ class _Description extends StatelessWidget {
 
 /// Automatically translates the synopsis while keeping the source text intact.
 class _SynopsisTranslation extends StatefulWidget {
-  const _SynopsisTranslation({required this.text, this.maxLines});
+  const _SynopsisTranslation({required this.text});
   final String text;
-  final int? maxLines;
 
   @override
   State<_SynopsisTranslation> createState() => _SynopsisTranslationState();
@@ -134,11 +133,9 @@ class _SynopsisTranslationState extends State<_SynopsisTranslation> {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      _translated ?? widget.text,
-      style: AppText.body,
-      maxLines: widget.maxLines,
-      overflow: widget.maxLines == null ? null : TextOverflow.ellipsis,
+    return AniListMarkdown(
+      data: _translated ?? widget.text,
+      textStyle: AppText.body,
     );
   }
 }
