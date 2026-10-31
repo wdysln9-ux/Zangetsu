@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:markdown/markdown.dart' as md;
 
 import '../theme/app_colors.dart';
+import '../metadata/synopsis_translator.dart';
 
 /// Renders AniList-flavoured Markdown. Kept as a dedicated widget so only
 /// AniList-authored bios and synopses opt into this renderer.
@@ -118,4 +119,57 @@ class AniListMarkdown extends StatelessWidget {
       },
     );
   }
+}
+
+/// AniList bio variant that keeps the existing best-effort Indonesian
+/// translation while rendering the translated result as Markdown.
+class AutoTranslatedAniListMarkdown extends StatefulWidget {
+  const AutoTranslatedAniListMarkdown({
+    super.key,
+    required this.data,
+    this.textStyle,
+  });
+
+  final String data;
+  final TextStyle? textStyle;
+
+  @override
+  State<AutoTranslatedAniListMarkdown> createState() =>
+      _AutoTranslatedAniListMarkdownState();
+}
+
+class _AutoTranslatedAniListMarkdownState
+    extends State<AutoTranslatedAniListMarkdown> {
+  String? _translated;
+
+  @override
+  void initState() {
+    super.initState();
+    _translate();
+  }
+
+  @override
+  void didUpdateWidget(covariant AutoTranslatedAniListMarkdown oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.data != widget.data) {
+      _translated = null;
+      _translate();
+    }
+  }
+
+  Future<void> _translate() async {
+    final result = await SynopsisTranslator.instance.translateTextToIndonesian(
+      widget.data,
+    );
+    if (!mounted) return;
+    setState(() {
+      _translated = result != widget.data ? result : null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => AniListMarkdown(
+    data: _translated ?? widget.data,
+    textStyle: widget.textStyle,
+  );
 }
