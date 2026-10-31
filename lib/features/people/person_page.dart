@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/ui/auto_translated_text.dart';
-import '../../core/ui/anilist_markdown.dart';
 
 import '../../core/di/injector.dart';
 import '../../core/metadata/people_service.dart';
