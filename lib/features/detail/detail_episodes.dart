@@ -720,8 +720,9 @@ class _EpisodesTabState extends State<_EpisodesTab> {
               ? total - offset - i
               : offset + i + 1;
           final epNum = ep.number?.toInt() ?? fallbackNumber;
-          return _EpisodeGridTile(
+          return RepaintBoundary(
             key: widget.autoScrollToResume && ep.id == (widget.targetEpisodeId ?? widget.eps[widget.resumeIndex(widget.eps)].id) ? _resumeEpisodeKey : null,
+            child: _EpisodeGridTile(
             number: epNum,
             isWatched: st.watched,
             isInProgress: st.inProgress,
@@ -734,6 +735,7 @@ class _EpisodesTabState extends State<_EpisodesTab> {
             onLongPress: widget.onEpisodeMenu == null
                 ? null
                 : () => widget.onEpisodeMenu!(fullIndex),
+            ),
           );
         },
       ),
