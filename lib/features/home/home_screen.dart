@@ -1382,80 +1382,6 @@ class _HomeViewState extends State<_HomeView>
   /// so they re-label the instant a switch lands. Tapping a mode card runs
   /// the sword-slash into that mode; Schedule opens the same [ScheduleScreen]
   /// its dock tab does.
-  Widget _homeQuickAccess() {
-    Widget tile({
-      required IconData icon,
-      required String title,
-      required String subtitle,
-      required VoidCallback onTap,
-    }) => Expanded(
-      child: Material(
-        color: const Color(0xFF211914),
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.16),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(icon, color: AppColors.accent, size: 22),
-                ),
-                const SizedBox(width: 11),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(title, maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: AppText.body.copyWith(fontWeight: FontWeight.w700)),
-                      const SizedBox(height: 3),
-                      Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis,
-                        style: AppText.caption.copyWith(color: AppColors.textSecondary)),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Row(
-        children: [
-          tile(
-            icon: Icons.bookmark_rounded,
-            title: 'Daftar',
-            subtitle: 'Koleksi anime kamu',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const MyListScreen()),
-            ),
-          ),
-          const SizedBox(width: 12),
-          tile(
-            icon: Icons.calendar_month_rounded,
-            title: 'Jadwal',
-            subtitle: 'Jadwal tayang anime',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const ScheduleScreen()),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _modeCards() {
     return BlocBuilder<ContentModeCubit, ContentMode>(
       bloc: sl<ContentModeCubit>(),
@@ -2129,7 +2055,6 @@ class _HomeViewState extends State<_HomeView>
                       // Unconditional: _modeCards drops the mode switchers
                       // itself under Z Mode and keeps Schedule, which has no
                       // other entry point since it left the dock.
-                      SliverToBoxAdapter(child: _homeQuickAccess()),
                       SliverToBoxAdapter(child: _modeCards()),
 
                       // ── Reconnect banner (session lapsed → sync is off) ───────
