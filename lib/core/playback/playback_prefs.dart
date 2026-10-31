@@ -977,6 +977,12 @@ class PlaybackPrefs {
   Future<void> setSubtitleOutlineColorHex(String value) =>
       _box.put('subtitleOutlineColorHex', value);
 
+  /// Subtitle shadow colour as `#RRGGBBAA` (default opaque black).
+  String get subtitleShadowColorHex =>
+      _box.get('subtitleShadowColorHex', defaultValue: '#000000FF') as String;
+  Future<void> setSubtitleShadowColorHex(String value) =>
+      _box.put('subtitleShadowColorHex', value);
+
   /// Subtitle outline thickness (0–8). 0 = no outline.
   double get subtitleOutlineWidth =>
       (_box.get('subtitleOutlineWidth', defaultValue: 2.0) as num)
