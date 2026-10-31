@@ -652,7 +652,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get home => 'Beranda';
 
   @override
-  String get myList => 'My List';
+  String get myList => 'Daftar';
 
   @override
   String get schedule => 'Jadwal';
@@ -2062,7 +2062,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get creators => 'Kreator';
 
   @override
-  String get notify => 'Beri tahu';
+  String get notify => 'Notif';
 
   @override
   String get stopAlerts => 'Hentikan peringatan';
@@ -2812,13 +2812,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get score => 'Skor';
 
   @override
-  String get popularity => 'Populeritas';
+  String get popularity => 'popularitas';
 
   @override
-  String get favourites => 'Favourites';
+  String get favourites => 'Favorit';
 
   @override
-  String get sourceMaterial => 'Materi asal';
+  String get sourceMaterial => 'Adaptasi';
 
   @override
   String get country => 'Negara';
