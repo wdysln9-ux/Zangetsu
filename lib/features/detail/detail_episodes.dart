@@ -176,7 +176,8 @@ class _EpisodesTabState extends State<_EpisodesTab> {
       final position = controller.position;
       // Episode rows are approximately 100 px tall; include the list header
       // and range controls so the target sliver is built before ensureVisible.
-      final estimatedOffset = position.pixels + 150 + (indexInRange * 110);
+      final estimatedRows = _grid ? (indexInRange ~/ 5) : indexInRange;
+      final estimatedOffset = position.pixels + 150 + (estimatedRows * 110);
       await controller.animateTo(
         estimatedOffset.clamp(0.0, position.maxScrollExtent).toDouble(),
         duration: const Duration(milliseconds: 350),
