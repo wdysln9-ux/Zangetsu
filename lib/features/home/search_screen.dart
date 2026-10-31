@@ -325,6 +325,11 @@ class _SearchViewState extends State<_SearchView>
     // nothing.
     if (!(widget.initialFilters ?? const MetaFilters()).isEmpty) {
       _applyMetaFilters();
+    } else if (widget.scope == SearchScope.library &&
+        _metaFilters.sort == MetaSort.trending) {
+      // Seed the default Trending sort before the first query, so both a
+      // typed search and an empty genre browse use the same ordering.
+      _applyMetaFilters(browseDefaults: true);
     }
   }
 
@@ -1195,8 +1200,14 @@ class _SearchViewState extends State<_SearchView>
             Center(
               child: GestureDetector(
                 onTap: () {
-                  setState(() => _metaFilters = const MetaFilters());
-                  _applyMetaFilters();
+                  setState(
+                    () => _metaFilters = MetaFilters(
+                      sort: _metaFilters.sort == MetaSort.trending
+                          ? MetaSort.trending
+                          : MetaSort.popularity,
+                    ),
+                  );
+                  _applyMetaFilters(browseDefaults: true);
                 },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
