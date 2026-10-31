@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 abstract class AppColors {
-  /// The default near-black background.
-  static const Color defaultBg = Color(0xFF0B0B0F);
+  /// The default dark background, lighter than the AMOLED pure-black palette.
+  static const Color defaultBg = Color(0xFF121218);
 
   static const Color defaultSurface = Color(0xFF16161C);
   static const Color defaultSurface2 = Color(0xFF20212A);
