@@ -132,8 +132,8 @@ class ContinueWatchingRow extends StatelessWidget {
       child: ContentRow(
         title: 'Lanjut Tonton',
         // Compact 16:9 landscape card — same design, just smaller/tighter.
-        itemWidth: 190,
-        itemHeight: 124,
+        itemWidth: 146,
+        itemHeight: 95,
         onSeeAll: onSeeAll,
         itemCount: history.length,
         itemBuilder: (c, i) {
@@ -145,7 +145,7 @@ class ContinueWatchingRow extends StatelessWidget {
             imageUrl: e.thumbnail,
             headers: e.coverHeaders,
             progress: e.progress,
-            cellWidth: 190,
+            cellWidth: 146,
             subtitle: e.episodeNumber != null
                 ? 'Episode ${e.episodeNumber!.toInt()}'
                 : null,
