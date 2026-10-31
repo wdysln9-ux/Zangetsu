@@ -134,10 +134,7 @@ class _FeaturedCarouselState extends State<FeaturedCarousel> with RouteAware {
     super.initState();
     _pages = widget.items.take(6).toList();
     _index = _count > 1 ? _startIndex : 0;
-    _pc = PageController(
-      initialPage: _index,
-      viewportFraction: 0.82,
-    );
+    _pc = PageController(initialPage: _index);
     _startTimer();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _syncActiveTint();
