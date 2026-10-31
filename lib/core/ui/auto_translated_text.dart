@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../metadata/synopsis_translator.dart';
-import '../theme/app_colors.dart';
 
-/// Shows Indonesian text when available while preserving the original toggle.
-/// Translation is best-effort; the original remains visible if it fails.
+/// Shows Indonesian text when available. Translation is best-effort;
+/// the source text remains as a fallback if translation fails.
 class AutoTranslatedText extends StatefulWidget {
   const AutoTranslatedText({
     super.key,
@@ -29,7 +28,6 @@ class AutoTranslatedText extends StatefulWidget {
 
 class _AutoTranslatedTextState extends State<AutoTranslatedText> {
   late Future<String?> _translation;
-  bool _showOriginal = false;
 
   @override
   void initState() {
@@ -42,7 +40,6 @@ class _AutoTranslatedTextState extends State<AutoTranslatedText> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text) {
       _translation = SynopsisTranslator.instance.translateTextToIndonesian(widget.text);
-      _showOriginal = false;
     }
   }
 
@@ -53,7 +50,7 @@ class _AutoTranslatedTextState extends State<AutoTranslatedText> {
       builder: (context, snapshot) {
         final translated = snapshot.data;
         final hasTranslation = translated != null && translated.isNotEmpty;
-        final shown = hasTranslation && !_showOriginal ? translated : widget.text;
+        final shown = hasTranslation ? translated : widget.text;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -65,25 +62,6 @@ class _AutoTranslatedTextState extends State<AutoTranslatedText> {
               overflow: widget.overflow,
               textAlign: widget.textAlign,
             ),
-            if (hasTranslation && widget.showToggle)
-              Align(
-                alignment: Alignment.centerLeft,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => setState(() => _showOriginal = !_showOriginal),
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 2, bottom: 1, right: 6),
-                    child: Text(
-                      _showOriginal ? 'Terjemahan' : 'Asli',
-                      style: TextStyle(
-                        color: AppColors.accent,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
           ],
         );
       },
