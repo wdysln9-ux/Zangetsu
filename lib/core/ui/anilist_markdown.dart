@@ -18,7 +18,7 @@ class AniListMarkdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final markdown = data.replaceAll(
-      RegExp(r'<br\\s*/?>', caseSensitive: false),
+      RegExp(r'<br\s*/?>', caseSensitive: false),
       '\n',
     );
     final base = textStyle ?? Theme.of(context).textTheme.bodyMedium!;
