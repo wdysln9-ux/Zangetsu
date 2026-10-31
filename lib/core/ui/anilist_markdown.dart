@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:markdown/markdown.dart' as md;
+import 'package:webview_flutter/webview_flutter.dart';
 
 import '../theme/app_colors.dart';
 import '../metadata/synopsis_translator.dart';
 
-/// Renders AniList-flavoured Markdown. Kept as a dedicated widget so only
-/// AniList-authored bios and synopses opt into this renderer.
+/// Renders Markdown-rich descriptions, including AniList formatting, images,
+/// spoilers and inline YouTube embeds.
 class AniListMarkdown extends StatelessWidget {
   const AniListMarkdown({
     super.key,
@@ -154,6 +155,17 @@ class AniListMarkdown extends StatelessWidget {
         return null;
       },
       customWidgetBuilder: (element) {
+        if (element.localName == 'iframe') {
+          final src = Uri.tryParse(element.attributes['src'] ?? '');
+          final isYoutube = src != null &&
+              (src.host == 'www.youtube.com' ||
+                  src.host == 'youtube.com' ||
+                  src.host == 'www.youtube-nocookie.com' ||
+                  src.host == 'youtube-nocookie.com') &&
+              src.path.startsWith('/embed/');
+          if (!isYoutube) return const SizedBox.shrink();
+          return _YoutubeMarkdownEmbed(uri: src);
+        }
         if (element.localName == 'img') {
           final src = element.attributes['src'];
           if (src == null || src.isEmpty) return const SizedBox.shrink();
@@ -247,5 +259,38 @@ class _AutoTranslatedAniListMarkdownState
   Widget build(BuildContext context) => AniListMarkdown(
     data: _translated ?? widget.data,
     textStyle: widget.textStyle,
+  );
+}
+
+
+/// Inline YouTube player used by Markdown's youtube(...) syntax.
+class _YoutubeMarkdownEmbed extends StatefulWidget {
+  const _YoutubeMarkdownEmbed({required this.uri});
+
+  final Uri uri;
+
+  @override
+  State<_YoutubeMarkdownEmbed> createState() => _YoutubeMarkdownEmbedState();
+}
+
+class _YoutubeMarkdownEmbedState extends State<_YoutubeMarkdownEmbed> {
+  late final WebViewController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.black)
+      ..loadRequest(widget.uri);
+  }
+
+  @override
+  Widget build(BuildContext context) => AspectRatio(
+    aspectRatio: 16 / 9,
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: WebViewWidget(controller: _controller),
+    ),
   );
 }
