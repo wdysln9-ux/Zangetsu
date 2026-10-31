@@ -770,15 +770,21 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: GestureDetector(
-              onTap: onTap,
-              behavior: HitTestBehavior.opaque,
-              child: Text(
-                value,
-                style: AppText.caption.copyWith(
-                  color: AppColors.textPrimary,
-                  decoration: TextDecoration.none,
-                  fontWeight: FontWeight.w600,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(6),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 1),
+                  child: Text(
+                    value,
+                    style: AppText.caption.copyWith(
+                      color: AppColors.textPrimary,
+                      decoration: TextDecoration.none,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
             ),
