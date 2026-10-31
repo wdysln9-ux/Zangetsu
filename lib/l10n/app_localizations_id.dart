@@ -141,7 +141,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get info => 'Info';
 
   @override
-  String get filter => 'Filter';
+  String get filter => 'Saring';
 
   @override
   String get connect => 'Hubungkan';
@@ -198,7 +198,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get custom => 'Kustom';
 
   @override
-  String get customRange => 'Custom range';
+  String get customRange => 'Rentang khusus';
 
   @override
   String get defaultLabel => 'Bawaan';
@@ -1082,7 +1082,7 @@ class AppLocalizationsId extends AppLocalizations {
       'Fungsi mengetuk tiap bagian halaman';
 
   @override
-  String get font => 'Font';
+  String get font => 'Jenis huruf';
 
   @override
   String get addFont => 'Tambah font';
@@ -1307,16 +1307,16 @@ class AppLocalizationsId extends AppLocalizations {
   String get nativeTVPlayer => 'Pemutar TV bawaan';
 
   @override
-  String get tvDecoderMode => 'TV decoder priority';
+  String get tvDecoderMode => 'Prioritas dekoder TV';
 
   @override
-  String get tvDecoderHardwareOnly => 'Hardware only';
+  String get tvDecoderHardwareOnly => 'Hardware saja';
 
   @override
-  String get tvDecoderHardwareFirst => 'Hardware first (software fallback)';
+  String get tvDecoderHardwareFirst => 'Hardware terlebih dahulu (software sebagai cadangan)';
 
   @override
-  String get tvDecoderSoftwareFirst => 'Software first (hardware fallback)';
+  String get tvDecoderSoftwareFirst => 'Software terlebih dahulu (hardware sebagai cadangan)';
 
   @override
   String get softwareAudioDolbyDTS => 'Audio perangkat lunak (Dolby/DTS)';
@@ -1962,7 +1962,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get findEpisode => 'Cari episode';
 
   @override
-  String get findChapter => 'Find chapter';
+  String get findChapter => 'Cari bab';
 
   @override
   String get refreshChapters => 'Muat ulang bab';
@@ -2772,14 +2772,14 @@ class AppLocalizationsId extends AppLocalizations {
   String get navigationBarSubtitle => 'Tab mana yang tampil, dan urutannya';
 
   @override
-  String get navDockBehavior => 'Dock behavior';
+  String get navDockBehavior => 'Perilaku bilah navigasi';
 
   @override
-  String get keepDockExpanded => 'Keep dock expanded';
+  String get keepDockExpanded => 'Jaga bilah navigasi tetap terbuka';
 
   @override
   String get keepDockExpandedSubtitle =>
-      'Keep the labels visible while scrolling';
+      'Label tetap terlihat saat kamu menggulir';
 
   @override
   String connectedCount(int count) {
@@ -3138,7 +3138,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get allowNotificationsForAlerts =>
-      'Allow notifications in Android settings to receive alerts.';
+      'Izinkan notifikasi di pengaturan Android agar kamu menerima pemberitahuan.';
 
   @override
   String get syncStatusScoreProgress => 'Sinkronkan status, skor & progres';
@@ -3570,7 +3570,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get appIcon => 'Ikon aplikasi';
 
   @override
-  String get splashStyle => 'Splash';
+  String get splashStyle => 'Layar pembuka';
 
   @override
   String get splashStyleBlurb => 'Yang diputar saat aplikasi mulai.';
@@ -3753,13 +3753,13 @@ class AppLocalizationsId extends AppLocalizations {
   String get animRiseDesc => 'Naik dan memudar masuk';
 
   @override
-  String get animFade => 'Fade';
+  String get animFade => 'Pudar';
 
   @override
   String get animFadeDesc => 'Memudar masuk, tanpa gerak';
 
   @override
-  String get animZoom => 'Zoom';
+  String get animZoom => 'Perbesar';
 
   @override
   String get animZoomDesc => 'Membesar saat muncul';
@@ -4546,7 +4546,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get downloadFileGone =>
-      'That file is gone — it may have been deleted outside the app';
+      'File itu sudah tidak ada. Mungkin sudah dihapus dari luar aplikasi.';
 
   @override
   String get downloadQueued => 'Dalam antrean';
@@ -5344,25 +5344,25 @@ class AppLocalizationsId extends AppLocalizations {
       'Unduhan video baru tetap di dalam Zangetsu, bukan di folder Unduhan. Unduhan itu dihapus saat kamu mencopot Zangetsu. Bab dan hasil ekspor tidak terpengaruh.';
 
   @override
-  String get mangaPageTranslationTitle => 'Translate page';
+  String get mangaPageTranslationTitle => 'Terjemahkan halaman';
 
   @override
-  String get mangaTranslationSourceLanguage => 'Source language';
+  String get mangaTranslationSourceLanguage => 'Bahasa sumber';
 
   @override
-  String get mangaTranslationTargetLanguage => 'Target language';
+  String get mangaTranslationTargetLanguage => 'Bahasa tujuan';
 
   @override
-  String get mangaTranslationEngine => 'Engine';
+  String get mangaTranslationEngine => 'Mesin terjemahan';
 
   @override
-  String get mangaTranslationSection => 'Translation';
+  String get mangaTranslationSection => 'Terjemahan';
 
   @override
-  String get mangaTranslationSettings => 'Manga page translation';
+  String get mangaTranslationSettings => 'Terjemahan halaman manga';
 
   @override
-  String get mangaTranslationProvider => 'Online provider';
+  String get mangaTranslationProvider => 'Layanan terjemahan online';
 
   @override
   String get mangaTranslationGoogle => 'Google';
@@ -5374,53 +5374,53 @@ class AppLocalizationsId extends AppLocalizations {
   String get mangaTranslationGroq => 'Groq';
 
   @override
-  String get mangaTranslationApiKey => 'API key';
+  String get mangaTranslationApiKey => 'Kunci API';
 
   @override
-  String get mangaTranslationApiKeyTitle => 'Set API key';
+  String get mangaTranslationApiKeyTitle => 'Atur kunci API';
 
   @override
-  String get mangaTranslationApiKeyHint => 'Paste your provider API key';
+  String get mangaTranslationApiKeyHint => 'Tempel kunci API dari penyedia layanan';
 
   @override
-  String get mangaTranslationAddApiKey => 'Add API key';
+  String get mangaTranslationAddApiKey => 'Tambahkan kunci API';
 
   @override
-  String get mangaTranslationChangeApiKey => 'Change key';
+  String get mangaTranslationChangeApiKey => 'Ganti kunci';
 
   @override
-  String get mangaTranslationRemoveApiKey => 'Remove API key';
+  String get mangaTranslationRemoveApiKey => 'Hapus kunci API';
 
   @override
-  String get mangaTranslationApiKeySaved => 'API key saved securely';
+  String get mangaTranslationApiKeySaved => 'Kunci API berhasil disimpan dengan aman';
 
   @override
   String get mangaTranslationApiKeyMissing =>
-      'Add an API key for this provider to translate.';
+      'Tambahkan kunci API untuk layanan ini agar bisa menerjemahkan.';
 
   @override
   String get mangaTranslationProviderBillingNote =>
-      'Only recognized text is sent to this provider. Usage may be subject to your provider account\'s limits and charges.';
+      'Hanya teks yang berhasil dikenali yang dikirim ke layanan ini. Penggunaan dapat dibatasi atau dikenai biaya sesuai ketentuan akun penyedia layananmu.';
 
   @override
   String get mangaTranslationInvalidApiKey =>
-      'The provider rejected this API key. Check it and try again.';
+      'Kunci API ditolak oleh penyedia layanan. Periksa kuncinya, lalu coba lagi.';
 
   @override
   String get mangaTranslationRateLimited =>
-      'The provider limit was reached. Check your provider account or try again later.';
+      'Batas penggunaan layanan tercapai. Periksa akun penyedia layanan atau coba lagi nanti.';
 
   @override
   String get mangaTranslationProviderError =>
-      'The provider could not translate this page. Check your connection and provider setup.';
+      'Halaman ini tidak dapat diterjemahkan. Periksa koneksi dan pengaturan layanan terjemahanmu.';
 
   @override
   String get mangaTranslationInvalidResponse =>
-      'The provider returned an unreadable translation. Try again.';
+      'Hasil terjemahan dari layanan tidak dapat dibaca. Coba lagi.';
 
   @override
   String get mangaTranslationApiKeySaveFailed =>
-      'Could not save the API key securely. Try again.';
+      'Kunci API tidak dapat disimpan dengan aman. Coba lagi.';
 
   @override
   String get mangaTranslationOnline => 'Online';
@@ -5429,93 +5429,93 @@ class AppLocalizationsId extends AppLocalizations {
   String get mangaTranslationOffline => 'Offline';
 
   @override
-  String get mangaTranslationAction => 'Translate chapter';
+  String get mangaTranslationAction => 'Terjemahkan bab';
 
   @override
-  String get mangaTranslationTurnOff => 'Turn translation off';
+  String get mangaTranslationTurnOff => 'Matikan terjemahan';
 
   @override
-  String get mangaTranslationRetryFailed => 'Retry failed pages';
+  String get mangaTranslationRetryFailed => 'Coba terjemahkan ulang halaman yang gagal';
 
   @override
-  String get mangaTranslationContinue => 'Continue translation';
+  String get mangaTranslationContinue => 'Lanjutkan terjemahan';
 
   @override
-  String get mangaTranslationStop => 'Stop translation';
+  String get mangaTranslationStop => 'Hentikan terjemahan';
 
   @override
-  String get mangaTranslationInProgress => 'Translating…';
+  String get mangaTranslationInProgress => 'Sedang menerjemahkan…';
 
   @override
-  String get mangaTranslationSuccess => 'Translation ready';
+  String get mangaTranslationSuccess => 'Terjemahan siap';
 
   @override
-  String get mangaTranslationError => 'Translation failed';
+  String get mangaTranslationError => 'Terjemahan gagal';
 
   @override
-  String get mangaTranslationNoResult => 'No translation result was returned';
+  String get mangaTranslationNoResult => 'Tidak ada hasil terjemahan yang diterima';
 
   @override
-  String get mangaTranslationModelConsentTitle => 'Prepare translation?';
+  String get mangaTranslationModelConsentTitle => 'Siapkan terjemahan?';
 
   @override
   String get mangaTranslationOnlineModelConsent =>
-      'The on-device OCR component may need to download before this page can be read. The page image stays on your device. Online translation sends only recognized text to the translation service.';
+      'Komponen OCR di perangkat mungkin perlu diunduh sebelum halaman bisa dibaca. Gambar halaman tetap tersimpan di perangkatmu. Untuk terjemahan online, hanya teks yang berhasil dikenali yang dikirim ke layanan terjemahan.';
 
   @override
   String get mangaTranslationOfflineModelConsent =>
-      'On-device OCR and language models may need to download. The page image and recognized text stay on your device, and translation runs offline.';
+      'Model OCR dan bahasa mungkin perlu diunduh ke perangkat. Gambar halaman dan teks yang dikenali tetap tersimpan di perangkatmu, dan proses terjemahan berjalan tanpa internet.';
 
   @override
-  String get mangaTranslationDownloadingOcr => 'Downloading OCR';
+  String get mangaTranslationDownloadingOcr => 'Mengunduh OCR';
 
   @override
   String get mangaTranslationDownloadingOfflineModels =>
-      'Downloading OCR and translation models';
+      'Mengunduh model OCR dan terjemahan';
 
   @override
   String get mangaTranslationDownloadingMessage =>
-      'This may take a little while. Translation will start automatically when the download finishes.';
+      'Proses ini mungkin perlu waktu. Terjemahan akan dimulai otomatis setelah unduhan selesai.';
 
   @override
-  String get mangaTranslationRestartRequiredTitle => 'Restart required';
+  String get mangaTranslationRestartRequiredTitle => 'Perlu memulai ulang aplikasi';
 
   @override
   String get mangaTranslationRestartRequiredMessage =>
-      'Close and reopen Zangetsu to finish setting up on-device OCR, then try again.';
+      'Tutup Zangetsu sepenuhnya, lalu buka kembali agar persiapan OCR di perangkat selesai. Setelah itu, coba lagi.';
 
   @override
-  String get mangaTranslationSearchLanguages => 'Search languages';
+  String get mangaTranslationSearchLanguages => 'Cari bahasa';
 
   @override
-  String get mangaTranslationNoLanguages => 'No languages available';
+  String get mangaTranslationNoLanguages => 'Tidak ada bahasa yang tersedia';
 
   @override
-  String get mangaTranslationNoLanguageMatch => 'No matching languages';
+  String get mangaTranslationNoLanguageMatch => 'Tidak ada bahasa yang cocok';
 
   @override
-  String get mangaTranslationAppearance => 'Manga translation appearance';
+  String get mangaTranslationAppearance => 'Tampilan terjemahan manga';
 
   @override
   String get mangaTranslationAppearanceSubtitle =>
-      'Text size, text colour and background';
+      'Ukuran teks, warna teks, dan latar belakang';
 
   @override
-  String get mangaTranslationBackgroundColour => 'Background colour';
+  String get mangaTranslationBackgroundColour => 'Warna latar belakang';
 
   @override
-  String get mangaTranslationBackgroundOpacity => 'Background opacity';
+  String get mangaTranslationBackgroundOpacity => 'Opasitas latar belakang';
 
   @override
-  String get mangaTranslationPreview => 'Translation preview';
+  String get mangaTranslationPreview => 'Pratinjau terjemahan';
 
   @override
   String get mangaTranslationAppearanceFitNote =>
-      'Long text may scale down to stay inside its detected area and avoid overlap.';
+      'Teks yang panjang mungkin otomatis diperkecil agar tetap berada di area yang terdeteksi dan tidak bertumpuk.';
 
   @override
-  String get mangaTranslationShowOriginal => 'Show original page';
+  String get mangaTranslationShowOriginal => 'Tampilkan halaman asli';
 
   @override
-  String get mangaTranslationShowTranslations => 'Show translations';
+  String get mangaTranslationShowTranslations => 'Tampilkan hasil terjemahan';
 }
