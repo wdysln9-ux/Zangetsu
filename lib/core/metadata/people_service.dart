@@ -94,7 +94,7 @@ class PeopleService {
       }
     }
     return PersonProfile(
-      name: _aniName(c) ?? 'Character',
+      name: _japaneseOrderName(_aniName(c), _aniNative(c)) ?? 'Character',
       nativeName: _aniNative(c),
       alternativeNames: _aniAlternatives(c),
       photo: _aniImage(c, 'image'),
@@ -199,6 +199,18 @@ class PeopleService {
       name: name,
       photo: _aniImage(v, 'image'),
     );
+  }
+
+  /// AniList's romanized full name is often stored in Western order.
+  /// For characters with a native East Asian name, display family name first.
+  /// Single-part names are left unchanged.
+  static String? _japaneseOrderName(String? full, String? native) {
+    if (full == null || full.trim().isEmpty) return full;
+    if (native == null || native.trim().isEmpty) return full;
+    final parts = full.trim().split(RegExp(r'\\s+'));
+    if (parts.length < 2) return full.trim();
+    return [parts.last, ...parts.sublist(1, parts.length - 1), parts.first]
+        .join(' ');
   }
 
   String? _aniName(Map m) =>
