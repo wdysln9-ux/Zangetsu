@@ -166,6 +166,15 @@ class _PersonPageState extends State<PersonPage> {
               children: [
                 const SizedBox(height: 4),
                 Text(p.name, style: AppText.title),
+                if (p.alternativeNames.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    p.alternativeNames.join(' / '),
+                    style: AppText.caption.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
                 if (p.nativeName != null && p.nativeName!.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(p.nativeName!, style: AppText.body),
