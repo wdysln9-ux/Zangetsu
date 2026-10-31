@@ -253,7 +253,7 @@ class _RelationsTab extends StatelessWidget {
   ) => MediaRelation(
     title: s.title,
     cover: s.cover,
-    relation: null,
+    relation: 'Season ${s.number}',
     malId: s.malId,
     anilistId: s.anilistId,
   );
