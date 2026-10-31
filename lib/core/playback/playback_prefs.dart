@@ -985,35 +985,6 @@ class PlaybackPrefs {
   Future<void> setSubtitleOutlineWidth(double value) =>
       _box.put('subtitleOutlineWidth', value.clamp(0.0, 8.0));
 
-  /// Font weight for subtitle text (100–900).
-  int get subtitleFontWeight =>
-      (_box.get('subtitleFontWeight', defaultValue: 500) as num).toInt().clamp(100, 900);
-  Future<void> setSubtitleFontWeight(int value) =>
-      _box.put('subtitleFontWeight', (value ~/ 100).clamp(1, 9) * 100);
-
-  /// Independent drop-shadow controls.
-  double get subtitleShadowThickness =>
-      (_box.get('subtitleShadowThickness', defaultValue: 1.0) as num).toDouble().clamp(0.0, 10.0);
-  Future<void> setSubtitleShadowThickness(double value) =>
-      _box.put('subtitleShadowThickness', value.clamp(0.0, 10.0));
-
-  double get subtitleShadowAngle =>
-      (_box.get('subtitleShadowAngle', defaultValue: 90.0) as num).toDouble().clamp(0.0, 360.0);
-  Future<void> setSubtitleShadowAngle(double value) =>
-      _box.put('subtitleShadowAngle', value.clamp(0.0, 360.0));
-  double get subtitleShadowDistance =>
-      (_box.get('subtitleShadowDistance', defaultValue: 1.0) as num).toDouble().clamp(0.0, 20.0);
-  Future<void> setSubtitleShadowDistance(double value) =>
-      _box.put('subtitleShadowDistance', value.clamp(0.0, 20.0));
-  double get subtitleShadowBlur =>
-      (_box.get('subtitleShadowBlur', defaultValue: 0.0) as num).toDouble().clamp(0.0, 20.0);
-  Future<void> setSubtitleShadowBlur(double value) =>
-      _box.put('subtitleShadowBlur', value.clamp(0.0, 20.0));
-  String get subtitleShadowColorHex =>
-      _box.get('subtitleShadowColorHex', defaultValue: '#000000FF') as String;
-  Future<void> setSubtitleShadowColorHex(String value) =>
-      _box.put('subtitleShadowColorHex', value);
-
   /// Subtitle outline-style preset id. Default 'soft' reproduces the legacy
   /// soft-shadow look, so existing users see no change until they pick another.
   String get subtitleOutlineType =>
