@@ -2462,14 +2462,37 @@ class _DetailViewState extends State<_DetailView>
             ),
           ),
 
-        // ── 5. Genres fallback ─────────────────────────────────────────────
-        if (detail.genres.isNotEmpty)
+        // ── 5. Interactive genres and studio ──────────────────────────────
+        if (detail.genres.isNotEmpty || detail.studios.isNotEmpty)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: _CreditLine(
-                label: context.l10n.genres,
-                value: detail.genres.take(4).join(', '),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (detail.genres.isNotEmpty)
+                    _InteractiveCreditLine(
+                      label: context.l10n.genres,
+                      values: detail.genres.take(4).toList(),
+                      onTap: (genre) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => SearchScreen(
+                              initialFilters: MetaFilters(genres: [genre]),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  if (detail.studios.isNotEmpty)
+                    _InteractiveCreditLine(
+                      label: 'Studio',
+                      values: detail.studios.take(3).toList(),
+                      onTap: (studio) => Navigator.of(context).push(
+                        StudioPage.route(studio),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
