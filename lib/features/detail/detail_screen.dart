@@ -355,21 +355,22 @@ class _DetailCloudflareBlockedState extends State<_DetailCloudflareBlocked> {
 }
 
 class DetailScreen extends StatelessWidget {
-  const DetailScreen({super.key, required this.item, this.prefer});
+  const DetailScreen({super.key, required this.item, this.prefer, this.autoScrollToResume = false});
   final MediaItem item;
 
   /// Read this title from a specific metadata catalogue. Set when it was
   /// opened from a tracker that has one, so an AniList library entry shows
   /// AniList's page even when MyAnimeList is the app-wide choice.
   final PreferredProvider? prefer;
+  final bool autoScrollToResume;
 
   /// Opening transition: the page fades in while sliding up and scaling from
   /// 0.96 — a smooth "rise" into the detail rather than the platform push.
-  static Route<void> route(MediaItem item, {PreferredProvider? prefer}) =>
+  static Route<void> route(MediaItem item, {PreferredProvider? prefer, bool autoScrollToResume = false}) =>
       PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 340),
         reverseTransitionDuration: const Duration(milliseconds: 260),
-        pageBuilder: (_, _, _) => DetailScreen(item: item, prefer: prefer),
+        pageBuilder: (_, _, _) => DetailScreen(item: item, prefer: prefer, autoScrollToResume: autoScrollToResume),
         transitionsBuilder: (_, animation, _, child) {
           final curved = CurvedAnimation(
             parent: animation,
@@ -409,7 +410,7 @@ class DetailScreen extends StatelessWidget {
         // label agree instead of one naming AniList over MAL's data.
         prefer: prefer ?? _preferFromName(item.savedFrom),
       )..load(),
-      child: _DetailView(item: item, prefer: prefer),
+      child: _DetailView(item: item, prefer: prefer, autoScrollToResume: autoScrollToResume),
     );
   }
 }
@@ -423,11 +424,12 @@ class DetailScreen extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DetailView extends StatefulWidget {
-  const _DetailView({required this.item, this.prefer});
+  const _DetailView({required this.item, this.prefer, this.autoScrollToResume = false});
   final MediaItem item;
 
   /// The catalogue this title was opened from, so the name matches the data.
   final PreferredProvider? prefer;
+  final bool autoScrollToResume;
 
   @override
   State<_DetailView> createState() => _DetailViewState();
@@ -2677,6 +2679,7 @@ class _DetailViewState extends State<_DetailView>
             showUrl: item.url,
             resumeIndex: _resumeIndex,
             hasAnyMark: hasAnyMark,
+            autoScrollToResume: widget.autoScrollToResume,
             trackerProgress: _trackerProgress,
             nextAiringEpisode: _nextAiringEpisode,
             nextAiringAt: _nextAiringAt,
