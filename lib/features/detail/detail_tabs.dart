@@ -471,35 +471,41 @@ class _DetailsTab extends StatelessWidget {
           label: reading ? context.l10n.chapters : context.l10n.episodes,
           value: '$episodeCount',
         ),
-        if (studios.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Text(
-            context.l10n.studio,
-            style: AppText.caption.copyWith(color: AppColors.textTertiary),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: studios.map((name) => InkWell(
-              borderRadius: BorderRadius.circular(4),
-              onTap: () => Navigator.of(context).push(StudioPage.route(name)),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 1),
-                child: Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppText.body.copyWith(
-                    color: AppColors.textPrimary,
-                    decoration: TextDecoration.underline,
-                    decorationColor: AppColors.textTertiary,
+        if (studios.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 96,
+                  child: Text(
+                    context.l10n.studio,
+                    style: AppText.caption.copyWith(color: AppColors.textTertiary),
                   ),
                 ),
-              ),
-            )).toList(),
+                Expanded(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: studios.map((name) => InkWell(
+                      borderRadius: BorderRadius.circular(4),
+                      onTap: () => Navigator.of(context).push(StudioPage.route(name)),
+                      child: Text(
+                        name,
+                        style: AppText.caption.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppColors.textTertiary,
+                        ),
+                      ),
+                    )).toList(),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
         ..._providerRows(context),
         if (genres.isNotEmpty) ...[
           const SizedBox(height: 14),
