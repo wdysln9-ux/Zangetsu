@@ -924,6 +924,14 @@ class PlaybackPrefs {
   Future<void> setSubtitleBackground(bool value) =>
       _box.put('subtitleBackground', value);
 
+  /// Subtitle font weight (100–900). 400 is regular; 700 is bold.
+  int get subtitleFontWeight =>
+      (_box.get('subtitleFontWeight', defaultValue: 400) as num)
+          .toInt()
+          .clamp(100, 900);
+  Future<void> setSubtitleFontWeight(int value) =>
+      _box.put('subtitleFontWeight', value.clamp(100, 900));
+
   /// Subtitle font family — one of [kBundledSubtitleFonts], or a family the
   /// user added themselves (see [customSubtitleFonts]). Empty = mpv default
   /// (don't override the font). Maps to mpv's `sub-font`.
