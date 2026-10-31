@@ -560,7 +560,7 @@ class AniListApi {
         cast.add(
           CastMember(
             name: name,
-            role: va,
+            role: _titleCase(e['role'] as String?),
             photo: img,
             person: charId == null
                 ? null
