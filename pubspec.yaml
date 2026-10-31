@@ -38,6 +38,7 @@ dependencies:
       ref: c006c8c
   flutter_localizations:
     sdk: flutter
+  flutter_markdown_plus: ^1.0.12
   intl: any
   cupertino_icons: ^1.0.8
 
