@@ -20,7 +20,6 @@ class ContinueCard extends StatefulWidget {
     this.headers,
     required this.progress,
     this.subtitle,
-    this.recentlyWatched,
     this.onTap,
     this.onLongPress,
     this.cellWidth = 140,
@@ -34,35 +33,12 @@ class ContinueCard extends StatefulWidget {
   final double progress;
 
   final String? subtitle;
-  final String? recentlyWatched;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final double cellWidth;
 
   @override
   State<ContinueCard> createState() => _ContinueCardState();
-}
-
-class _ContinueInfoPill extends StatelessWidget {
-  const _ContinueInfoPill({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(
-      color: Colors.black.withValues(alpha: 0.72),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      child: Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: AppText.caption.copyWith(color: Colors.white, fontSize: 10),
-      ),
-    ),
-  );
 }
 
 class _ContinueCardState extends State<ContinueCard> {
@@ -132,19 +108,6 @@ class _ContinueCardState extends State<ContinueCard> {
                         ColoredBox(color: AppColors.surface2),
                   ),
 
-                if (widget.subtitle != null && widget.subtitle!.isNotEmpty)
-                  Positioned(
-                    top: 9,
-                    left: 9,
-                    child: _ContinueInfoPill(text: widget.subtitle!),
-                  ),
-                if (widget.recentlyWatched != null)
-                  Positioned(
-                    top: 9,
-                    right: 9,
-                    child: _ContinueInfoPill(text: widget.recentlyWatched!),
-                  ),
-
                 // ── Bottom scrim so the title/episode stay legible ──────────
                 const DecoratedBox(
                   decoration: BoxDecoration(
@@ -174,6 +137,19 @@ class _ContinueCardState extends State<ContinueCard> {
                           fontWeight: FontWeight.w700,
                         ),
                       ),
+                      if (widget.subtitle != null &&
+                          widget.subtitle!.isNotEmpty) ...[
+                        const SizedBox(height: 1),
+                        Text(
+                          widget.subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppText.caption.copyWith(
+                            color: Colors.white.withValues(alpha: 0.75),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
