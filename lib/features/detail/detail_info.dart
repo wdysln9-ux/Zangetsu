@@ -143,12 +143,7 @@ class _SynopsisTranslationState extends State<_SynopsisTranslation> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          shownText,
-          style: AppText.body,
-          maxLines: widget.maxLines,
-          overflow: widget.maxLines == null ? null : TextOverflow.ellipsis,
-        ),
+        AniListMarkdown(data: shownText, textStyle: AppText.body),
         if (_loading) ...[
           const SizedBox(height: 5),
           const SizedBox(
