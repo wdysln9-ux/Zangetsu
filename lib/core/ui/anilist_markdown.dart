@@ -141,7 +141,7 @@ class AniListMarkdown extends StatelessWidget {
           case 'a':
             return {
               'color': linkColor,
-              'text-decoration': 'underline',
+              'text-decoration': 'none',
             };
           case 'img':
             return {'max-width': '100%'};
