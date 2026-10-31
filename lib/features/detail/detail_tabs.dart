@@ -210,6 +210,28 @@ class _AvatarFallback extends StatelessWidget {
   );
 }
 
+String _indonesianRelationLabel(String value) {
+  final normalized = value.trim().toLowerCase().replaceAll('_', ' ');
+  const translations = {
+    'adaptation': 'Adaptasi',
+    'prequel': 'Prekuel',
+    'sequel': 'Sekuel',
+    'parent story': 'Cerita utama',
+    'side story': 'Cerita sampingan',
+    'character': 'Karakter',
+    'summary': 'Ringkasan',
+    'alternative': 'Alternatif',
+    'spin off': 'Spin-off',
+    'spin-off': 'Spin-off',
+    'other': 'Lainnya',
+    'source': 'Sumber',
+    'compilation': 'Kompilasi',
+    'full story': 'Cerita lengkap',
+    'season': 'Season',
+  };
+  return translations[normalized] ?? value;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Relations tab — related/recommended titles; tap searches the active source.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -247,9 +269,7 @@ class _RelationsTab extends StatelessWidget {
   ) => MediaRelation(
     title: s.title,
     cover: s.cover,
-    relation: s.isCurrent
-        ? '${context.l10n.seasonNumber(s.number)} · ${context.l10n.statusWatching}'
-        : context.l10n.seasonNumber(s.number),
+    relation: 'Season ${s.number}',
     malId: s.malId,
     anilistId: s.anilistId,
   );
@@ -307,7 +327,7 @@ class _RelationsTab extends StatelessWidget {
     final rest = _rest;
     return CustomScrollView(
       slivers: [
-        _header(context, context.l10n.seasons),
+        _header(context, 'Season'),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
           sliver: SliverGrid(
@@ -376,7 +396,7 @@ class _RelationsTab extends StatelessWidget {
           const SizedBox(height: 6),
           if (r.relation != null && r.relation!.isNotEmpty)
             Text(
-              r.relation!.toUpperCase(),
+              _indonesianRelationLabel(r.relation!),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppText.caption.copyWith(
