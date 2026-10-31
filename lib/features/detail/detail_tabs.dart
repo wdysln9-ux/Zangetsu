@@ -500,12 +500,24 @@ class _DetailsTab extends StatelessWidget {
             value: sourceName,
             onTap: sourceName.toLowerCase().contains('anilist')
                 ? () {
-                    final id = int.tryParse(detail?.id ?? '');
-                    if (id == null) return;
-                    launchUrl(
-                      Uri.parse('https://anilist.co/anime/$id'),
-                      mode: LaunchMode.externalApplication,
-                    );
+                    final sourceUri = Uri.tryParse(detail?.url ?? '');
+                    final segments = sourceUri?.pathSegments ?? const <String>[];
+                    final urlKind = segments.length >= 2 &&
+                            (segments[0] == 'anime' || segments[0] == 'manga')
+                        ? segments[0]
+                        : null;
+                    final sourceId = urlKind == null ? null : segments[1];
+                    final id = sourceId ??
+                        int.tryParse(detail?.id ?? '')?.toString();
+                    final kind = urlKind ?? (reading ? 'manga' : 'anime');
+                    final uri = id != null
+                        ? Uri.parse('https://anilist.co/$kind/$id')
+                        : Uri.https(
+                            'anilist.co',
+                            '/search/$kind',
+                            {'search': detail?.title ?? sourceName},
+                          );
+                    launchUrl(uri, mode: LaunchMode.externalApplication);
                   }
                 : null,
           ),
