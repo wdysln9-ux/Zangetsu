@@ -152,7 +152,7 @@ String _slotLabel(AppLocalizations l10n, int hour) {
   if (diff.inHours < 24) {
     return (text: '${diff.inHours}j ${diff.inMinutes % 60}m', live: false);
   }
-  return (text: '${diff.inDays}d ${diff.inHours % 24}h', live: false);
+  return (text: '${diff.inDays}d ${diff.inHours % 24}j', live: false);
 }
 
 // ── screen body ──────────────────────────────────────────────────────────────
