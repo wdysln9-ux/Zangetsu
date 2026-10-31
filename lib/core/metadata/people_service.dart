@@ -315,8 +315,8 @@ class PeopleService {
   static String? _plain(String? s) {
     if (s == null || s.trim().isEmpty) return null;
     final out = s
-        .replaceAll(RegExp(r'<br\\s*/?>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'\\n{3,}'), '\n\n')
+        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
         .trim();
     return out.isEmpty ? null : out;
   }
