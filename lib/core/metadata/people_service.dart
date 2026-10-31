@@ -310,15 +310,13 @@ class PeopleService {
     return t[0].toUpperCase() + t.substring(1);
   }
 
-  /// Strip AniList's light HTML/markdown so the bio renders as plain text.
+  /// Keep AniList Markdown intact for the rich-text renderer. AniList may
+  /// still include HTML line breaks even when asHtml is false.
   static String? _plain(String? s) {
     if (s == null || s.trim().isEmpty) return null;
-    var out = s
-        .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'<[^>]+>'), '')
-        .replaceAll(RegExp(r'~!|!~'), '') // AniList spoiler markers
-        .replaceAll('__', '')
-        .replaceAll(RegExp(r'\n{3,}'), '\n\n')
+    final out = s
+        .replaceAll(RegExp(r'<br\\s*/?>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'\\n{3,}'), '\n\n')
         .trim();
     return out.isEmpty ? null : out;
   }
