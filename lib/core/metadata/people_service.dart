@@ -55,7 +55,7 @@ class PeopleService {
   Future<PersonProfile?> _character(int id) async {
     const q =
         'query(\$id:Int){ Character(id:\$id){ '
-        'name{ full native alternative } image{ large } description(asHtml:false) '
+        'idMal name{ full native alternative } image{ large } description(asHtml:false) '
         'age gender dateOfBirth{ year month day } bloodType favourites '
         // No type filter: a manga character's appearances ARE manga, and
         // pinning this to ANIME left every reading character empty.
@@ -111,6 +111,7 @@ class PeopleService {
           : null,
       favourites: (c['favourites'] as num?)?.toInt(),
       photo: _aniImage(c, 'image'),
+      malId: (c['idMal'] as num?)?.toInt(),
       description: _plain(c['description'] as String?),
       subtitle: 'Character',
       works: works,
@@ -312,6 +313,35 @@ class PeopleService {
       subtitle: person['known_for_department'] as String?,
       works: works,
     );
+  }
+
+  /// Extra character artwork from MyAnimeList via Jikan (public MAL data).
+  Future<List<String>> loadCharacterGallery(int? malId) async {
+    if (malId == null || malId <= 0) return const [];
+    try {
+      final res = await _dio.get<dynamic>(
+        'https://api.jikan.moe/v4/characters/$malId/pictures',
+        options: Options(validateStatus: (status) => status != null && status < 500),
+      );
+      final body = res.data;
+      final data = body is Map ? body['data'] : null;
+      if (data is! List) return const [];
+      final urls = <String>[];
+      for (final item in data) {
+        if (item is! Map) continue;
+        final webp = item['webp'];
+        final jpg = item['jpg'];
+        final url = webp is Map ? webp['image_url'] : null;
+        final fallback = jpg is Map ? jpg['image_url'] : null;
+        final value = url is String && url.isNotEmpty
+            ? url
+            : (fallback is String && fallback.isNotEmpty ? fallback : null);
+        if (value != null && !urls.contains(value)) urls.add(value);
+      }
+      return urls;
+    } catch (_) {
+      return const [];
+    }
   }
 
   Future<Map<String, dynamic>?> _get(String url) async {
