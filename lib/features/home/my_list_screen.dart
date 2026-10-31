@@ -613,8 +613,6 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
     }
     setState(() {
       _categoryFilter = made.id;
-      _openedBuiltInStatus = null;
-      _showingFolder = true;
     });
   }
 
