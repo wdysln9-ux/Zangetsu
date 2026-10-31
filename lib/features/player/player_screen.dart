@@ -2880,10 +2880,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     final estimatedViewers = _showPopularity == null
                         ? null
                         : (_showPopularity! / math.pow(1.07, exponent)).round();
+                    final viewerLabel = estimatedViewers == null
+                        ? '—'
+                        : estimatedViewers >= 100000
+                            ? '${(estimatedViewers / 1000).round()}k'
+                            : estimatedViewers >= 1000
+                                ? '${(estimatedViewers / 1000).toStringAsFixed(1)}k'
+                                : estimatedViewers.toString();
                     return Text(
-                      estimatedViewers == null
-                          ? '—'
-                          : estimatedViewers.toString(),
+                      viewerLabel,
                       style: AppText.body.copyWith(
                         color: const Color(0xFF91A396),
                         fontSize: 14,
