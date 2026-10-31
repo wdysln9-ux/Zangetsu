@@ -630,7 +630,7 @@ class _DetailsTab extends StatelessWidget {
             style: AppText.caption.copyWith(color: AppColors.textTertiary),
           ),
           const SizedBox(height: 8),
-          _SynopsisTranslation(text: desc, expanded: false),
+          _SynopsisTranslation(text: desc, expanded: true),
         ],
       ],
     );
