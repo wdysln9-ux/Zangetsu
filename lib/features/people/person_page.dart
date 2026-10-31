@@ -59,7 +59,7 @@ class _PersonPageState extends State<PersonPage> {
 
   String _displayName(String value) {
     if (widget.person.source != PersonSource.anilistCharacter) return value;
-    final parts = value.trim().split(RegExp(r'\\s+'));
+    final parts = value.trim().split(RegExp(r'\s+'));
     if (parts.length < 2) return value;
     return [parts.last, ...parts.sublist(1, parts.length - 1), parts.first]
         .join(' ');
