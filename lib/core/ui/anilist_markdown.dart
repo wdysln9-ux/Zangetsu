@@ -19,14 +19,14 @@ class AniListMarkdown extends StatelessWidget {
   final TextStyle? textStyle;
 
   String _toHtml(String source) {
-    // Parse AniList's center blocks separately so Markdown inside them is kept.
+    // Parse AniList center blocks separately so nested Markdown survives.
     final centerBlocks = <String>[];
-    var prepared = source.replaceAllMapped(
-      RegExp(r'˜˜˜([\\s\\S]*?)˜˜˜'),
+    final prepared = source.replaceAllMapped(
+      RegExp(r'˜˜˜([\s\S]*?)˜˜˜', dotAll: true),
       (match) {
         final index = centerBlocks.length;
         centerBlocks.add(match[1] ?? '');
-        return '\\n\\nANILIST_CENTER_BLOCK_${index}_PLACEHOLDER\\n\\n';
+        return '\n\nANILIST_CENTER_BLOCK_\${index}_PLACEHOLDER\n\n';
       },
     );
 
@@ -42,21 +42,17 @@ class AniListMarkdown extends StatelessWidget {
       encodeHtml: false,
     );
 
-    // AniList's spoiler delimiters are not part of CommonMark.
     html = html.replaceAllMapped(
       RegExp(r'~!(.*?)!~', dotAll: true),
-      (match) => '<span class="anilist-spoiler">${match[1] ?? ''}</span>',
+      (match) => '<span class="anilist-spoiler">\${match[1] ?? ''}</span>',
     );
 
-    // AniList's image-size shorthand: img420(https://...)
+    // AniList image-size shorthand: img420(https://...)
     html = html.replaceAllMapped(
       RegExp(r'img(\d{1,4})\((https?://[^)]+)\)'),
-      (match) =>
-          '<img src="${match[2]}" width="${match[1]}" />',
+      (match) => '<img src="\${match[2]}" width="\${match[1]}" />',
     );
 
-    // AniList's video shorthands are converted after Markdown parsing,
-    // matching AniList's own behavior (including inside code examples).
     html = html.replaceAllMapped(
       RegExp(r'youtube\(([^)]+)\)'),
       (match) {
@@ -86,25 +82,37 @@ class AniListMarkdown extends StatelessWidget {
     html = html.replaceAllMapped(
       RegExp(r'webm\((https?://[^)]+)\)'),
       (match) =>
-          '<video src="${match[1]}" controls loop muted autoplay></video>',
+          '<video src="\${match[1]}" controls loop muted autoplay></video>',
     );
 
-    // AniList's spoiler and alignment shorthands.
     html = html.replaceAllMapped(
       RegExp(r"""<div\s+rel=["']spoiler["']>(.*?)</div>""", dotAll: true),
       (match) =>
-          '<span class="anilist-spoiler">${match[1] ?? ''}</span>',
+          '<span class="anilist-spoiler">\${match[1] ?? ''}</span>',
     );
-    html = html.replaceAllMapped(
-      RegExp(r'˜˜˜(.*?)˜˜˜', dotAll: true),
-      (match) => '<div style="text-align:center">${match[1] ?? ''}</div>',
-    );
+
+    // Render Markdown inside each center block before inserting its HTML.
+    for (var i = 0; i < centerBlocks.length; i++) {
+      final inner = centerBlocks[i].replaceAllMapped(
+        RegExp(r'(?<!\n)\n(?!\n)'),
+        (_) => '  \n',
+      );
+      final innerHtml = md.markdownToHtml(
+        inner,
+        extensionSet: md.ExtensionSet.gitHubFlavored,
+        encodeHtml: false,
+      );
+      final marker = 'ANILIST_CENTER_BLOCK_\${i}_PLACEHOLDER';
+      final centered = '<div class="anilist-center">$innerHtml</div>';
+      html = html.replaceAll('<p>$marker</p>', centered);
+      html = html.replaceAll(marker, centered);
+    }
     return html;
   }
-
   @override
   Widget build(BuildContext context) {
     final base = textStyle ?? Theme.of(context).textTheme.bodyMedium;
+    final linkColor = '#${(AppColors.textPrimary.value & 0xFFFFFF).toRadixString(16).padLeft(6, '0')}';
     return HtmlWidget(
       _toHtml(data),
       textStyle: base,
@@ -132,7 +140,7 @@ class AniListMarkdown extends StatelessWidget {
             };
           case 'a':
             return {
-              'color': AppColors.textPrimary.toString(),
+              'color': linkColor,
               'text-decoration': 'underline',
             };
           case 'img':
@@ -155,7 +163,7 @@ class AniListMarkdown extends StatelessWidget {
               src,
               width: width == null
                   ? constraints.maxWidth
-                  : width.clamp(1, constraints.maxWidth),
+                  : width.clamp(1, constraints.maxWidth).toDouble(),
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             ),
