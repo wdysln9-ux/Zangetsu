@@ -226,7 +226,7 @@ class _PersonPageState extends State<PersonPage> {
               ),
             const SizedBox(height: 4),
             Text(
-              _bioExpanded ? 'Show less' : 'Read more',
+              _bioExpanded ? 'Sembunyikan' : 'Read more',
               style: AppText.caption.copyWith(color: AppColors.accent),
             ),
           ],
