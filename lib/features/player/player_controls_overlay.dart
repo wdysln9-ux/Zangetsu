@@ -448,7 +448,7 @@ class _ControlsOverlay extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         // Top scrim.
-        const Positioned(
+        Positioned(
           top: 0,
           left: 0,
           right: 0,
@@ -469,7 +469,7 @@ class _ControlsOverlay extends StatelessWidget {
         // 0x99 up top, 0xE6 over 0xB3 down here — which is why showing the
         // controls dropped a heavy curtain over the video. One gentle pass each
         // way is plenty to keep white text legible on a bright frame.
-        const Positioned(
+        Positioned(
           bottom: 0,
           left: 0,
           right: 0,
