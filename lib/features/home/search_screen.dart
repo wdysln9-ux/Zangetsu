@@ -73,8 +73,21 @@ import '../search/bloc/search_state.dart';
 /// filters, not the screen's defaults.
 MetaFilters initialSearchFilters(
   MetaFilters? provided,
-  bool privacyAllowsAdult,
-) => provided ?? MetaFilters(adult: privacyAllowsAdult);
+  bool privacyAllowsAdult, {
+  bool trendingByDefault = false,
+}) {
+  final defaults = MetaFilters(
+    adult: privacyAllowsAdult,
+    sort: trendingByDefault ? MetaSort.trending : MetaSort.popularity,
+  );
+  if (provided == null) return defaults;
+  // Genre/tag entry points may provide filters created elsewhere. Keep their
+  // selections, but use Trending when they still carry the old default sort.
+  if (trendingByDefault && provided.sort == MetaSort.popularity) {
+    return provided.copyWith(sort: MetaSort.trending);
+  }
+  return provided;
+}
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({
@@ -442,6 +455,11 @@ class _SearchViewState extends State<_SearchView>
         sl<PlaybackPrefs>().adultMetadata &&
         (!sl.isRegistered<ViewerProfileStore>() ||
             sl<ViewerProfileStore>().adultMetadataAllowed),
+    trendingByDefault:
+        browseKindFor(
+          sl<ContentModeCubit>().state,
+          ZModePrefs.streamKind,
+        ) == ZKind.anime,
   );
 
   /// What this search will actually look through.
