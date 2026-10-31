@@ -1530,7 +1530,7 @@ class _EpisodeRow extends StatelessWidget {
               children: [
                 // Rounded 16:9 thumbnail with a centered play-circle.
                 SizedBox(
-                  width: 116,
+                  width: 89,
                   child: AspectRatio(
                     aspectRatio: 16 / 9,
                     child: ClipRRect(
@@ -1642,7 +1642,7 @@ class _EpisodeRow extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 11),
                 // Title + date/duration under + badges.
                 Expanded(
                   child: Column(
