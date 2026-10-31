@@ -53,6 +53,14 @@ class _PressableCardState extends State<_PressableCard> {
   );
 }
 
+/// Display character participation roles in Indonesian.
+String _castRoleLabel(String role) => switch (role.trim().toLowerCase()) {
+  'main' => 'Utama',
+  'supporting' => 'Pendukung',
+  'background' => 'Figuran',
+  _ => role,
+};
+
 class _CastTab extends StatelessWidget {
   const _CastTab({required this.cast, this.onOpenPerson, this.loading = false});
   final List<CastMember> cast;
@@ -175,7 +183,7 @@ class _CastTab extends StatelessWidget {
             ),
             if (m.role != null && m.role!.isNotEmpty)
               Text(
-                m.role!,
+                _castRoleLabel(m.role!),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
