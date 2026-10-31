@@ -1853,7 +1853,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         return _SkipButton(
           // Only a recap is named. An opening/ending keeps the plain "Skip"
           // it has always had — no reason to reword what already works.
-          label: isRecapSkip(iv.type) ? 'Skip Recap' : 'Skip',
+          label: isRecapSkip(iv.type) ? context.l10n.skipRecap : context.l10n.skip,
           onTap: () {
             _c.seekTo(iv.end);
             _bumpControls();
@@ -2001,7 +2001,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () => Navigator.of(dialogContext).pop(),
-                    child: const Text('Tutup'),
+                    child: Text(context.l10n.close),
                   ),
                 ),
               ],
@@ -2140,7 +2140,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'Episodes',
+      barrierLabel: context.l10n.episodes,
       barrierColor: Colors.black54,
       transitionDuration: const Duration(milliseconds: 240),
       pageBuilder: (ctx, _, _) => Align(
@@ -2229,7 +2229,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         : d != null
         ? 'Sleep timer set for ${d.inMinutes} min'
               '${_sleepCloseApp ? ' · closes the app' : ''}'
-        : 'Sleep timer off';
+        : context.l10n.off;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -2305,7 +2305,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ],
               )
             else
-              Text('Episode $epNum', style: AppText.headline.copyWith(color: Colors.white), maxLines: 2, overflow: TextOverflow.ellipsis),
+              Text('${context.l10n.episodes} $epNum', style: AppText.headline.copyWith(color: Colors.white), maxLines: 2, overflow: TextOverflow.ellipsis),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -2329,7 +2329,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                           SizedBox(width: 4),
                           Text(
-                            'Play now',
+                            context.l10n.play,
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -2402,7 +2402,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   Icon(Icons.skip_next, color: Colors.white, size: 20),
                   SizedBox(width: 6),
                   Text(
-                    'Next Episode',
+                    context.l10n.nextEpisode,
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -2824,7 +2824,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
             const SizedBox(height: 6),
             AutoTranslatedText(
-              text: title.isEmpty ? ('Episode ' + (number ?? '')) : title,
+              text: title.isEmpty ? ('${context.l10n.episodes} ' + (number ?? '')) : title,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: AppText.body.copyWith(
@@ -2836,7 +2836,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
             Row(
               children: [
                 Text(
-                  number == null ? 'Episode' : 'Ep ' + number,
+                  number == null ? context.l10n.episodes : 'Ep ' + number,
                   style: AppText.body.copyWith(
                     color: Colors.white,
                     fontSize: 15,
@@ -2876,7 +2876,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ? null
                           : () => widget.onDownloadEpisode!(episode),
                       icon: const Icon(Icons.download_rounded, size: 19),
-                      label: const Text('Unduh'),
+                      label: Text(context.l10n.download),
                       style: FilledButton.styleFrom(
                         backgroundColor: const Color(0xFF100D0B),
                         foregroundColor: Colors.white,
@@ -2900,7 +2900,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  'Episode',
+                  context.l10n.episodes,
                   style: AppText.title.copyWith(
                     color: Colors.white,
                     fontSize: 19,
@@ -3212,7 +3212,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       TextButton(
                         onPressed: () => _c.openEpisode(state.currentIndex),
                         child: Text(
-                          'Try again',
+                          context.l10n.retry,
                           style: AppText.body.copyWith(color: AppColors.accent),
                         ),
                       ),
@@ -3786,11 +3786,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               _RoundIconButton(
                                 icon: Icons.lock_rounded,
                                 onTap: _toggleLock,
-                                semanticLabel: 'Unlock controls',
+                                semanticLabel: context.l10n.unlockControls,
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Tap to unlock',
+                                context.l10n.tapToUnlock,
                                 style: AppText.caption.copyWith(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w600,
