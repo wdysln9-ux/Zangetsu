@@ -47,32 +47,40 @@ class AniListMarkdown extends StatelessWidget {
     // AniList's video shorthands are converted after Markdown parsing,
     // matching AniList's own behavior (including inside code examples).
     html = html.replaceAllMapped(
-      RegExp(r'youtube\\(([^)]+)\\)'),
+      RegExp(r'youtube\(([^)]+)\)'),
       (match) {
         final value = match[1]!.trim();
         final uri = Uri.tryParse(
           value.startsWith('http') ? value : 'https://youtu.be/$value',
         );
-        final id = uri?.host.contains('youtu.be') == true
-            ? uri!.pathSegments.firstOrNull
-            : uri?.queryParameters['v'] ??
-                (uri?.pathSegments.contains('embed') == true
-                    ? uri!.pathSegments.last
-                    : null);
+        String? id;
+        if (uri != null) {
+          if (uri.host.contains('youtu.be') && uri.pathSegments.isNotEmpty) {
+            id = uri.pathSegments.first;
+          } else {
+            id = uri.queryParameters['v'];
+            final embedIndex = uri.pathSegments.indexOf('embed');
+            if ((id == null || id.isEmpty) &&
+                embedIndex >= 0 &&
+                embedIndex + 1 < uri.pathSegments.length) {
+              id = uri.pathSegments[embedIndex + 1];
+            }
+          }
+        }
         if (id == null || id.isEmpty) return match[0]!;
         return '<iframe src="https://www.youtube.com/embed/$id" '
             'width="560" height="315"></iframe>';
       },
     );
     html = html.replaceAllMapped(
-      RegExp(r'webm\\((https?://[^)]+)\\)'),
+      RegExp(r'webm\((https?://[^)]+)\)'),
       (match) =>
           '<video src="${match[1]}" controls loop muted autoplay></video>',
     );
 
     // AniList's spoiler and alignment shorthands.
     html = html.replaceAllMapped(
-      RegExp(r'<div\\s+rel=["\\']spoiler["\\']>(.*?)</div>', dotAll: true),
+      RegExp(r"""<div\s+rel=["']spoiler["']>(.*?)</div>""", dotAll: true),
       (match) =>
           '<span class="anilist-spoiler">${match[1] ?? ''}</span>',
     );
