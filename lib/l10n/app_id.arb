@@ -607,7 +607,7 @@
 	"streamURL": "URL Streaming",
 	"exoplayerSurfaceViewSpikeSP0": "Uji SurfaceView ExoPlayer (SP0)",
 	"episodes": "Episode",
-	"season": "Musim",
+	"season": "Season",
 	"jumpToEpisode": "Lompat ke episode…",
 	"preferredLanguage": "Bahasa pilihan…",
 	"searchOnline": "Cari online…",
@@ -700,7 +700,7 @@
 	"refreshChapters": "Muat ulang bab",
 	"refreshEpisodes": "Muat ulang episode",
 	"reverseList": "Balik urutan daftar",
-	"seasons": "Musim",
+	"seasons": "Season",
 	"goToEpisode": "Ke episode",
 	"episodeNumber": "Nomor episode",
 	"cancelDownload": "Batalkan unduhan",
@@ -1106,7 +1106,7 @@
 	"noNovelsHereInThisFilter": "Tidak ada novel di filter ini",
 	"mangaYouAddAppearHere": "Manga yang kamu tambahkan akan muncul di sini",
 	"novelsYouAddAppearHere": "Novel yang kamu tambahkan akan muncul di sini",
-	"relations": "Relasi",
+	"relations": "Terkait",
 	"characters": "Karakter",
 	"noCastInformation": "Tidak ada informasi pemain",
 	"noRelatedTitles": "Tidak ada judul terkait",
@@ -1292,7 +1292,7 @@
 	"notifyOnNewChapters": "Beri tahu untuk bab baru",
 	"notifyOnNewEpisodes": "Beri tahu untuk episode baru",
 	"syncStatusScoreProgress": "Sinkronkan status, skor & progres",
-	"seasonCount": "{count} Musim",
+	"seasonCount": "{count} Season",
 	"@seasonCount": {
 		"placeholders": {
 			"count": {
@@ -1422,7 +1422,7 @@
 			}
 		}
 	},
-	"seasonNumber": "Musim {number}",
+	"seasonNumber": "Season {number}",
 	"@seasonNumber": {
 		"placeholders": {
 			"number": {
