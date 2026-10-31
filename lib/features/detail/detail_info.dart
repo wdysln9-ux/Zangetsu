@@ -108,8 +108,6 @@ class _SynopsisTranslation extends StatefulWidget {
 
 class _SynopsisTranslationState extends State<_SynopsisTranslation> {
   String? _translated;
-  bool _showOriginal = false;
-  bool _loading = true;
 
   @override
   void initState() {
@@ -122,8 +120,6 @@ class _SynopsisTranslationState extends State<_SynopsisTranslation> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text) {
       _translated = null;
-      _showOriginal = false;
-      _loading = true;
       _loadTranslation();
     }
   }
@@ -133,51 +129,16 @@ class _SynopsisTranslationState extends State<_SynopsisTranslation> {
     if (!mounted) return;
     setState(() {
       _translated = result != widget.text ? result : null;
-      _loading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final translated = _translated;
-    final shownText = !_showOriginal && translated != null ? translated : widget.text;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          shownText,
-          style: AppText.body,
-          maxLines: widget.maxLines,
-          overflow: widget.maxLines == null ? null : TextOverflow.ellipsis,
-        ),
-        if (translated != null || _loading) ...[
-          const SizedBox(height: 5),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (_loading)
-                const SizedBox(
-                  width: 10,
-                  height: 10,
-                  child: CircularProgressIndicator(strokeWidth: 1.5),
-                ),
-              if (_loading && translated != null) const SizedBox(width: 8),
-              if (translated != null)
-                GestureDetector(
-                  onTap: () => setState(() => _showOriginal = !_showOriginal),
-                  child: Text(
-                    _showOriginal ? 'Terjemahan' : 'Asli',
-                    style: AppText.caption.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ],
+    return Text(
+      _translated ?? widget.text,
+      style: AppText.body,
+      maxLines: widget.maxLines,
+      overflow: widget.maxLines == null ? null : TextOverflow.ellipsis,
     );
   }
 }
