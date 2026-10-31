@@ -613,20 +613,19 @@ void openSubtitleStyleSheet(
   PlayerCubit? controller,
   VoidCallback onInteract,
 ) {
-  showDialog<void>(
+  showModalBottomSheet<void>(
     context: context,
-    barrierColor: Colors.black87,
-    builder: (dialogContext) => Dialog(
-      insetPadding: EdgeInsets.zero,
-      backgroundColor: const Color(0xFF17110D),
-      child: SizedBox(
-        width: MediaQuery.of(context).size.width,
-        height: MediaQuery.of(context).size.height,
-        child: SafeArea(
-          child: _SubtitleStyleSheet(
-            controller: controller,
-            onInteract: onInteract,
-          ),
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (_) => _SheetSurface(
+      blur: true,
+      opacity: 0.82,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      child: SafeArea(
+        top: false,
+        child: _SubtitleStyleSheet(
+          controller: controller,
+          onInteract: onInteract,
         ),
       ),
     ),
@@ -764,7 +763,6 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
     await _prefs.setSubtitleOutlineWidth(2.0);
     await _prefs.setSubtitleFontWeight(500);
     await _prefs.setSubtitleShadowAngle(90.0);
-    await _prefs.setSubtitleShadowThickness(1.0);
     await _prefs.setSubtitleShadowDistance(1.0);
     await _prefs.setSubtitleShadowBlur(0.0);
     await _prefs.setSubtitleShadowColorHex('#000000FF');
@@ -782,7 +780,7 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
       child: Column(
-        mainAxisSize: MainAxisSize.max,
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
@@ -795,39 +793,14 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 2, 12, 8),
-            child: Row(
-              children: [
-                IconButton(
-                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: const Icon(Icons.arrow_back),
-                ),
-                Expanded(
-                  child: Text(
-                    'Kustomisasi Subtitle',
-                    style: AppText.headline,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Save',
-                    style: TextStyle(
-                      color: AppColors.accent,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+            child: Text(context.l10n.subtitleStyle, style: AppText.headline),
           ),
           // Live WYSIWYG preview — built with the SAME buildSubtitleTextStyle as
           // the real overlay, so what you see here is what renders on the video.
           Container(
             margin: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-            height: ((MediaQuery.of(context).size.width - 48) * 9 / 16).clamp(130.0, 220.0).toDouble(),
+            height: 92,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
@@ -846,12 +819,16 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
               ),
             ),
           ),
-          Expanded(
+          Flexible(
             child: ListView(
-              padding: const EdgeInsets.only(bottom: 20),
+              shrinkWrap: true,
               children: [
                 _SheetSectionHeader(context.l10n.font),
-                Column(
+                ConstrainedBox(
+                  constraints: BoxConstraints(maxHeight: h * 0.28),
+                  child: ListView(
+                    shrinkWrap: true,
+                    padding: EdgeInsets.zero,
                     children: [
                       for (final f in kBundledSubtitleFonts)
                         _SheetRow(
@@ -882,6 +859,7 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
                       ),
                     ],
                   ),
+                ),
                 _SheetSectionHeader(context.l10n.textColour),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
@@ -973,15 +951,6 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
                   label: _prefs.subtitleOutlineWidth.toStringAsFixed(1),
                   onChanged: (v) =>
                       _apply(() => _prefs.setSubtitleOutlineWidth(v)),
-                ),
-                _SheetSectionHeader('Ketebalan Bayangan'),
-                _SliderRow(
-                  value: _prefs.subtitleShadowThickness,
-                  min: 0,
-                  max: 10,
-                  divisions: 20,
-                  label: '${_prefs.subtitleShadowThickness.toStringAsFixed(1)} px',
-                  onChanged: (v) => _apply(() => _prefs.setSubtitleShadowThickness(v)),
                 ),
                 _SheetSectionHeader('Sudut Bayangan'),
                 _SliderRow(
@@ -1172,46 +1141,50 @@ class _SliderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final step = (max - min) / divisions;
-    final canDec = value > min;
-    final canInc = value < max;
+    // On TV a focused Slider swallows D-pad ↑/↓ (you can't move off it). Swap in
+    // a focusable ◄ value ► stepper: ◄/► adjust, ↑/↓ move to the next control.
     if (sl<AppMode>().isTv) {
+      final step = (max - min) / divisions;
       return _TvStepperRow(
         label: label,
-        onDec: canDec ? () => onChanged((value - step).clamp(min, max)) : null,
-        onInc: canInc ? () => onChanged((value + step).clamp(min, max)) : null,
+        onDec: value <= min
+            ? null
+            : () => onChanged((value - step).clamp(min, max)),
+        onInc: value >= max
+            ? null
+            : () => onChanged((value + step).clamp(min, max)),
       );
     }
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 3, 12, 5),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF241A16),
-        borderRadius: BorderRadius.circular(13),
-        border: Border.all(color: const Color(0xFF38271F), width: 1),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
       child: Row(
         children: [
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            onPressed: canDec ? () => onChanged((value - step).clamp(min, max)) : null,
-            icon: const Icon(Icons.remove_circle_outline, color: Color(0xFF91A396)),
+          Expanded(
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                activeTrackColor: AppColors.accent,
+                thumbColor: AppColors.accent,
+                inactiveTrackColor: AppColors.surface2,
+              ),
+              child: Slider(
+                value: value.clamp(min, max),
+                min: min,
+                max: max,
+                divisions: divisions,
+                onChanged: onChanged,
+              ),
+            ),
           ),
           SizedBox(
-            width: 72,
+            width: 64,
             child: Text(
               label,
               textAlign: TextAlign.center,
               style: AppText.body.copyWith(
-                color: AppColors.textPrimary,
-                fontSize: 12,
+                color: AppColors.accent,
+                fontWeight: FontWeight.w700,
               ),
             ),
-          ),
-          IconButton(
-            visualDensity: VisualDensity.compact,
-            onPressed: canInc ? () => onChanged((value + step).clamp(min, max)) : null,
-            icon: const Icon(Icons.add_circle_outline, color: Color(0xFFF47521)),
           ),
         ],
       ),
