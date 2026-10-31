@@ -557,7 +557,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (_portraitMode) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
       SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFF161616),
+        statusBarColor: AppColors.bg,
         statusBarIconBrightness: Brightness.light,
         systemNavigationBarColor: Colors.black,
         systemNavigationBarIconBrightness: Brightness.light,
