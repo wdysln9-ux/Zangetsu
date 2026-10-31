@@ -111,7 +111,7 @@ class _PersonPageState extends State<PersonPage> {
             child: _sectionLabel(
               widget.person.source == PersonSource.anilistStaff
                   ? 'Roles'
-                  : 'Appears in',
+                  : 'Peran',
             ),
           ),
           SliverPadding(
@@ -170,7 +170,9 @@ class _PersonPageState extends State<PersonPage> {
                   const SizedBox(height: 4),
                   Text(p.nativeName!, style: AppText.body),
                 ],
-                if (p.subtitle != null && p.subtitle!.isNotEmpty) ...[
+                if (widget.person.source != PersonSource.anilistCharacter &&
+                    p.subtitle != null &&
+                    p.subtitle!.isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -215,7 +217,7 @@ class _PersonPageState extends State<PersonPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              _bioExpanded ? 'Show less' : 'Read more',
+              _bioExpanded ? 'Show less' : 'Baca selengkapnya',
               style: AppText.caption.copyWith(color: AppColors.accent),
             ),
           ],
@@ -228,7 +230,7 @@ class _PersonPageState extends State<PersonPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionLabel('Voiced by'),
+        _sectionLabel('Pengisi suara'),
         SizedBox(
           height: 108,
           child: ListView.separated(
@@ -285,6 +287,12 @@ class _PersonPageState extends State<PersonPage> {
     child: Text(text, style: AppText.overline),
   );
 
+  String _translatedRole(String value) {
+    return value
+        .replaceAll(RegExp(r'\\bMain\\b', caseSensitive: false), 'Utama')
+        .replaceAll(RegExp(r'\\bSupporting\\b', caseSensitive: false), 'Pendukung');
+  }
+
   Widget _workCard(PersonWork w) {
     return GestureDetector(
       onTap: () => _openWork(w),
@@ -317,7 +325,7 @@ class _PersonPageState extends State<PersonPage> {
           ),
           if (w.subtitle != null && w.subtitle!.isNotEmpty)
             Text(
-              w.subtitle!,
+              _translatedRole(w.subtitle!),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppText.caption.copyWith(fontSize: 11),
