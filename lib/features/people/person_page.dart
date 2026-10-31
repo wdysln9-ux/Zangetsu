@@ -78,12 +78,14 @@ class _PersonPageState extends State<PersonPage> {
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         elevation: 0,
-        title: Text(
-          _displayName(widget.person.name),
-          style: AppText.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        title: widget.person.source == PersonSource.anilistCharacter
+            ? null
+            : Text(
+                _displayName(widget.person.name),
+                style: AppText.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
       ),
       body: FutureBuilder<PersonProfile?>(
         future: _future,
@@ -153,6 +155,9 @@ class _PersonPageState extends State<PersonPage> {
   }
 
   Widget _header(PersonProfile p) {
+    if (widget.person.source == PersonSource.anilistCharacter) {
+      return _characterHeader(p);
+    }
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       child: Row(
@@ -229,6 +234,133 @@ class _PersonPageState extends State<PersonPage> {
     );
   }
 
+  Widget _characterHeader(PersonProfile p) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 238,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                height: 166,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (p.photo != null && p.photo!.isNotEmpty)
+                      CachedNetworkImage(
+                        imageUrl: p.photo!,
+                        fit: BoxFit.cover,
+                        memCacheWidth: 900,
+                        errorWidget: (_, _, _) =>
+                            Container(color: AppColors.surface2),
+                      )
+                    else
+                      Container(color: AppColors.surface2),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            AppColors.bg.withValues(alpha: 0.48),
+                            AppColors.bg.withValues(alpha: 0.88),
+                            AppColors.bg,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: 16,
+                top: 20,
+                child: SizedBox(
+                  width: 126,
+                  height: 168,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: (p.photo != null && p.photo!.isNotEmpty)
+                        ? CachedNetworkImage(
+                            imageUrl: p.photo!,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 378,
+                            placeholder: (_, _) =>
+                                Container(color: AppColors.surface2),
+                            errorWidget: (_, _, _) =>
+                                const _PortraitFallback(),
+                          )
+                        : const _PortraitFallback(),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 156,
+                right: 16,
+                top: 92,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _displayName(p.name),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppText.title.copyWith(
+                        fontSize: 23,
+                        height: 1.12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (p.nativeName != null && p.nativeName!.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        p.nativeName!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppText.body.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+          child: Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: p.alternateNames
+                .where((name) => name.trim().isNotEmpty)
+                .map(
+                  (name) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 7,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(name, style: AppText.caption),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
   List<(String, String)> _manualCharacterFacts(String description) {
     final pattern = RegExp(r'^\s*__(.+?):__\s*(.+?)\s*$', multiLine: true);
     return pattern
@@ -268,7 +400,7 @@ class _PersonPageState extends State<PersonPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionLabel('Informasi karakter'),
+          _sectionLabel('Info'),
           const SizedBox(height: 4),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -330,7 +462,15 @@ class _PersonPageState extends State<PersonPage> {
   }
 
   Widget _bio(String text) {
-    return GestureDetector(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Divider(color: AppColors.border, height: 1),
+        ),
+        _sectionLabel('Biografi'),
+        GestureDetector(
       onTap: () => setState(() => _bioExpanded = !_bioExpanded),
       behavior: HitTestBehavior.opaque,
       child: Padding(
@@ -357,6 +497,7 @@ class _PersonPageState extends State<PersonPage> {
           ],
         ),
       ),
+      ],
     );
   }
 
