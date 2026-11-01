@@ -172,10 +172,16 @@ class AniListMarkdown extends StatelessWidget {
               'text-decoration': 'none',
             };
           case 'img':
-            return {'max-width': '100%'};
+            return {'max-width': '100%', 'height': 'auto'};
           case 'div':
-            if (element.classes.contains('anilist-center')) {
-              return {'text-align': 'center'};
+          case 'center':
+            if (element.classes.contains('anilist-center') ||
+                element.localName == 'center') {
+              return {'text-align': 'center', 'width': '100%'};
+            }
+            final align = element.attributes['align'];
+            if (align == 'center' || align == 'right' || align == 'justify') {
+              return {'text-align': align, 'max-width': '100%'};
             }
             break;
         }
@@ -207,9 +213,13 @@ class AniListMarkdown extends StatelessWidget {
           final width = double.tryParse(element.attributes['width'] ?? '');
           return LayoutBuilder(
             builder: (context, constraints) {
-              final displayWidth = width == null
+              final availableWidth = constraints.maxWidth.isFinite
                   ? constraints.maxWidth
-                  : width.clamp(1, constraints.maxWidth).toDouble();
+                  : MediaQuery.sizeOf(context).width - 32;
+              final safeWidth = availableWidth.clamp(1.0, 1200.0);
+              final displayWidth = width == null
+                  ? safeWidth
+                  : width.clamp(1, safeWidth).toDouble();
               final pixelWidth = (displayWidth *
                       MediaQuery.devicePixelRatioOf(context))
                   .round()
