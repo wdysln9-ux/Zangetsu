@@ -93,20 +93,56 @@ class _ThreadCard extends StatelessWidget {
   final String anime;
   @override
   Widget build(BuildContext context) {
-    final u = data['user'] as Map? ?? {};
-    final av = u['avatar'] as Map? ?? {};
-    return _Card(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => _ThreadPage(data: data, anime: anime))),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _User(name: '${u['name'] ?? 'AniList user'}', avatar: av['large']?.toString(), date: _dateLabel(data['createdAt'])),
-        const SizedBox(height: 9),
-        _TranslatedText(text: '${data['title'] ?? 'Utas tanpa judul'}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        _Stats(views: data['viewCount'], likes: data['likeCount'], comments: data['replyCount']),
-      ]),
+    final user = data['user'] as Map? ?? {};
+    final avatar = user['avatar'] as Map? ?? {};
+    return Material(
+      color: AppColors.surface2,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => _ThreadPage(data: data, anime: anime))),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 13, 14, 5),
+            child: Row(children: [
+              CircleAvatar(radius: 13, backgroundImage: avatar['large'] == null ? null : NetworkImage('${avatar['large']}'), child: avatar['large'] == null ? const Icon(Icons.forum_outlined, size: 14) : null),
+              const SizedBox(width: 8),
+              Expanded(child: Text('Anime discussion  ·  u/${user['name'] ?? 'AniList user'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600))),
+              Text(_dateLabel(data['createdAt']), style: TextStyle(fontSize: 11, color: AppColors.textTertiary)),
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 7, 14, 12),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _TranslatedText(text: '${data['title'] ?? 'Utas tanpa judul'}', style: const TextStyle(fontSize: 17, height: 1.3, fontWeight: FontWeight.w800)),
+              if ((data['body'] ?? '').toString().trim().isNotEmpty) ...[
+                const SizedBox(height: 7),
+                Text(data['body'].toString().replaceAll(RegExp(r'[#>*_]'), '').replaceAll(RegExp(r'\\s+'), ' '), maxLines: 3, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textSecondary, height: 1.35)),
+              ],
+            ]),
+          ),
+          Container(
+            decoration: BoxDecoration(border: Border(top: BorderSide(color: AppColors.hairline))),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(children: [
+              _threadAction(Icons.arrow_upward_rounded, '${data['likeCount'] ?? 0}'),
+              const SizedBox(width: 17),
+              _threadAction(Icons.mode_comment_outlined, '${data['replyCount'] ?? 0} komentar'),
+              const Spacer(),
+              _threadAction(Icons.visibility_outlined, '${data['viewCount'] ?? 0}'),
+            ]),
+          ),
+        ]),
+      ),
     );
   }
 }
+
+Widget _threadAction(IconData icon, String label) => Row(mainAxisSize: MainAxisSize.min, children: [
+  Icon(icon, size: 16, color: AppColors.textSecondary),
+  const SizedBox(width: 5),
+  Text(label, style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+]);
 
 class _ReviewPage extends StatelessWidget {
   const _ReviewPage({required this.data, required this.anime});
@@ -156,45 +192,93 @@ class _ThreadPageState extends State<_ThreadPage> {
   Widget build(BuildContext context) {
     final id = (widget.data['id'] as num?)?.toInt();
     return Scaffold(
-      appBar: AppBar(title: const Text('Utas')),
+      appBar: AppBar(title: const Text('Post'), centerTitle: false),
       body: id == null ? const Center(child: Text('Utas tidak tersedia.')) :
         FutureBuilder<Map<String, dynamic>?>(
           future: threadFuture,
-          builder: (context, s) {
-            final d = s.data ?? widget.data;
-            final u = d['user'] as Map? ?? {};
-            final av = u['avatar'] as Map? ?? {};
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 24),
-              children: [
-                Text(widget.anime, style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                const SizedBox(height: 12),
-                // Reddit-inspired post header: author metadata above a full-width post.
-                _Card(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  _User(name: '${u['name'] ?? 'AniList user'}', avatar: av['large']?.toString(), date: _dateLabel(d['createdAt'])),
-                  const SizedBox(height: 14),
-                  _TranslatedText(text: '${d['title'] ?? ''}', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  if (s.connectionState == ConnectionState.waiting) const LinearProgressIndicator(),
-                  _TranslatedPost(text: '${d['body'] ?? ''}'),
-                  const SizedBox(height: 14),
-                  _Stats(views: d['viewCount'], likes: d['likeCount'], comments: d['replyCount']),
-                ])),
-                const SizedBox(height: 22),
-                Row(children: [
-                  const Text('Komentar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(width: 7),
-                  Text('${d['replyCount'] ?? 0}', style: TextStyle(color: AppColors.textSecondary)),
+          builder: (context, snapshot) {
+            final post = snapshot.data ?? widget.data;
+            final user = post['user'] as Map? ?? {};
+            final avatar = user['avatar'] as Map? ?? {};
+            return ListView(padding: EdgeInsets.zero, children: [
+              Container(
+                color: AppColors.surface,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(children: [
+                  const Icon(Icons.forum_outlined, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text('Anime discussion  ·  ${widget.anime}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700))),
                 ]),
-                const SizedBox(height: 12),
-                _ThreadComments(threadId: id, expectedCount: (d['replyCount'] as num?)?.toInt() ?? 0),
-              ],
-            );
+              ),
+              Container(
+                color: AppColors.surface2,
+                padding: const EdgeInsets.fromLTRB(16, 15, 16, 14),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    CircleAvatar(radius: 17, backgroundImage: avatar['large'] == null ? null : NetworkImage('${avatar['large']}'), child: avatar['large'] == null ? const Icon(Icons.person, size: 18) : null),
+                    const SizedBox(width: 9),
+                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text('u/${user['name'] ?? 'AniList user'}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+                      Text('Diposting ${_dateLabel(post['createdAt'])}', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                    ])),
+                    const Icon(Icons.more_horiz, color: AppColors.textSecondary),
+                  ]),
+                  const SizedBox(height: 15),
+                  _TranslatedText(text: '${post['title'] ?? ''}', style: const TextStyle(fontSize: 21, height: 1.25, fontWeight: FontWeight.w800)),
+                  if ((post['body'] ?? '').toString().trim().isNotEmpty) ...[
+                    const SizedBox(height: 13),
+                    if (snapshot.connectionState == ConnectionState.waiting) const LinearProgressIndicator(),
+                    _TranslatedPost(text: '${post['body'] ?? ''}'),
+                  ],
+                  const SizedBox(height: 17),
+                  Row(children: [
+                    Container(
+                      decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(24), border: Border.all(color: AppColors.hairline)),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                      child: Row(children: [
+                        Icon(Icons.arrow_upward_rounded, size: 18, color: AppColors.accent),
+                        const SizedBox(width: 5),
+                        Text('${post['likeCount'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                        const SizedBox(width: 4),
+                        Icon(Icons.arrow_downward_rounded, size: 18, color: AppColors.textSecondary),
+                      ]),
+                    ),
+                    const SizedBox(width: 10),
+                    _postPill(Icons.mode_comment_outlined, '${post['replyCount'] ?? 0} komentar'),
+                    const Spacer(),
+                    _postPill(Icons.visibility_outlined, '${post['viewCount'] ?? 0}'),
+                  ]),
+                ]),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                child: Row(children: [
+                  const Text('Komentar', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                  const SizedBox(width: 7),
+                  Text('${post['replyCount'] ?? 0}', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                  const Spacer(),
+                  Text('TERBARU', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .8)),
+                  const SizedBox(width: 4),
+                  Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.textSecondary),
+                ]),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                child: _ThreadComments(threadId: id, expectedCount: (post['replyCount'] as num?)?.toInt() ?? 0),
+              ),
+            ]);
           },
         ),
     );
   }
 }
+
+Widget _postPill(IconData icon, String label) => Row(mainAxisSize: MainAxisSize.min, children: [
+  Icon(icon, size: 15, color: AppColors.textSecondary),
+  const SizedBox(width: 5),
+  Text(label, style: TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+]);
 
 class _ThreadComments extends StatelessWidget {
   const _ThreadComments({required this.threadId, required this.expectedCount});
@@ -221,36 +305,37 @@ class _Comment extends StatelessWidget {
   final int depth;
   @override
   Widget build(BuildContext context) {
-    final u = data['user'] as Map? ?? {};
-    final av = u['avatar'] as Map? ?? {};
+    final user = data['user'] as Map? ?? {};
+    final avatar = user['avatar'] as Map? ?? {};
     final children = data['childComments'] is List ? data['childComments'] as List : const [];
     final id = (data['id'] as num?)?.toInt();
     return Padding(
-      padding: EdgeInsets.only(left: depth == 0 ? 0 : 15, bottom: 8),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        if (depth > 0) Container(width: 2, margin: const EdgeInsets.only(right: 10), color: AppColors.textSecondary.withValues(alpha: .25)),
+      padding: EdgeInsets.only(left: depth == 0 ? 0 : 17, bottom: 2),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        if (depth > 0) Container(width: 2, constraints: const BoxConstraints(minHeight: 65), margin: const EdgeInsets.only(right: 11), color: AppColors.textSecondary.withValues(alpha: .28)),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              CircleAvatar(radius: 15, backgroundImage: av['large'] == null ? null : NetworkImage('${av['large']}'), child: av['large'] == null ? const Icon(Icons.person, size: 16) : null),
-              const SizedBox(width: 9),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(children: [
-                  Flexible(child: Text('${u['name'] ?? 'AniList user'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
-                  const SizedBox(width: 7),
-                  Text(_dateLabel(data['createdAt']), style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
-                ]),
-                const SizedBox(height: 7),
-                _TranslatedMarkdown(text: '${data['comment'] ?? ''}'),
-                const SizedBox(height: 7),
-                Row(children: [
-                  _LoveButton(commentId: id, count: (data['likeCount'] as num?)?.toInt() ?? 0, initiallyLiked: data['isLiked'] == true),
-                  const SizedBox(width: 18),
-                ]),
-              ])),
-            ]),
-          ),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            CircleAvatar(radius: 15, backgroundImage: avatar['large'] == null ? null : NetworkImage('${avatar['large']}'), child: avatar['large'] == null ? const Icon(Icons.person, size: 16) : null),
+            const SizedBox(width: 9),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Flexible(child: Text('u/${user['name'] ?? 'AniList user'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
+                const SizedBox(width: 7),
+                Text(_dateLabel(data['createdAt']), style: TextStyle(color: AppColors.textTertiary, fontSize: 10)),
+              ]),
+              const SizedBox(height: 7),
+              _TranslatedMarkdown(text: '${data['comment'] ?? ''}'),
+              const SizedBox(height: 7),
+              Row(children: [
+                _LoveButton(commentId: id, count: (data['likeCount'] as num?)?.toInt() ?? 0, initiallyLiked: data['isLiked'] == true),
+                const SizedBox(width: 16),
+                Text('Balas', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700)),
+                const SizedBox(width: 14),
+                const Icon(Icons.more_horiz, size: 17, color: AppColors.textSecondary),
+              ]),
+              const SizedBox(height: 13),
+            ])),
+          ]),
           if (children.isNotEmpty)
             for (final child in children)
               if (child is Map) _Comment(data: Map<String, dynamic>.from(child), depth: depth + 1),
