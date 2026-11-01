@@ -87,7 +87,7 @@ class AniListMarkdown extends StatelessWidget {
         final tag = (match[1] ?? '').toLowerCase();
         final attrs = match[2] ?? '';
         final body = match[3] ?? '';
-        final alignMatch = RegExp(r'align\s*=\s*["\\']?(left|center|right|justify)', caseSensitive: false).firstMatch(attrs);
+        final alignMatch = RegExp(r"""align\s*=\s*["']?(left|center|right|justify)""", caseSensitive: false).firstMatch(attrs);
         final align = tag == 'center' ? 'center' : (alignMatch?.group(1)?.toLowerCase() ?? 'left');
         final index = alignedBlocks.length;
         alignedBlocks.add((body: body, align: align));
