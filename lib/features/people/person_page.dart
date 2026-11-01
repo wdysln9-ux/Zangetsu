@@ -78,6 +78,7 @@ class _PersonPageState extends State<PersonPage> {
       extendBodyBehindAppBar: widget.person.source == PersonSource.anilistCharacter,
       appBar: AppBar(
         backgroundColor: widget.person.source == PersonSource.anilistCharacter ? Colors.transparent : AppColors.bg,
+        forceMaterialTransparency: true,
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.transparent,
         elevation: 0,
