@@ -29,7 +29,6 @@ import '../../core/theme/theme_controller.dart';
 import '../../core/ui/app_dialog.dart';
 import '../../core/ui/app_toast.dart';
 import 'open_related.dart';
-import 'anilist_episode_comments.dart';
 import '../../core/ui/episode_unavailable_dialog.dart';
 import '../../core/zmode/playback_resolver.dart';
 import 'episode_sources_sheet.dart';
@@ -478,7 +477,7 @@ class _DetailViewState extends State<_DetailView>
     ..addListener(_onScroll);
 
   late final TabController _tabController = TabController(
-    length: 5,
+    length: 4,
     vsync: this,
   );
 
@@ -2657,7 +2656,6 @@ class _DetailViewState extends State<_DetailView>
                 ),
                 const Tab(text: 'Terkait'),
                 Tab(text: context.l10n.details),
-                const Tab(text: 'Komentar'),
               ],
             ),
             tint: ThemeController.adaptiveColour ? _tint : null,
@@ -2749,7 +2747,6 @@ class _DetailViewState extends State<_DetailView>
             description: cleanSynopsis(detail.description),
             detail: detail,
           ),
-          AniListEpisodeComments(title: detail.title, malId: detail.malId),
         ],
       ),
     );
