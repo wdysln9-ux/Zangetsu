@@ -707,7 +707,7 @@ class AniListApi {
     final d = await _gql(
       'query(\$id:Int){ Thread(id:\$id){ id title body viewCount likeCount replyCount '
       'createdAt updatedAt user{id name avatar{large}} '
-      'comments(sort:[ID],threadId:\$id){ id comment likeCount createdAt user{id name avatar{large}} '
+      'comments(sort:[ID]){ id comment likeCount createdAt user{id name avatar{large}} '
       'childComments{id comment likeCount createdAt user{id name avatar{large}}} } } }',
       {'id': threadId},
     );
