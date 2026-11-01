@@ -682,7 +682,7 @@ class AniListApi {
   Future<List<Map<String, dynamic>>> fetchReviews(int mediaId, {int page = 1}) async {
     final d = await _gql(
       'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:20){ '
-      'reviews(mediaId:\$id,sort:[RATING_DESC]){ id summary body rating ratingAmount userRating '
+      'reviews(mediaId:\$id,sort:[RATING_DESC]){ id summary body score rating ratingAmount userRating '
       'createdAt user{id name avatar{large}} } } }',
       {'id': mediaId, 'page': page},
     );
@@ -706,13 +706,29 @@ class AniListApi {
   Future<Map<String, dynamic>?> fetchThread(int threadId) async {
     final d = await _gql(
       'query(\$id:Int){ Thread(id:\$id){ id title body viewCount likeCount replyCount '
-      'createdAt updatedAt user{id name avatar{large}} '
-      'comments(sort:[ID]){ id comment likeCount createdAt user{id name avatar{large}} '
-      'childComments{id comment likeCount createdAt user{id name avatar{large}}} } } }',
+      'createdAt updatedAt user{id name avatar{large}} } }',
       {'id': threadId},
     );
     final thread = d?['Thread'];
     return thread is Map ? Map<String, dynamic>.from(thread) : null;
+  }
+
+  /// Thread comments are a Page-level query in AniList. They must be fetched
+  /// separately from Thread; requesting them as a Thread field silently
+  /// invalidates the whole GraphQL selection.
+  Future<List<Map<String, dynamic>>> fetchThreadComments(
+    int threadId, {int page = 1}
+  ) async {
+    final d = await _gql(
+      'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:50){ '
+      'threadComments(threadId:\$id,sort:[ID]){ id comment likeCount createdAt '
+      'user{id name avatar{large}} childComments{id comment likeCount createdAt '
+      'user{id name avatar{large}}} } } }',
+      {'id': threadId, 'page': page},
+    );
+    final rows = (d?['Page'] as Map?)?['threadComments'];
+    if (rows is! List) return const [];
+    return [for (final row in rows) if (row is Map) Map<String, dynamic>.from(row)];
   }
 
   /// Push progress/status for [mediaId]. Returns true on success.
