@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -6,6 +8,8 @@ import 'package:markdown/markdown.dart' as md;
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:dio/dio.dart';
+import 'package:gal/gal.dart';
 
 import '../theme/app_colors.dart';
 import '../metadata/synopsis_translator.dart';
@@ -273,7 +277,13 @@ class AniListMarkdown extends StatelessWidget {
                       MediaQuery.devicePixelRatioOf(context))
                   .round()
                   .clamp(1, 4096);
-              return CachedNetworkImage(
+              return GestureDetector(
+                onTap: () => showDialog<void>(
+                  context: context,
+                  barrierColor: Colors.black,
+                  builder: (_) => _MarkdownImageViewer(url: src),
+                ),
+                child: CachedNetworkImage(
                 imageUrl: src,
                 httpHeaders: {
                   'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36',
@@ -289,6 +299,7 @@ class AniListMarkdown extends StatelessWidget {
                   height: displayWidth * 0.56,
                 ),
                 errorWidget: (_, __, ___) => SizedBox(width: displayWidth, height: displayWidth * 0.56, child: const Center(child: Icon(Icons.broken_image_outlined, color: Colors.white38))),
+                ),
               );
             },
           );
@@ -462,6 +473,115 @@ class _WebmMarkdownPlayerState extends State<_WebmMarkdownPlayer> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: Video(controller: _controller),
+      ),
+    );
+  }
+}
+
+
+/// Full-screen image preview with pinch-to-zoom and a save-to-gallery action.
+class _MarkdownImageViewer extends StatefulWidget {
+  const _MarkdownImageViewer({required this.url});
+
+  final String url;
+
+  @override
+  State<_MarkdownImageViewer> createState() => _MarkdownImageViewerState();
+}
+
+class _MarkdownImageViewerState extends State<_MarkdownImageViewer> {
+  bool _saving = false;
+
+  Future<void> _download() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      final response = await Dio().get<List<int>>(
+        widget.url,
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36',
+            'Referer': Uri.tryParse(widget.url)?.origin ?? 'https://anilist.co/',
+          },
+        ),
+      );
+      final bytes = response.data;
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception('Gambar kosong');
+      }
+      final name = Uri.tryParse(widget.url)?.pathSegments.lastOrNull;
+      final safeName = (name == null || name.isEmpty) ? 'anilist-image.jpg' : name;
+      await Gal.putImageBytes(Uint8List.fromList(bytes), name: safeName);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Gambar berhasil disimpan ke galeri')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal menyimpan gambar: $error')),
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog.fullscreen(
+      backgroundColor: Colors.black,
+      child: SafeArea(
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 5,
+                child: Center(
+                  child: CachedNetworkImage(
+                    imageUrl: widget.url,
+                    fit: BoxFit.contain,
+                    httpHeaders: {
+                      'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36',
+                      'Referer': Uri.tryParse(widget.url)?.origin ?? 'https://anilist.co/',
+                    },
+                    placeholder: (_, __) => const CircularProgressIndicator(),
+                    errorWidget: (_, __, ___) => const Icon(
+                      Icons.broken_image_outlined,
+                      color: Colors.white54,
+                      size: 48,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              left: 8,
+              child: IconButton.filledTonal(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close),
+                tooltip: 'Tutup',
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: FilledButton.icon(
+                onPressed: _saving ? null : _download,
+                icon: _saving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.download),
+                label: Text(_saving ? 'Menyimpan...' : 'Download'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
