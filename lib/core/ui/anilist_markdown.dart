@@ -4,6 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:markdown/markdown.dart' as md;
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 import '../theme/app_colors.dart';
 import '../metadata/synopsis_translator.dart';
@@ -174,6 +176,14 @@ class AniListMarkdown extends StatelessWidget {
           if (!isYoutube) return const SizedBox.shrink();
           return _YoutubeMarkdownEmbed(uri: src);
         }
+        if (element.localName == 'video') {
+          final rawSrc = element.attributes['src'] ?? '';
+          final uri = Uri.tryParse(rawSrc);
+          if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http') || uri.host.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          return _WebmMarkdownPlayer(url: uri.toString());
+        }
         if (element.localName == 'img') {
           final src = element.attributes['src'];
           if (src == null || src.isEmpty) return const SizedBox.shrink();
@@ -324,4 +334,55 @@ class _YoutubeMarkdownEmbedState extends State<_YoutubeMarkdownEmbed> {
       child: WebViewWidget(controller: _controller),
     ),
   );
+}
+
+/// Native inline player for AniList's webm(URL) embed syntax.
+class _WebmMarkdownPlayer extends StatefulWidget {
+  const _WebmMarkdownPlayer({required this.url});
+  final String url;
+  @override
+  State<_WebmMarkdownPlayer> createState() => _WebmMarkdownPlayerState();
+}
+class _WebmMarkdownPlayerState extends State<_WebmMarkdownPlayer> {
+  late final Player _player;
+  late final VideoController _controller;
+  String? _error;
+  @override
+  void initState() {
+    super.initState();
+    _player = Player();
+    _controller = VideoController(_player);
+    _open();
+  }
+  Future<void> _open() async {
+    try {
+      await _player.open(Media(widget.url), play: false);
+    } catch (error) {
+      if (mounted) setState(() => _error = error.toString());
+    }
+  }
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        color: Colors.black,
+        child: Text('Video tidak dapat diputar: $_error',
+            style: const TextStyle(color: Colors.white70, fontSize: 12)),
+      );
+    }
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Video(controller: _controller),
+      ),
+    );
+  }
 }
