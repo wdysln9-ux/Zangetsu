@@ -55,7 +55,7 @@ class PeopleService {
   Future<PersonProfile?> _character(int id) async {
     const q =
         'query(\$id:Int){ Character(id:\$id){ '
-        'idMal name{ full native alternative } image{ large } description(asHtml:false) '
+        'name{ full native alternative } image{ large } description(asHtml:false) '
         'age gender dateOfBirth{ year month day } bloodType favourites '
         // No type filter: a manga character's appearances ARE manga, and
         // pinning this to ANIME left every reading character empty.
@@ -111,7 +111,7 @@ class PeopleService {
           : null,
       favourites: (c['favourites'] as num?)?.toInt(),
       photo: _aniImage(c, 'image'),
-      malId: (c['idMal'] as num?)?.toInt(),
+      malId: null,
       description: _plain(c['description'] as String?),
       subtitle: 'Character',
       works: works,
@@ -315,16 +315,34 @@ class PeopleService {
     );
   }
 
-  /// Extra character artwork from MyAnimeList via Jikan (public MAL data).
-  Future<List<String>> loadCharacterGallery(int? malId) async {
-    if (malId == null || malId <= 0) return const [];
+  /// Find the matching MAL character and load its public picture gallery.
+  Future<List<String>> loadCharacterGallery(String characterName) async {
     try {
-      final res = await _dio.get<dynamic>(
+      final search = await _dio.get<dynamic>(
+        'https://api.jikan.moe/v4/characters',
+        queryParameters: {'q': characterName, 'limit': 8},
+        options: Options(validateStatus: (status) => status != null && status < 500),
+      );
+      final searchData = search.data is Map ? search.data['data'] : null;
+      if (searchData is! List || searchData.isEmpty) return const [];
+      final normalized = characterName.trim().toLowerCase();
+      Map? best;
+      for (final item in searchData) {
+        if (item is! Map) continue;
+        final name = item['name'];
+        if (name is String && name.trim().toLowerCase() == normalized) {
+          best = item;
+          break;
+        }
+      }
+      best ??= searchData.first is Map ? searchData.first as Map : null;
+      final malId = (best?['mal_id'] as num?)?.toInt();
+      if (malId == null) return const [];
+      final response = await _dio.get<dynamic>(
         'https://api.jikan.moe/v4/characters/$malId/pictures',
         options: Options(validateStatus: (status) => status != null && status < 500),
       );
-      final body = res.data;
-      final data = body is Map ? body['data'] : null;
+      final data = response.data is Map ? response.data['data'] : null;
       if (data is! List) return const [];
       final urls = <String>[];
       for (final item in data) {
