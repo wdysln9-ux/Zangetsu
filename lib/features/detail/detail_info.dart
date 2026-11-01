@@ -253,7 +253,7 @@ class _IconAction extends StatelessWidget {
                 child: Icon(
                   icon,
                   size: 24,
-                  color: active && filledActive ? AppColors.bg : color,
+                  color: active && filledActive ? Colors.white : color,
                 ),
               ),
               const SizedBox(height: 6),
