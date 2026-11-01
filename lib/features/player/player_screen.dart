@@ -2899,7 +2899,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             .clamp(0.0, 1.0);
                     final viewers = _showPopularity == null
                         ? null
-                        : (_showPopularity! * math.pow(0.7, progress)).round();
+                        : (_showPopularity! * math.pow(0.4, progress)).round();
                     final likes = viewers == null ? 0 : (viewers * 0.28).round();
                     final dislikes = viewers == null ? 0 : (viewers * 0.04).round();
                     String compact(int value) => value >= 100000
@@ -2927,7 +2927,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             .clamp(0.0, 1.0);
                     final viewers = _showPopularity == null
                         ? 0
-                        : (_showPopularity! * math.pow(0.7, progress)).round();
+                        : (_showPopularity! * math.pow(0.4, progress)).round();
                     final likes = (viewers * 0.28).round() +
                         (_episodeVote == 1 ? 1 : 0);
                     final dislikes = (viewers * 0.04).round() +
