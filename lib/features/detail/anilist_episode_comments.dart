@@ -15,6 +15,16 @@ class _AniListEpisodeCommentsState extends State<AniListEpisodeComments> {
   late Future<List<Map<String, dynamic>>> _future = _load();
   int _sort = 0;
 
+  @override
+  void didUpdateWidget(covariant AniListEpisodeComments oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.title != widget.title ||
+        oldWidget.malId != widget.malId ||
+        oldWidget.episodeNumber != widget.episodeNumber) {
+      _future = _load();
+    }
+  }
+
   Future<List<Map<String, dynamic>>> _query(String query, Map<String, dynamic> vars) async {
     try {
       final response = await Dio().post('https://graphql.anilist.co',
