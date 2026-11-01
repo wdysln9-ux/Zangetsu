@@ -23,6 +23,12 @@ class AniListMarkdown extends StatelessWidget {
   final TextStyle? textStyle;
 
   String _toHtml(String source) {
+    // AniList users often write ATX headings without the optional space:
+    // "##Heading". Normalize those lines before passing them to the Markdown parser.
+    source = source.replaceAllMapped(
+      RegExp(r'^(#{1,6})(?=\\S)', multiLine: true),
+      (match) => '${match[1]} ',
+    );
     // Protect AniList embeds before Markdown parsing; otherwise URLs in the
     // parentheses are parsed as ordinary Markdown links.
     final embeds = <String, String>{};
