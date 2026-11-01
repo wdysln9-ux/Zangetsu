@@ -53,28 +53,37 @@ class PeopleService {
   }
 
   Future<PersonProfile?> _character(int id) async {
-    const q =
+    // Keep the profile request independent from the appearances/voice-actor
+    // connection. If that larger connection fails, the character page itself
+    // must still load with the data returned by this small core query.
+    const profileQuery =
         'query(\$id:Int){ Character(id:\$id){ '
-        'idMal name{ full native alternative } image{ large } description(asHtml:false) '
-        'age gender dateOfBirth{ year month day } bloodType favourites '
-        // No type filter: a manga character's appearances ARE manga, and
-        // pinning this to ANIME left every reading character empty.
-        'media(sort:[POPULARITY_DESC],perPage:25){ edges{ characterRole '
-        'node{ idMal type title{ romaji english } coverImage{ large } } '
-        'voiceActors(language:JAPANESE){ id name{ full } image{ large } } } } } }';
-    final d = await _gql(q, {'id': id});
-    final c = d?['Character'];
+        'name{ full native alternative } image{ large } '
+        'description(asHtml:false) age gender dateOfBirth{ year month day } '
+        'bloodType favourites } }';
+    final profileData = await _gql(profileQuery, {'id': id});
+    final c = profileData?['Character'];
     if (c is! Map) return null;
 
     final works = <PersonWork>[];
     final vaById = <int, PersonRef>{};
-    final edges = (c['media'] is Map) ? c['media']['edges'] : null;
+    const appearancesQuery =
+        'query(\$id:Int){ Character(id:\$id){ '
+        'media(sort:[POPULARITY_DESC],perPage:25){ edges{ characterRole '
+        'node{ idMal type title{ romaji english } coverImage{ large } } '
+        'voiceActors(language:JAPANESE){ id name{ full } image{ large } } } } } }';
+    final appearancesData = await _gql(appearancesQuery, {'id': id});
+    final appearanceCharacter = appearancesData?['Character'];
+    final edges = appearanceCharacter is Map &&
+            appearanceCharacter['media'] is Map
+        ? appearanceCharacter['media']['edges']
+        : null;
     if (edges is List) {
       for (final e in edges) {
         if (e is! Map) continue;
         final node = e['node'];
         final title = _aniTitle(node);
-        if (title != null) {
+        if (title != null && node is Map) {
           works.add(
             PersonWork(
               title: title,
@@ -111,7 +120,6 @@ class PeopleService {
           : null,
       favourites: (c['favourites'] as num?)?.toInt(),
       photo: _aniImage(c, 'image'),
-      malId: (c['idMal'] as num?)?.toInt(),
       description: _plain(c['description'] as String?),
       subtitle: 'Character',
       works: works,
