@@ -87,14 +87,12 @@ class _PersonPageState extends State<PersonPage> {
         toolbarHeight: kToolbarHeight,
         leadingWidth: 56,
         iconTheme: const IconThemeData(color: Colors.white, size: 24),
-        title: widget.person.source == PersonSource.anilistCharacter
-            ? null
-            : Text(
-                _displayName(widget.person.name),
-                style: AppText.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+        title: Text(
+          _displayName(widget.person.name),
+          style: AppText.title.copyWith(color: Colors.white),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ),
       body: FutureBuilder<PersonProfile?>(
         future: _future,
