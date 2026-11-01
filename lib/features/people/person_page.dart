@@ -248,7 +248,7 @@ class _PersonPageState extends State<PersonPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 238,
+          height: 286,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
