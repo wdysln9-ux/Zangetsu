@@ -223,7 +223,7 @@ class AniListMarkdown extends StatelessWidget {
             if (element.classes.contains('anilist-align-right')) return {'text-align': 'right', 'max-width': '100%', 'width': '100%'};
             if (element.classes.contains('anilist-align-justify')) return {'text-align': 'justify', 'max-width': '100%', 'width': '100%'};
             if (element.classes.contains('anilist-align-left')) return {'text-align': 'left', 'max-width': '100%', 'width': '100%'};
-            final align = element.attributes['align'];
+            final align = element.attributes['align'] ?? '';
             if (align == 'center' || align == 'right' || align == 'justify') {
               return {'text-align': align, 'max-width': '100%', 'width': '100%', 'overflow-wrap': 'anywhere'};
             }
