@@ -556,12 +556,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
     // Landscape playback must stay fully immersive, including navigation.
     if (_portraitMode) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
         statusBarColor: AppColors.bg,
         statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: Colors.black,
+        systemNavigationBarColor: AppColors.bg,
         systemNavigationBarIconBrightness: Brightness.light,
-        systemNavigationBarDividerColor: Colors.black,
+        systemNavigationBarDividerColor: AppColors.bg,
       ));
     } else {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
@@ -636,9 +636,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
         // of blending into the pure-black episode screen.
         statusBarColor: Color(0xFF161616),
         statusBarIconBrightness: Brightness.light,
-        systemNavigationBarColor: Colors.black,
+        systemNavigationBarColor: AppColors.bg,
         systemNavigationBarIconBrightness: Brightness.light,
-        systemNavigationBarDividerColor: Colors.black,
+        systemNavigationBarDividerColor: AppColors.bg,
       ));
     }
     // Wake-lock is bound to playback in _startSession, once the player exists.
