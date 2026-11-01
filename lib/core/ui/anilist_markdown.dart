@@ -73,7 +73,7 @@ class AniListMarkdown extends StatelessWidget {
     );
     final centerBlocks = <String>[];
     var prepared = protectedSource.replaceAllMapped(
-      RegExp(r'˜˜˜([\s\S]*?)˜˜˜', dotAll: true),
+      RegExp(r'(?:˜˜˜|~~~center[ \\t]*\\n)([\\s\\S]*?)(?:˜˜˜|~~~)', dotAll: true),
       (match) {
         final index = centerBlocks.length;
         centerBlocks.add(match[1] ?? '');
@@ -131,7 +131,7 @@ class AniListMarkdown extends StatelessWidget {
         encodeHtml: false,
       );
       final marker = 'ANILIST_CENTER_BLOCK_${i}_PLACEHOLDER';
-      final centered = '<div class="anilist-center">$innerHtml</div>';
+      final centered = '<div class="anilist-center"><div class="anilist-center-content">$innerHtml</div></div>';
       html = html.replaceAll('<p>$marker</p>', centered);
       html = html.replaceAll(marker, centered);
     }
@@ -223,6 +223,7 @@ class AniListMarkdown extends StatelessWidget {
             if (element.classes.contains('anilist-align-right')) return {'text-align': 'right', 'max-width': '100%', 'width': '100%'};
             if (element.classes.contains('anilist-align-justify')) return {'text-align': 'justify', 'max-width': '100%', 'width': '100%'};
             if (element.classes.contains('anilist-align-left')) return {'text-align': 'left', 'max-width': '100%', 'width': '100%'};
+            if (element.classes.contains('anilist-center-content')) return {'text-align': 'center', 'max-width': '100%', 'width': '100%'};
             final align = element.attributes['align'] ?? '';
             if (align == 'center' || align == 'right' || align == 'justify') {
               return {'text-align': align, 'max-width': '100%', 'width': '100%', 'overflow-wrap': 'anywhere'};
