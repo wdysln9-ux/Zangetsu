@@ -1,67 +1,141 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import '../../core/ui/anilist_markdown.dart';
 
 import '../../core/di/injector.dart';
-import '../../core/theme/app_text.dart';
+import '../../core/metadata/synopsis_translator.dart';
+import '../../core/ui/anilist_markdown.dart';
 
 class GlobalChatScreen extends StatefulWidget {
   const GlobalChatScreen({super.key});
+
   @override
   State<GlobalChatScreen> createState() => _GlobalChatScreenState();
 }
 
 class _GlobalChatScreenState extends State<GlobalChatScreen> {
   static const _endpoint = 'https://graphql.anilist.co';
+  static const _background = Color(0xFF0D1018);
+  static const _surface = Color(0xFF171C27);
+  static const _muted = Color(0xFF8995A5);
+
   final _scroll = ScrollController();
   final List<Map<String, dynamic>> _posts = [];
   int _page = 1;
-  bool _loading = false, _hasNext = true;
+  bool _loading = false;
+  bool _hasNext = true;
   String? _error;
 
   @override
-  void initState() { super.initState(); _load(); _scroll.addListener(_onScroll); }
+  void initState() {
+    super.initState();
+    _scroll.addListener(_onScroll);
+    _load();
+  }
+
   @override
-  void dispose() { _scroll.dispose(); super.dispose(); }
-  void _onScroll() { if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 500) _load(); }
+  void dispose() {
+    _scroll.removeListener(_onScroll);
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  // The feed is reversed: the newest activity stays at the bottom. Scrolling
+  // upward reaches older activities and requests the next AniList page.
+  void _onScroll() {
+    if (!_scroll.hasClients || _loading || !_hasNext) return;
+    if (_scroll.position.pixels >=
+        _scroll.position.maxScrollExtent - 280) {
+      _load();
+    }
+  }
 
   Future<void> _load({bool refresh = false}) async {
     if (_loading || (!_hasNext && !refresh)) return;
-    if (refresh) { _page = 1; _hasNext = true; _posts.clear(); }
-    setState(() { _loading = true; _error = null; });
+    if (refresh) {
+      _page = 1;
+      _hasNext = true;
+      _posts.clear();
+    }
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
     const query = r'''
       query($page: Int) {
         Page(page: $page, perPage: 25) {
           pageInfo { hasNextPage }
           activities(type: TEXT, sort: ID_DESC) {
-            ... on TextActivity { id text(asHtml: false) createdAt user { id name avatar { large } } likeCount }
+            ... on TextActivity {
+              id text(asHtml: false) createdAt
+              user { id name avatar { large } }
+            }
           }
         }
       }
     ''';
+
     try {
-      final response = await sl<Dio>().post<dynamic>(_endpoint,
+      final response = await sl<Dio>().post<dynamic>(
+        _endpoint,
         data: {'query': query, 'variables': {'page': _page}},
-        options: Options(headers: const {'Content-Type': 'application/json', 'Accept': 'application/json'}, validateStatus: (s) => s != null && s < 500));
+        options: Options(
+          headers: const {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
       final body = response.data;
       if (body is! Map || body['data'] is! Map) {
-        final errors = body is Map && body['errors'] is List ? (body['errors'] as List).map((e) => e is Map ? e['message'] : e).join('\n') : 'AniList tidak mengembalikan data.';
+        final errors = body is Map && body['errors'] is List
+            ? (body['errors'] as List)
+                .map((e) => e is Map ? e['message'] : e)
+                .join('\n')
+            : 'AniList tidak mengembalikan data.';
         throw Exception(errors);
       }
       final page = (body['data'] as Map)['Page'];
       if (page is! Map) throw Exception('Feed AniList tidak tersedia.');
       final items = page['activities'];
-      if (items is List) for (final item in items.whereType<Map>()) _posts.add(Map<String, dynamic>.from(item));
-      _hasNext = page['pageInfo'] is Map && (page['pageInfo'] as Map)['hasNextPage'] == true;
+      if (items is List) {
+        final incoming = items
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+        if (refresh) {
+          _posts
+            ..clear()
+            ..addAll(incoming);
+        } else {
+          final known = _posts.map((post) => post['id']).toSet();
+          _posts.addAll(
+            incoming.where((post) => !known.contains(post['id'])),
+          );
+        }
+      }
+      _hasNext = page['pageInfo'] is Map &&
+          (page['pageInfo'] as Map)['hasNextPage'] == true;
       _page++;
-    } catch (e) { _error = e.toString().replaceFirst('Exception: ', ''); }
-    finally { if (mounted) setState(() => _loading = false); }
+    } catch (error) {
+      _error = error.toString().replaceFirst('Exception: ', '');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _refreshFromGesture() async {
+    await _load(refresh: true);
+    if (_scroll.hasClients) _scroll.jumpTo(0);
   }
 
   String _time(dynamic value) {
-    final seconds = (value as num?)?.toInt(); if (seconds == null) return '';
-    final date = DateTime.fromMillisecondsSinceEpoch(seconds * 1000).toLocal();
+    final seconds = (value as num?)?.toInt();
+    if (seconds == null) return '';
+    final date =
+        DateTime.fromMillisecondsSinceEpoch(seconds * 1000).toLocal();
     final diff = DateTime.now().difference(date);
     if (diff.inMinutes < 1) return 'baru saja';
     if (diff.inHours < 1) return '${diff.inMinutes} menit lalu';
@@ -71,53 +145,353 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: const Color(0xFF202127),
-    appBar: AppBar(backgroundColor: const Color(0xFF202127), elevation: 0,
-      title: Row(children: [const Icon(Icons.forum_rounded, color: Color(0xFF8EA1E1), size: 22), const SizedBox(width: 10), Text('Global Chat', style: AppText.barTitle)]),
-      actions: [IconButton(tooltip: 'Refresh', onPressed: () => _load(refresh: true), icon: const Icon(Icons.refresh_rounded))]),
-    body: RefreshIndicator(onRefresh: () => _load(refresh: true),
-      child: _posts.isEmpty && _loading ? const Center(child: CircularProgressIndicator())
-      : _posts.isEmpty && _error != null ? ListView(children: [const SizedBox(height: 180), Center(child: Text(_error!, textAlign: TextAlign.center)), TextButton(onPressed: () => _load(refresh: true), child: const Text('Coba lagi'))])
-      : ListView.separated(controller: _scroll, physics: const AlwaysScrollableScrollPhysics(), padding: const EdgeInsets.fromLTRB(12, 12, 12, 28),
-        itemCount: _posts.length + (_loading || _error != null ? 1 : 0), separatorBuilder: (_, _) => const SizedBox(height: 2),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: _background,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _header(),
+            _channelTabs(),
+            _notice(),
+            Expanded(child: _feed()),
+            _composer(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _header() {
+    return Container(
+      color: _background,
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+      child: Row(
+        children: [
+          _roundButton(
+            Icons.arrow_back_rounded,
+            onTap: () => Navigator.of(context).maybePop(),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: const Color(0xFF14233D),
+              border: Border.all(color: const Color(0xFF347BEA), width: 1.5),
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: const Icon(Icons.forum_rounded,
+                color: Color(0xFF438BFF), size: 30),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Chat Global',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                const Row(
+                  children: [
+                    Icon(Icons.circle, color: Color(0xFF438BFF), size: 10),
+                    SizedBox(width: 8),
+                    Text('online',
+                        style: TextStyle(color: _muted, fontSize: 14)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          _roundButton(Icons.share_rounded, onTap: () {}),
+        ],
+      ),
+    );
+  }
+
+  Widget _roundButton(IconData icon, {required VoidCallback onTap}) {
+    return Material(
+      color: const Color(0xFF1B222E),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: 54,
+          height: 54,
+          child: Icon(icon, color: Colors.white, size: 27),
+        ),
+      ),
+    );
+  }
+
+  Widget _channelTabs() {
+    return Container(
+      color: _background,
+      padding: const EdgeInsets.fromLTRB(26, 0, 20, 16),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            decoration: BoxDecoration(
+              color: const Color(0xFF4388F5),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: const Text('#Global',
+                style: TextStyle(
+                    color: Color(0xFF071322),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700)),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF171C25),
+              border: Border.all(color: const Color(0xFF242B37)),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.lock_rounded, color: Color(0xFF4B515D), size: 21),
+                SizedBox(width: 8),
+                Text('tes',
+                    style: TextStyle(color: Color(0xFF4B515D), fontSize: 17)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _notice() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 17, 18, 17),
+      decoration: const BoxDecoration(
+        color: Color(0xFF211D17),
+        border: Border(
+          top: BorderSide(color: Color(0xFF55401D)),
+          bottom: BorderSide(color: Color(0xFF55401D)),
+        ),
+      ),
+      child: const Text(
+        '📌 Global chat saat ini masih dikembangkan dan belum banyak fitur yg tersedia, mohon bersabar untuk menunggu update selanjutnya yah 🥰🙏',
+        style: TextStyle(
+            color: Color(0xFFD0D0D0), fontSize: 14, height: 1.4),
+      ),
+    );
+  }
+
+  Widget _feed() {
+    if (_posts.isEmpty && _loading) {
+      return const Center(
+          child: CircularProgressIndicator(color: Color(0xFF4388F5)));
+    }
+    if (_posts.isEmpty && _error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: _muted)),
+            TextButton(
+              onPressed: () => _load(refresh: true),
+              child: const Text('Coba lagi'),
+            ),
+          ],
+        ),
+      );
+    }
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        // Pulling upward while already at the oldest edge refreshes the feed.
+        if (notification is OverscrollNotification &&
+            notification.overscroll > 0 &&
+            notification.metrics.pixels >=
+                notification.metrics.maxScrollExtent) {
+          _refreshFromGesture();
+        }
+        return false;
+      },
+      child: ListView.builder(
+        controller: _scroll,
+        reverse: true,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+        itemCount: _posts.length + (_loading || _error != null ? 1 : 0),
         itemBuilder: (context, index) {
-          if (index >= _posts.length) return _error != null ? TextButton(onPressed: _load, child: Text('Gagal memuat: $_error · Coba lagi')) : const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator()));
+          if (index >= _posts.length) {
+            return Padding(
+              padding: const EdgeInsets.all(18),
+              child: Center(
+                child: _error != null
+                    ? TextButton(
+                        onPressed: _load,
+                        child: Text('Gagal memuat: $_error · Coba lagi'),
+                      )
+                    : const CircularProgressIndicator(
+                        color: Color(0xFF4388F5)),
+              ),
+            );
+          }
           return _postCard(_posts[index]);
-        })),
-  );
+        },
+      ),
+    );
+  }
 
   Widget _postCard(Map<String, dynamic> post) {
     final user = post['user'] is Map ? post['user'] as Map : const {};
     final avatar = user['avatar'] is Map ? user['avatar']['large'] : null;
     final name = (user['name'] ?? 'AniList User').toString();
-    final text = (post['text'] ?? '').toString().trim();
-    final likes = (post['likeCount'] as num?)?.toInt() ?? 0;
-    return Container(padding: const EdgeInsets.fromLTRB(12, 12, 14, 14),
-      decoration: BoxDecoration(color: const Color(0xFF2B2D35), borderRadius: BorderRadius.circular(10)),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        ClipRRect(borderRadius: BorderRadius.circular(24), child: SizedBox(width: 40, height: 40,
-          child: avatar is String && avatar.isNotEmpty ? CachedNetworkImage(imageUrl: avatar, fit: BoxFit.cover, errorWidget: (_, _, _) => _avatarFallback()) : _avatarFallback())),
-        const SizedBox(width: 11),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Wrap(crossAxisAlignment: WrapCrossAlignment.center, spacing: 7, children: [
-            Text(name, style: const TextStyle(color: Color(0xFFB9C5FF), fontWeight: FontWeight.w700, fontSize: 14)),
-            Text(_time(post['createdAt']), style: const TextStyle(color: Color(0xFF9497A1), fontSize: 11)),
-          ]),
-          const SizedBox(height: 7),
-          AniListMarkdown(
-            data: text,
-            textStyle: const TextStyle(
-              color: Color(0xFFE1E2E8),
-              height: 1.45,
-              fontSize: 14,
+    final userId = (user['id'] ?? '').toString();
+    final rawText = (post['text'] ?? '').toString().trim();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 18),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipOval(
+            child: SizedBox(
+              width: 52,
+              height: 52,
+              child: avatar is String && avatar.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: avatar,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => _avatarFallback(),
+                    )
+                  : _avatarFallback(),
             ),
           ),
-          if (likes > 0) ...[const SizedBox(height: 9), Row(children: [const Icon(Icons.favorite_rounded, size: 13, color: Color(0xFFED6A8B)), const SizedBox(width: 5), Text('$likes', style: const TextStyle(color: Color(0xFF9497A1), fontSize: 11))])],
-        ])),
-      ]),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700)),
+                if (userId.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text('#$userId',
+                      style: const TextStyle(color: _muted, fontSize: 13)),
+                ],
+                const SizedBox(height: 11),
+                _messageBubble(rawText, post),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _avatarFallback() => Container(color: const Color(0xFF424550), alignment: Alignment.center, child: const Icon(Icons.person_rounded, color: Colors.white70, size: 22));
+  Widget _messageBubble(String rawText, Map<String, dynamic> post) {
+    return FutureBuilder<String?>(
+      future: SynopsisTranslator.instance.translateTextToIndonesian(rawText),
+      builder: (context, snapshot) {
+        final translated = snapshot.data;
+        final displayText =
+            translated != null && translated.trim().isNotEmpty
+                ? translated
+                : rawText;
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+          decoration: BoxDecoration(
+            color: _surface,
+            border: Border.all(color: const Color(0xFF252D3B), width: 1),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AniListMarkdown(
+                data: displayText,
+                textStyle: const TextStyle(
+                  color: Color(0xFFF1F2F5),
+                  fontSize: 16,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  _clock(post['createdAt']),
+                  style: const TextStyle(color: _muted, fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _clock(dynamic value) {
+    final seconds = (value as num?)?.toInt();
+    if (seconds == null) return '';
+    final date =
+        DateTime.fromMillisecondsSinceEpoch(seconds * 1000).toLocal();
+    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  Widget _avatarFallback() => Container(
+        color: const Color(0xFF343B49),
+        alignment: Alignment.center,
+        child: const Icon(Icons.person_rounded,
+            color: Colors.white70, size: 27),
+      );
+
+  // Visual-only composer, as requested: it does not accept or send messages.
+  Widget _composer() {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+        color: _background,
+        child: Container(
+          height: 60,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C2330),
+            borderRadius: BorderRadius.circular(34),
+          ),
+          child: Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Pesan ke #Global...',
+                  style: TextStyle(color: Color(0xFF91A096), fontSize: 16),
+                ),
+              ),
+              Container(
+                width: 43,
+                height: 43,
+                decoration: const BoxDecoration(
+                    color: Color(0xFF0C111B), shape: BoxShape.circle),
+                child: const Icon(Icons.gif_box_outlined,
+                    color: Colors.white, size: 24),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
