@@ -75,12 +75,17 @@ class _PersonPageState extends State<PersonPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
+      extendBodyBehindAppBar: widget.person.source == PersonSource.anilistCharacter,
       appBar: AppBar(
-        backgroundColor: AppColors.bg,
+        backgroundColor: widget.person.source == PersonSource.anilistCharacter ? Colors.transparent : AppColors.bg,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
         elevation: 0,
-        toolbarHeight: widget.person.source == PersonSource.anilistCharacter ? 40 : kToolbarHeight,
-        leadingWidth: 44,
-        iconTheme: const IconThemeData(size: 20),
+        scrolledUnderElevation: 0,
+        automaticallyImplyLeading: true,
+        toolbarHeight: kToolbarHeight,
+        leadingWidth: 56,
+        iconTheme: const IconThemeData(color: Colors.white, size: 24),
         title: widget.person.source == PersonSource.anilistCharacter
             ? null
             : Text(
@@ -296,7 +301,6 @@ class _PersonPageState extends State<PersonPage> {
                                   builder: (_) => CharacterGalleryPage(
                                     name: _displayName(p.name),
                                     characterName: p.name,
-                                    malId: p.malId,
                                   ),
                                 ),
                               ),
@@ -651,12 +655,10 @@ class CharacterGalleryPage extends StatefulWidget {
     super.key,
     required this.name,
     required this.characterName,
-    this.malId,
   });
 
   final String name;
   final String characterName;
-  final int? malId;
 
   @override
   State<CharacterGalleryPage> createState() => _CharacterGalleryPageState();
@@ -664,7 +666,7 @@ class CharacterGalleryPage extends StatefulWidget {
 
 class _CharacterGalleryPageState extends State<CharacterGalleryPage> {
   late final Future<List<String>> _gallery = sl<PeopleService>()
-      .loadCharacterGallery(widget.characterName, malId: widget.malId);
+      .loadCharacterGallery(widget.characterName);
 
   @override
   Widget build(BuildContext context) {
