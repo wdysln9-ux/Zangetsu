@@ -473,92 +473,6 @@ class _PersonPageState extends State<PersonPage> {
     }
   }
 
-  List<(String, String)> _manualCharacterFacts(String description) {
-    final pattern = RegExp(r'^\\s*__(.+?):__\\s*(.+?)\\s*$', multiLine: true);
-    return pattern
-        .allMatches(description)
-        .map((match) => (match.group(1)!.trim(), match.group(2)!.trim()))
-        .where((fact) => fact.$1.isNotEmpty && fact.$2.isNotEmpty)
-        .toList();
-  }
-
-  String _bioWithoutManualFacts(String description) {
-    final pattern = RegExp(r'^\\s*__.+?:__\\s*.+?\\s*$', multiLine: true);
-    return description.replaceAll(pattern, '').trim();
-  }
-
-  bool _hasCharacterFacts(PersonProfile p) =>
-      p.age != null ||
-      p.gender != null ||
-      p.birthday != null ||
-      p.bloodType != null ||
-      p.favourites != null ||
-      (p.description != null &&
-          _manualCharacterFacts(p.description!).isNotEmpty);
-
-  Widget _characterFacts(PersonProfile p) {
-    final facts = <(String, String)>[
-      ..._manualCharacterFacts(p.description ?? ''),
-      if (p.age != null) ('Usia', p.age!),
-      if (p.gender != null) ('Gender', _genderLabel(p.gender!)),
-      if (p.birthday != null) ('Ulang tahun', p.birthday!),
-      if (p.bloodType != null) ('Golongan darah', p.bloodType!),
-      if (p.favourites != null)
-        ('Favorit AniList', p.favourites!.toString()),
-    ];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionLabel('Info'),
-          const SizedBox(height: 4),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final width = (constraints.maxWidth - 10) / 2;
-              return Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: facts.map((fact) {
-                  return Container(
-                    width: width,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 11,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          fact.$1,
-                          style: AppText.caption.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          fact.$2,
-                          style: AppText.body.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _bio(String text) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -709,6 +623,23 @@ class _PersonPageState extends State<PersonPage> {
       ),
     );
   }
+}
+
+
+
+class _PortraitFallback extends StatelessWidget {
+  const _PortraitFallback();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    color: AppColors.surface2,
+    alignment: Alignment.center,
+    child: const Icon(
+      Icons.person_rounded,
+      color: AppColors.textTertiary,
+      size: 34,
+    ),
+  );
 }
 
 class CharacterGalleryPage extends StatefulWidget {
