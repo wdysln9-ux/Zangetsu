@@ -498,9 +498,7 @@ class _PersonPageState extends State<PersonPage> {
 
   Widget _characterFacts(PersonProfile p) {
     final facts = <(String, String)>[
-      ...?p.description == null
-          ? null
-          : _manualCharacterFacts(p.description!),
+      ..._manualCharacterFacts(p.description ?? ''),
       if (p.age != null) ('Usia', p.age!),
       if (p.gender != null) ('Gender', _genderLabel(p.gender!)),
       if (p.birthday != null) ('Ulang tahun', p.birthday!),
