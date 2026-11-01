@@ -146,13 +146,13 @@ class _EpisodesPanelState extends State<_EpisodesPanel> {
 
   @override
   Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-    // A flat share of the screen, floored and capped so it stays sane at both
-    // extremes. The old 42%-with-a-300px-floor swallowed half a small screen
-    // and left the same small thumbnails rattling around inside 480px on a
-    // big one; the contents scale with this now, so the panel can stay
-    // comparatively narrow and still read well.
-    final panelW = (w * 0.33).clamp(250.0, 360.0);
+    final media = MediaQuery.of(context);
+    final w = media.size.width;
+    // Keep the panel inside the usable width, including display cutouts and
+    // gesture insets. A fixed 250px minimum could push its right edge off
+    // smaller screens and clip the episode list.
+    final usableW = (w - media.padding.right).clamp(0.0, w);
+    final panelW = (w * 0.36).clamp(210.0, 360.0).clamp(0.0, usableW);
 
     // Contents scale with the panel instead of sitting at fixed px inside it.
     final s = (panelW / 300).clamp(0.86, 1.16); // type scale
@@ -202,7 +202,7 @@ class _EpisodesPanelState extends State<_EpisodesPanel> {
       color: Colors.transparent,
       child: FrostedSurface(
         blur: true,
-        opacity: 0.88,
+        opacity: 0.68,
         borderRadius: const BorderRadius.horizontal(left: Radius.circular(20)),
         child: SizedBox(
           width: panelW,
@@ -218,6 +218,7 @@ class _EpisodesPanelState extends State<_EpisodesPanel> {
           // really does touch it.
           child: SafeArea(
             left: false,
+            right: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
