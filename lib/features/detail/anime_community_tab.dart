@@ -148,109 +148,76 @@ class _ReviewPage extends StatelessWidget {
   const _ReviewPage({required this.data, required this.anime});
   final Map<String, dynamic> data;
   final String anime;
+
   @override
   Widget build(BuildContext context) {
     final u = data['user'] as Map? ?? {};
     final av = u['avatar'] as Map? ?? {};
+    final media = data['media'] as Map?;
+    final banner = media?['bannerImage']?.toString();
     final score = (data['score'] as num?)?.toInt();
     return Scaffold(
       appBar: AppBar(title: const Text('Ulasan')),
-      body: FutureBuilder<String?>(
-        future: _reviewBannerFuture(data),
-        builder: (context, snapshot) => ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            if (snapshot.data != null)
-              SizedBox(
-                height: 150,
-                width: double.infinity,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.network(
-                      snapshot.data!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, AppColors.bg.withValues(alpha: .92)],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 16,
-                      right: 16,
-                      bottom: 14,
-                      child: Text(
-                        anime,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else
-              const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      body: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          if (banner != null && banner.isNotEmpty)
+            SizedBox(
+              height: 160,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  _User(name: '${u['name'] ?? 'AniList user'}', avatar: av['large']?.toString(), date: _dateLabel(data['createdAt'])),
-                  const SizedBox(height: 14),
-                  _TranslatedText(text: '${data['summary'] ?? 'Ulasan'}', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  Wrap(spacing: 8, runSpacing: 8, children: [
-                    if (score != null) _Chip('Skor reviewer: ${score}/100'),
-                    _Chip('${_likedCount(data)} dari ${data['ratingAmount'] ?? 0} pengguna menyukai ulasan ini'),
-                  ]),
-                  const SizedBox(height: 20),
-                  _TranslatedPost(text: '${data['body'] ?? ''}'),
+                  Image.network(
+                    banner,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, AppColors.bg.withValues(alpha: .94)],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: 14,
+                    child: Text(
+                      anime,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Colors.white),
+                    ),
+                  ),
                 ],
               ),
+            )
+          else
+            const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _User(name: '${u['name'] ?? 'AniList user'}', avatar: av['large']?.toString(), date: _dateLabel(data['createdAt'])),
+                const SizedBox(height: 14),
+                _TranslatedText(text: '${data['summary'] ?? 'Ulasan'}', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  if (score != null) _Chip('Skor reviewer: ${score}/100'),
+                  _Chip('${_likedCount(data)} dari ${data['ratingAmount'] ?? 0} pengguna menyukai ulasan ini'),
+                ]),
+                const SizedBox(height: 20),
+                _TranslatedPost(text: '${data['body'] ?? ''}'),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
-    );
-  }
-
-  Future<String?> _reviewBannerFuture(Map<String, dynamic> review) async {
-    final id = (review['mediaId'] as num?)?.toInt();
-    if (id == null) return null;
-    return sl<AniListService>().api.fetchMediaBannerImage(id);
-  }
-}
-  const _ReviewPage({required this.data, required this.anime});
-  final Map<String, dynamic> data;
-  final String anime;
-  @override
-  Widget build(BuildContext context) {
-    final u = data['user'] as Map? ?? {};
-    final av = u['avatar'] as Map? ?? {};
-    final score = (data['score'] as num?)?.toInt();
-    return Scaffold(
-      appBar: AppBar(title: const Text('Ulasan')),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        Text(anime, style: TextStyle(color: AppColors.textSecondary)),
-        const SizedBox(height: 14),
-        _User(name: '${u['name'] ?? 'AniList user'}', avatar: av['large']?.toString(), date: _dateLabel(data['createdAt'])),
-        const SizedBox(height: 14),
-        _TranslatedText(text: '${data['summary'] ?? 'Ulasan'}', style: const TextStyle(fontSize: 21, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          if (score != null) _Chip('Skor reviewer: ${score}/100'),
-          _Chip('${_likedCount(data)} dari ${data['ratingAmount'] ?? 0} pengguna menyukai ulasan ini'),
-        ]),
-        const SizedBox(height: 20),
-        _TranslatedPost(text: '${data['body'] ?? ''}'),
-      ]),
     );
   }
 }
