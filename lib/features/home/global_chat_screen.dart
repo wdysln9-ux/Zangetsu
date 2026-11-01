@@ -112,6 +112,10 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
     );
   }
 
+  Widget _avatarFallback() => Container(color: const Color(0xFF424550), alignment: Alignment.center, child: const Icon(Icons.person_rounded, color: Colors.white70, size: 22));
+}
+
+
 class _MarkdownContent extends StatelessWidget {
   const _MarkdownContent({required this.text});
   final String text;
@@ -122,9 +126,11 @@ class _MarkdownContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // AniList treats every source newline as a visible line break.
+    final source = text.replaceAll('\r\n', '\n').replaceAll('\n', '  \n');
     final nodes = md.Document(
       extensionSet: md.ExtensionSet.gitHubWeb,
-    ).parseLines(text.split('\n'));
+    ).parseLines(source.split('\n'));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: nodes.map(_block).toList(),
@@ -132,9 +138,7 @@ class _MarkdownContent extends StatelessWidget {
   }
 
   Widget _block(md.Node node) {
-    if (node is md.Text) {
-      return _paragraph([node]);
-    }
+    if (node is md.Text) return _paragraph([node]);
     if (node is! md.Element) return const SizedBox.shrink();
     final tag = node.tag;
     if (tag == 'ul' || tag == 'ol') {
@@ -144,9 +148,7 @@ class _MarkdownContent extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: (node.children ?? const <md.Node>[]).map((child) {
-            if (child is! md.Element || child.tag != 'li') {
-              return _block(child);
-            }
+            if (child is! md.Element || child.tag != 'li') return _block(child);
             number++;
             return Padding(
               padding: const EdgeInsets.only(left: 5, bottom: 3),
@@ -155,10 +157,8 @@ class _MarkdownContent extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: 19,
-                    child: Text(
-                      tag == 'ol' ? '$number.' : '•',
-                      style: const TextStyle(color: _muted, fontSize: 14),
-                    ),
+                    child: Text(tag == 'ol' ? '$number.' : '•',
+                      style: const TextStyle(color: _muted, fontSize: 14)),
                   ),
                   Expanded(child: _inlineBlock(child.children ?? const [])),
                 ],
@@ -176,13 +176,13 @@ class _MarkdownContent extends StatelessWidget {
           border: Border(left: BorderSide(color: _link, width: 3)),
         ),
         child: DefaultTextStyle(
-          style: const TextStyle(color: _muted, height: 1.45, fontSize: 14),
+          style: const TextStyle(color: _muted, fontStyle: FontStyle.italic,
+            height: 1.45, fontSize: 14),
           child: _inlineBlock(node.children ?? const []),
         ),
       );
     }
     if (tag == 'pre') {
-      final code = node.textContent;
       return Container(
         width: double.infinity,
         margin: const EdgeInsets.symmetric(vertical: 6),
@@ -191,15 +191,9 @@ class _MarkdownContent extends StatelessWidget {
           color: const Color(0xFF1D1F26),
           borderRadius: BorderRadius.circular(7),
         ),
-        child: SelectableText(
-          code,
-          style: const TextStyle(
-            color: Color(0xFFD6D9E5),
-            fontFamily: 'monospace',
-            fontSize: 12,
-            height: 1.4,
-          ),
-        ),
+        child: SelectableText(node.textContent,
+          style: const TextStyle(color: Color(0xFFD6D9E5),
+            fontFamily: 'monospace', fontSize: 12, height: 1.4)),
       );
     }
     if (tag == 'hr') {
@@ -208,37 +202,65 @@ class _MarkdownContent extends StatelessWidget {
         child: Divider(color: Color(0xFF454854), height: 1),
       );
     }
-    final child = _paragraph(node.children ?? const []);
-    if (tag == 'h1' || tag == 'h2' || tag == 'h3' ||
-        tag == 'h4' || tag == 'h5' || tag == 'h6') {
-      final size = tag == 'h1' ? 20.0 : tag == 'h2' ? 18.0 : 16.0;
+    if (tag == 'img') {
+      final src = node.attributes['src'];
+      final alt = node.attributes['alt'] ?? 'Image';
+      if (src == null || src.isEmpty) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(7),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 280),
+            child: Image.network(src, fit: BoxFit.contain,
+              errorBuilder: (_, _, _) => Text(alt,
+                style: const TextStyle(color: _muted))),
+          ),
+        ),
+      );
+    }
+    if (tag == 'p' && node.attributes['align'] == 'center' ||
+        tag == 'div' && node.attributes['align'] == 'center' ||
+        tag == 'center') {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 7),
+        child: Center(child: _inlineBlock(node.children ?? const [])),
+      );
+    }
+    if (tag == 'p' && node.attributes['align'] == 'right' ||
+        tag == 'div' && node.attributes['align'] == 'right') {
+      return Align(
+        alignment: Alignment.centerRight,
+        child: _inlineBlock(node.children ?? const []),
+      );
+    }
+    final heading = RegExp(r'^h[1-5]$').hasMatch(tag);
+    if (heading) {
+      final level = int.parse(tag.substring(1));
+      final size = [20.0, 18.0, 16.0, 15.0, 14.0][level - 1];
       return Padding(
         padding: const EdgeInsets.only(top: 5, bottom: 4),
         child: DefaultTextStyle.merge(
           style: TextStyle(fontSize: size, fontWeight: FontWeight.w700),
-          child: child,
+          child: _inlineBlock(node.children ?? const []),
         ),
       );
     }
-    return child;
+    return _paragraph(node.children ?? const []);
   }
 
   Widget _paragraph(List<md.Node> nodes) => Padding(
     padding: const EdgeInsets.only(bottom: 7),
-    child: SelectableText.rich(
-      TextSpan(
-        style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
-        children: nodes.map(_span).toList(),
-      ),
-    ),
-  );
-
-  Widget _inlineBlock(List<md.Node> nodes) => SelectableText.rich(
-    TextSpan(
+    child: SelectableText.rich(TextSpan(
       style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
       children: nodes.map(_span).toList(),
-    ),
+    )),
   );
+
+  Widget _inlineBlock(List<md.Node> nodes) => SelectableText.rich(TextSpan(
+    style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
+    children: nodes.map(_span).toList(),
+  ));
 
   TextSpan _span(md.Node node) {
     if (node is md.Text) return TextSpan(text: node.text);
@@ -250,25 +272,15 @@ class _MarkdownContent extends StatelessWidget {
       style = const TextStyle(fontWeight: FontWeight.w700);
     } else if (tag == 'em' || tag == 'i') {
       style = const TextStyle(fontStyle: FontStyle.italic);
-    } else if (tag == 'del') {
+    } else if (tag == 'del' || tag == 'strike') {
       style = const TextStyle(decoration: TextDecoration.lineThrough);
     } else if (tag == 'code') {
-      style = const TextStyle(
-        fontFamily: 'monospace',
-        fontSize: 12,
-        color: Color(0xFFFFC98B),
-        backgroundColor: Color(0xFF1D1F26),
-      );
+      style = const TextStyle(fontFamily: 'monospace', fontSize: 12,
+        color: Color(0xFFFFC98B), backgroundColor: Color(0xFF1D1F26));
     } else if (tag == 'a') {
-      style = const TextStyle(
-        color: _link,
-        decoration: TextDecoration.underline,
-      );
+      style = const TextStyle(color: _link, decoration: TextDecoration.underline);
     }
     if (tag == 'br') return const TextSpan(text: '\n');
     return TextSpan(style: style, children: children);
   }
-}
-
-  Widget _avatarFallback() => Container(color: const Color(0xFF424550), alignment: Alignment.center, child: const Icon(Icons.person_rounded, color: Colors.white70, size: 22));
 }
