@@ -78,6 +78,9 @@ class _PersonPageState extends State<PersonPage> {
       appBar: AppBar(
         backgroundColor: AppColors.bg,
         elevation: 0,
+        toolbarHeight: widget.person.source == PersonSource.anilistCharacter ? 40 : kToolbarHeight,
+        leadingWidth: 44,
+        iconTheme: const IconThemeData(size: 20),
         title: widget.person.source == PersonSource.anilistCharacter
             ? null
             : Text(
@@ -293,6 +296,7 @@ class _PersonPageState extends State<PersonPage> {
                                   builder: (_) => CharacterGalleryPage(
                                     name: _displayName(p.name),
                                     characterName: p.name,
+                                    malId: p.malId,
                                   ),
                                 ),
                               ),
@@ -647,10 +651,12 @@ class CharacterGalleryPage extends StatefulWidget {
     super.key,
     required this.name,
     required this.characterName,
+    this.malId,
   });
 
   final String name;
   final String characterName;
+  final int? malId;
 
   @override
   State<CharacterGalleryPage> createState() => _CharacterGalleryPageState();
