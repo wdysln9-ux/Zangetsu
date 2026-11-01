@@ -54,13 +54,24 @@ class AniListMarkdown extends StatelessWidget {
     // Simple image syntax: img(url) or img220(url).
     // Keep the width optional so img(url) uses the available content width.
     html = html.replaceAllMapped(
-      RegExp(r'img(\\d{1,4})?\\((https?://[^)\\s]+)\\)'),
+      RegExp(r'img(\d{1,4})?\((https?://[^)\s]+)\)'),
       (match) {
         final width = match[1];
         final src = match[2];
         return width == null
             ? '<img src="$src" />'
             : '<img src="$src" width="$width" />';
+      },
+    );
+
+    // AniList entity shortcuts: [anime=ID], [manga=ID], [character=ID],
+    // [staff=ID], [user=ID], [studio=ID], [activity=ID], [forum=ID].
+    html = html.replaceAllMapped(
+      RegExp(r'\[(anime|manga|character|staff|user|studio|activity|forum)=(\d+)\]', caseSensitive: false),
+      (match) {
+        final kind = match[1]!.toLowerCase();
+        final id = match[2]!;
+        return '<a href="https://anilist.co/$kind/$id">$kind #$id</a>';
       },
     );
 
