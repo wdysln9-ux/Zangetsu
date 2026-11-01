@@ -2876,37 +2876,87 @@ class _PlayerScreenState extends State<PlayerScreen> {
             Row(
               children: [
                 Text(
-                  number == null ? context.l10n.episodes : 'Ep ' + number,
+                  number == null ? context.l10n.episodes : 'Ep $number',
                   style: AppText.body.copyWith(
-                    color: Colors.white,
+                    color: AppColors.textPrimary,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
+                const Text('·', style: TextStyle(color: AppColors.textSecondary)),
+                const SizedBox(width: 8),
                 const Icon(Icons.visibility_outlined,
-                    color: Color(0xFF91A396), size: 17),
+                    color: AppColors.textSecondary, size: 17),
                 const SizedBox(width: 6),
                 Builder(
                   builder: (context) {
                     final episodeNumber = episode.number ?? (activeIndex + 1);
                     final exponent = (episodeNumber - 1).clamp(0.0, 1000.0);
-                    final estimatedViewers = _showPopularity == null
+                    final viewers = _showPopularity == null
                         ? null
                         : (_showPopularity! / math.pow(1.02, exponent)).round();
-                    final viewerLabel = estimatedViewers == null
-                        ? '—'
-                        : estimatedViewers >= 100000
-                            ? '${(estimatedViewers / 1000).round()}k'
-                            : estimatedViewers >= 1000
-                                ? '${(estimatedViewers / 1000).toStringAsFixed(1)}k'
-                                : estimatedViewers.toString();
+                    final likes = viewers == null ? 0 : (viewers * 0.30).round();
+                    final dislikes = viewers == null ? 0 : (viewers * 0.02).round();
+                    String compact(int value) => value >= 100000
+                        ? '${(value / 1000).round()}k'
+                        : value >= 1000
+                            ? '${(value / 1000).toStringAsFixed(1)}k'
+                            : value.toString();
                     return Text(
-                      viewerLabel,
+                      viewers == null ? '—' : compact(viewers),
                       style: AppText.body.copyWith(
-                        color: const Color(0xFF91A396),
+                        color: AppColors.textSecondary,
                         fontSize: 14,
                       ),
+                    );
+                  },
+                ),
+                const Spacer(),
+                Builder(
+                  builder: (context) {
+                    final episodeNumber = episode.number ?? (activeIndex + 1);
+                    final exponent = (episodeNumber - 1).clamp(0.0, 1000.0);
+                    final viewers = _showPopularity == null
+                        ? 0
+                        : (_showPopularity! / math.pow(1.02, exponent)).round();
+                    final likes = (viewers * 0.30).round() +
+                        (_episodeVote == 1 ? 1 : 0);
+                    final dislikes = (viewers * 0.02).round() +
+                        (_episodeVote == -1 ? 1 : 0);
+                    Widget voteButton(IconData icon, int value, int count) {
+                      final active = _episodeVote == value;
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(18),
+                        onTap: () => setState(() {
+                          _episodeVote = active ? null : value;
+                        }),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(icon, size: 17,
+                                  color: active ? AppColors.accent : AppColors.textSecondary),
+                              const SizedBox(width: 4),
+                              Text(
+                                count.toString(),
+                                style: AppText.caption.copyWith(
+                                  color: active ? AppColors.accent : AppColors.textSecondary,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        voteButton(Icons.thumb_up_alt_outlined, 1, likes),
+                        voteButton(Icons.thumb_down_alt_outlined, -1, dislikes),
+                      ],
                     );
                   },
                 ),
@@ -2972,18 +3022,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            Transform.translate(
-              offset: const Offset(-16, 0),
-              child: SizedBox(
-                width: MediaQuery.of(context).size.width + 32,
-                child: SizedBox(
-                  height: 112,
-                  child: ListView.separated(
-                  padding: const EdgeInsets.only(left: 16, right: 64),
-                  controller: _episodeCardsScroll,
-                  scrollDirection: Axis.horizontal,
-                  itemCount: episodes.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 112,
+              child: ListView.separated(
+                padding: EdgeInsets.zero,
+                controller: _episodeCardsScroll,
+                scrollDirection: Axis.horizontal,
+                itemCount: episodes.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
                   final item = episodes[index];
                   final selected = index == activeIndex;
@@ -3003,17 +3050,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       width: 168,
                       height: 104,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF171717),
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(9),
-                        border: Border.all(
-                          color: selected
-                              ? AppColors.accent
-                              : const Color(0xFF514D55),
-                          width: selected ? 1.6 : 1.2,
-                        ),
+                        border: selected
+                            ? Border.all(color: AppColors.accent, width: 1.0)
+                            : null,
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(7.5),
+                        borderRadius: BorderRadius.circular(8),
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
@@ -3022,10 +3066,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                 imageUrl: image,
                                 fit: BoxFit.cover,
                                 errorWidget: (_, __, ___) =>
-                                    const ColoredBox(color: Color(0xFF202020)),
+                                    ColoredBox(color: AppColors.surface2),
                               )
                             else
-                              const ColoredBox(color: Color(0xFF202020)),
+                              ColoredBox(color: AppColors.surface2),
                             const DecoratedBox(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
@@ -3051,24 +3095,42 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                   shadows: const [
-                                    Shadow(
-                                      color: Colors.black,
-                                      blurRadius: 5,
-                                    ),
+                                    Shadow(color: Colors.black, blurRadius: 5),
                                   ],
                                 ),
                               ),
                             ),
+                            if (selected)
+                              Positioned(
+                                top: 6,
+                                left: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accent,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Sedang ditonton',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),
                     ),
                   );
-                    },
-                  ),
-                ),
+                },
               ),
-              ),
+            ),
             if (summary.isNotEmpty) ...[
               const SizedBox(height: 20),
               Container(
