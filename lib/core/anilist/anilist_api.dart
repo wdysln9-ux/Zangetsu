@@ -732,6 +732,16 @@ class AniListApi {
     return [for (final row in rows) if (row is Map) Map<String, dynamic>.from(row)];
   }
 
+  /// Toggle a love on an AniList thread comment. Requires a linked AniList account.
+  Future<bool> toggleThreadCommentLike(int commentId) async {
+    final d = await _gql(
+      'mutation(\$id:Int){ ToggleLike(id:\$id,type:THREAD_COMMENT){ id } }',
+      {'id': commentId},
+      auth: true,
+    );
+    return d?['ToggleLike'] != null;
+  }
+
   /// Push progress/status for [mediaId]. Returns true on success.
   Future<bool> saveProgress({
     required int mediaId,
