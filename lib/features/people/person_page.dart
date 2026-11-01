@@ -292,7 +292,7 @@ class _PersonPageState extends State<PersonPage> {
                                 MaterialPageRoute<void>(
                                   builder: (_) => CharacterGalleryPage(
                                     name: _displayName(p.name),
-                                    malId: p.malId!,
+                                    characterName: p.name,
                                   ),
                                 ),
                               ),
@@ -646,11 +646,11 @@ class CharacterGalleryPage extends StatefulWidget {
   const CharacterGalleryPage({
     super.key,
     required this.name,
-    required this.malId,
+    required this.characterName,
   });
 
   final String name;
-  final int malId;
+  final String characterName;
 
   @override
   State<CharacterGalleryPage> createState() => _CharacterGalleryPageState();
@@ -658,7 +658,7 @@ class CharacterGalleryPage extends StatefulWidget {
 
 class _CharacterGalleryPageState extends State<CharacterGalleryPage> {
   late final Future<List<String>> _gallery =
-      sl<PeopleService>().loadCharacterGallery(widget.malId);
+      sl<PeopleService>().loadCharacterGallery(widget.characterName);
 
   @override
   Widget build(BuildContext context) {
