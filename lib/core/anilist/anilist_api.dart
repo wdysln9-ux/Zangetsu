@@ -692,7 +692,7 @@ class AniListApi {
   Future<List<Map<String, dynamic>>> fetchReviews(int mediaId, {int page = 1}) async {
     final d = await _gql(
       'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:20){ '
-      'reviews(mediaId:\$id,sort:[RATING_DESC]){ id summary body score rating ratingAmount userRating '
+      'reviews(mediaId:\$id,sort:[RATING_DESC]){ id summary body score rating ratingAmount userRating media{ bannerImage } '
       'createdAt user{id name avatar{large}} } } }',
       {'id': mediaId, 'page': page},
     );
