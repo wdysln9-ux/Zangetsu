@@ -1709,9 +1709,8 @@ class _HomeViewState extends State<_HomeView>
     );
   }
 
-  Widget _globalChatCard() => GestureDetector(
-    key: const ValueKey('home_global_chat_card'),
-    onTap: _slashing ? null : ()Null when there's nothing yet.
+  /// A representative cover for [m] from the user's own history — last watched
+  /// show (streaming) or last read manga/novel. Null when there's nothing yet.
   ({String? cover, Map<String, String>? headers}) _modeArt(ContentMode m) {
     if (m == ContentMode.anime) {
       if (!Hive.isBoxOpen(WatchHistory.boxName))
