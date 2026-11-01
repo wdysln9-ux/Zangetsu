@@ -473,170 +473,8 @@ class _PersonPageState extends State<PersonPage> {
     }
   }
 
-  Widget _bio(String text) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-          child: Divider(color: AppColors.hairline, height: 1),
-        ),
-        _sectionLabel('Biografi'),
-        GestureDetector(
-      onTap: () => setState(() => _bioExpanded = !_bioExpanded),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRect(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: _bioExpanded ? double.infinity : 112,
-                ),
-                child: AutoTranslatedAniListMarkdown(
-                  data: text,
-                  textStyle: AppText.body,
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _bioExpanded ? 'Sembunyikan' : 'Baca selengkapnya',
-              style: AppText.caption.copyWith(color: AppColors.accent),
-            ),
-          ],
-        ),
-      ),
-      ],
-    );
-  }
-
-  Widget _relatedRow(List<PersonRef> people) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionLabel('Pengisi suara'),
-        SizedBox(
-          height: 108,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-            itemCount: people.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 14),
-            itemBuilder: (_, i) {
-              final r = people[i];
-              return GestureDetector(
-                onTap: () => _openRelated(r),
-                behavior: HitTestBehavior.opaque,
-                child: SizedBox(
-                  width: 64,
-                  child: Column(
-                    children: [
-                      ClipOval(
-                        child: SizedBox(
-                          width: 60,
-                          height: 60,
-                          child: (r.photo != null && r.photo!.isNotEmpty)
-                              ? CachedNetworkImage(
-                                  imageUrl: r.photo!,
-                                  fit: BoxFit.cover,
-                                  placeholder: (_, _) =>
-                                      Container(color: AppColors.surface2),
-                                  errorWidget: (_, _, _) =>
-                                      const _PortraitFallback(),
-                                )
-                              : const _PortraitFallback(),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        r.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: AppText.caption.copyWith(fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _sectionLabel(String text) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-    child: Text(text, style: AppText.overline),
-  );
-
-  String _translatedRole(String value) {
-    return value
-        .replaceAll(RegExp(r'\bMain\b', caseSensitive: false), 'Utama')
-        .replaceAll(RegExp(r'\bSupporting\b', caseSensitive: false), 'Pendukung');
-  }
-
-  Widget _workCard(PersonWork w) {
-    return GestureDetector(
-      onTap: () => _openWork(w),
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: AspectRatio(
-              aspectRatio: 2 / 3,
-              child: (w.cover != null && w.cover!.isNotEmpty)
-                  ? CachedNetworkImage(
-                      imageUrl: w.cover!,
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) =>
-                          Container(color: AppColors.surface2),
-                      errorWidget: (_, _, _) =>
-                          Container(color: AppColors.surface2),
-                    )
-                  : Container(color: AppColors.surface2),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            w.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppText.caption.copyWith(color: AppColors.textPrimary),
-          ),
-          if (w.subtitle != null && w.subtitle!.isNotEmpty)
-            Text(
-              _translatedRole(w.subtitle!),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppText.caption.copyWith(fontSize: 11),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PortraitFallback extends StatelessWidget {
-  const _PortraitFallback();
-  @override
-  Widget build(BuildContext context) => Container(
-    color: AppColors.surface2,
-    alignment: Alignment.center,
-    child: const Icon(
-      Icons.person_rounded,
-      color: AppColors.textTertiary,
-      size: 34,
-    ),
-  );
-}
-, multiLine: true);
+  List<(String, String)> _manualCharacterFacts(String description) {
+    final pattern = RegExp(r'^\\s*__(.+?):__\\s*(.+?)\\s*$', multiLine: true);
     return pattern
         .allMatches(description)
         .map((match) => (match.group(1)!.trim(), match.group(2)!.trim()))
@@ -645,235 +483,7 @@ class _PortraitFallback extends StatelessWidget {
   }
 
   String _bioWithoutManualFacts(String description) {
-    final pattern = RegExp(r'^\\s*__.+?:__\\s*.+?\\s*
-      if (p.age != null) ('Usia', p.age!),
-      if (p.gender != null) ('Gender', _genderLabel(p.gender!)),
-      if (p.birthday != null) ('Ulang tahun', p.birthday!),
-      if (p.bloodType != null) ('Golongan darah', p.bloodType!),
-      if (p.favourites != null)
-        ('Favorit AniList', p.favourites!.toString()),
-    ];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _sectionLabel('Informasi karakter'),
-          const SizedBox(height: 4),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final width = (constraints.maxWidth - 10) / 2;
-              return Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: facts.map((fact) {
-                  return Container(
-                    width: width,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 11,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          fact.$1,
-                          style: AppText.caption.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          fact.$2,
-                          style: AppText.body.copyWith(
-                            color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _genderLabel(String value) {
-    switch (value.toLowerCase()) {
-      case 'female':
-        return 'Perempuan';
-      case 'male':
-        return 'Laki-laki';
-      case 'non-binary':
-        return 'Non-biner';
-      default:
-        return value;
-    }
-  }
-
-  Widget _bio(String text) {
-    return GestureDetector(
-      onTap: () => setState(() => _bioExpanded = !_bioExpanded),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRect(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: _bioExpanded ? double.infinity : 112,
-                ),
-                child: AutoTranslatedAniListMarkdown(
-                  data: text,
-                  textStyle: AppText.body,
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _bioExpanded ? 'Sembunyikan' : 'Baca selengkapnya',
-              style: AppText.caption.copyWith(color: AppColors.accent),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _relatedRow(List<PersonRef> people) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _sectionLabel('Pengisi suara'),
-        SizedBox(
-          height: 108,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-            itemCount: people.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 14),
-            itemBuilder: (_, i) {
-              final r = people[i];
-              return GestureDetector(
-                onTap: () => _openRelated(r),
-                behavior: HitTestBehavior.opaque,
-                child: SizedBox(
-                  width: 64,
-                  child: Column(
-                    children: [
-                      ClipOval(
-                        child: SizedBox(
-                          width: 60,
-                          height: 60,
-                          child: (r.photo != null && r.photo!.isNotEmpty)
-                              ? CachedNetworkImage(
-                                  imageUrl: r.photo!,
-                                  fit: BoxFit.cover,
-                                  placeholder: (_, _) =>
-                                      Container(color: AppColors.surface2),
-                                  errorWidget: (_, _, _) =>
-                                      const _PortraitFallback(),
-                                )
-                              : const _PortraitFallback(),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        r.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: AppText.caption.copyWith(fontSize: 11),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _sectionLabel(String text) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
-    child: Text(text, style: AppText.overline),
-  );
-
-  String _translatedRole(String value) {
-    return value
-        .replaceAll(RegExp(r'\bMain\b', caseSensitive: false), 'Utama')
-        .replaceAll(RegExp(r'\bSupporting\b', caseSensitive: false), 'Pendukung');
-  }
-
-  Widget _workCard(PersonWork w) {
-    return GestureDetector(
-      onTap: () => _openWork(w),
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: AspectRatio(
-              aspectRatio: 2 / 3,
-              child: (w.cover != null && w.cover!.isNotEmpty)
-                  ? CachedNetworkImage(
-                      imageUrl: w.cover!,
-                      fit: BoxFit.cover,
-                      placeholder: (_, _) =>
-                          Container(color: AppColors.surface2),
-                      errorWidget: (_, _, _) =>
-                          Container(color: AppColors.surface2),
-                    )
-                  : Container(color: AppColors.surface2),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            w.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: AppText.caption.copyWith(color: AppColors.textPrimary),
-          ),
-          if (w.subtitle != null && w.subtitle!.isNotEmpty)
-            Text(
-              _translatedRole(w.subtitle!),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppText.caption.copyWith(fontSize: 11),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PortraitFallback extends StatelessWidget {
-  const _PortraitFallback();
-  @override
-  Widget build(BuildContext context) => Container(
-    color: AppColors.surface2,
-    alignment: Alignment.center,
-    child: const Icon(
-      Icons.person_rounded,
-      color: AppColors.textTertiary,
-      size: 34,
-    ),
-  );
-}
-, multiLine: true);
+    final pattern = RegExp(r'^\\s*__.+?:__\\s*.+?\\s*$', multiLine: true);
     return description.replaceAll(pattern, '').trim();
   }
 
@@ -888,6 +498,9 @@ class _PortraitFallback extends StatelessWidget {
 
   Widget _characterFacts(PersonProfile p) {
     final facts = <(String, String)>[
+      ...?p.description == null
+          ? null
+          : _manualCharacterFacts(p.description!),
       if (p.age != null) ('Usia', p.age!),
       if (p.gender != null) ('Gender', _genderLabel(p.gender!)),
       if (p.birthday != null) ('Ulang tahun', p.birthday!),
@@ -900,7 +513,7 @@ class _PortraitFallback extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionLabel('Informasi karakter'),
+          _sectionLabel('Info'),
           const SizedBox(height: 4),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -948,49 +561,47 @@ class _PortraitFallback extends StatelessWidget {
     );
   }
 
-  String _genderLabel(String value) {
-    switch (value.toLowerCase()) {
-      case 'female':
-        return 'Perempuan';
-      case 'male':
-        return 'Laki-laki';
-      case 'non-binary':
-        return 'Non-biner';
-      default:
-        return value;
-    }
-  }
-
   Widget _bio(String text) {
-    return GestureDetector(
-      onTap: () => setState(() => _bioExpanded = !_bioExpanded),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRect(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxHeight: _bioExpanded ? double.infinity : 112,
-                ),
-                child: AutoTranslatedAniListMarkdown(
-                  data: text,
-                  textStyle: AppText.body,
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _bioExpanded ? 'Sembunyikan' : 'Baca selengkapnya',
-              style: AppText.caption.copyWith(color: AppColors.accent),
-            ),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+          child: Divider(color: AppColors.hairline, height: 1),
         ),
-      ),
+        _sectionLabel('Biografi'),
+        GestureDetector(
+          onTap: () => setState(() => _bioExpanded = !_bioExpanded),
+          behavior: HitTestBehavior.opaque,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRect(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: _bioExpanded ? double.infinity : 112,
+                    ),
+                    child: AutoTranslatedAniListMarkdown(
+                      data: text,
+                      textStyle: AppText.body,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _bioExpanded ? 'Sembunyikan' : 'Baca selengkapnya',
+                  style: AppText.caption.copyWith(color: AppColors.accent),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
+
 
   Widget _relatedRow(List<PersonRef> people) {
     return Column(
@@ -1101,21 +712,6 @@ class _PortraitFallback extends StatelessWidget {
     );
   }
 }
-
-class _PortraitFallback extends StatelessWidget {
-  const _PortraitFallback();
-  @override
-  Widget build(BuildContext context) => Container(
-    color: AppColors.surface2,
-    alignment: Alignment.center,
-    child: const Icon(
-      Icons.person_rounded,
-      color: AppColors.textTertiary,
-      size: 34,
-    ),
-  );
-}
-
 
 class CharacterGalleryPage extends StatefulWidget {
   const CharacterGalleryPage({
