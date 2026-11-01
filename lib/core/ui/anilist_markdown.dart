@@ -276,7 +276,7 @@ class AniListMarkdown extends StatelessWidget {
               return GestureDetector(
                 onTap: () => showDialog<void>(
                   context: context,
-                  barrierColor: Colors.black,
+                  barrierColor: Colors.black.withValues(alpha: 0.1),
                   builder: (_) => _MarkdownImageViewer(url: src),
                 ),
                 child: CachedNetworkImage(
@@ -524,7 +524,7 @@ class _MarkdownImageViewerState extends State<_MarkdownImageViewer> {
   @override
   Widget build(BuildContext context) {
     return Dialog.fullscreen(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.transparent,
       child: SafeArea(
         child: Stack(
           children: [
@@ -540,7 +540,7 @@ class _MarkdownImageViewerState extends State<_MarkdownImageViewer> {
                       'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36',
                       'Referer': Uri.tryParse(widget.url)?.origin ?? 'https://anilist.co/',
                     },
-                    placeholder: (_, __) => const CircularProgressIndicator(),
+                    placeholder: (_, __) => const SizedBox.shrink(),
                     errorWidget: (_, __, ___) => const Icon(
                       Icons.broken_image_outlined,
                       color: Colors.white54,
@@ -553,25 +553,33 @@ class _MarkdownImageViewerState extends State<_MarkdownImageViewer> {
             Positioned(
               top: 8,
               left: 8,
-              child: IconButton.filledTonal(
+              child: IconButton(
                 onPressed: () => Navigator.of(context).pop(),
-                icon: const Icon(Icons.close),
-                tooltip: 'Tutup',
+                icon: const Icon(Icons.arrow_back),
+                color: Colors.white,
+                tooltip: 'Kembali',
               ),
             ),
             Positioned(
               top: 8,
               right: 8,
-              child: FilledButton.icon(
+              child: IconButton.filled(
                 onPressed: _saving ? null : _download,
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.5),
+                  foregroundColor: Colors.black,
+                ),
                 icon: _saving
                     ? const SizedBox(
                         width: 18,
                         height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.black,
+                        ),
                       )
                     : const Icon(Icons.download),
-                label: Text(_saving ? 'Menyimpan...' : 'Download'),
+                tooltip: 'Simpan ke galeri',
               ),
             ),
           ],
