@@ -326,19 +326,49 @@ class PeopleService {
   /// Search MAL by the AniList character name, choose the closest result,
   /// then load every picture exposed by that character's Pictures page.
   Future<List<String>> loadCharacterGallery(String characterName) async {
+    // Jikan applies a strict request limit. Retry a rate-limited search once
+    // before giving up, then open the matched character's dedicated Pictures
+    // endpoint (not just the single search-result portrait).
+    Future<Response<dynamic>?> request(String url, {Map<String, dynamic>? query}) async {
+      for (var attempt = 0; attempt < 3; attempt++) {
+        try {
+          final response = await _dio.get<dynamic>(
+            url,
+            queryParameters: query,
+            options: Options(
+              validateStatus: (status) => status != null && status < 500,
+            ),
+          );
+          if (response.statusCode == 429 && attempt < 2) {
+            await Future<void>.delayed(Duration(milliseconds: 1100 * (attempt + 1)));
+            continue;
+          }
+          if (response.statusCode != null &&
+              response.statusCode! >= 200 &&
+              response.statusCode! < 300) {
+            return response;
+          }
+          return null;
+        } catch (_) {
+          if (attempt == 2) return null;
+          await Future<void>.delayed(Duration(milliseconds: 700 * (attempt + 1)));
+        }
+      }
+      return null;
+    }
+
     try {
-      final search = await _dio.get<dynamic>(
+      final search = await request(
         'https://api.jikan.moe/v4/characters',
-        queryParameters: {'q': characterName, 'limit': 25},
-        options: Options(validateStatus: (status) => status != null && status < 500),
+        query: {'q': characterName, 'limit': 25},
       );
-      final data = search.data is Map ? search.data['data'] : null;
+      final data = search?.data is Map ? search!.data['data'] : null;
       if (data is! List || data.isEmpty) return const [];
 
       String normalize(String value) => value
           .toLowerCase()
-          .replaceAll(RegExp(r'[^a-z0-9\s]'), ' ')
-          .replaceAll(RegExp(r'\s+'), ' ')
+          .replaceAll(RegExp(r'[^a-z0-9\\s]'), ' ')
+          .replaceAll(RegExp(r'\\s+'), ' ')
           .trim();
 
       final target = normalize(characterName);
@@ -350,7 +380,8 @@ class PeopleService {
         final names = <String>[
           if (raw['name'] is String) raw['name'] as String,
           if (raw['name_kanji'] is String) raw['name_kanji'] as String,
-          if (raw['nicknames'] is List) ...(raw['nicknames'] as List).whereType<String>(),
+          if (raw['nicknames'] is List)
+            ...(raw['nicknames'] as List).whereType<String>(),
         ];
         var score = 0.0;
         for (final candidate in names) {
@@ -363,7 +394,8 @@ class PeopleService {
           if (normalized.contains(target) || target.contains(normalized)) {
             score = score < 0.88 ? 0.88 : score;
           }
-          final tokens = normalized.split(' ').where((e) => e.length > 1).toSet();
+          final tokens =
+              normalized.split(' ').where((e) => e.length > 1).toSet();
           if (targetTokens.isNotEmpty && tokens.isNotEmpty) {
             final overlap = targetTokens.intersection(tokens).length /
                 targetTokens.union(tokens).length;
@@ -376,27 +408,30 @@ class PeopleService {
         }
       }
 
-      // Don't show a random character's gallery when the search is a poor match.
+      // Never show an unrelated character's pictures for a weak name match.
       if (best == null || bestScore < 0.25) return const [];
       final malId = (best['mal_id'] as num?)?.toInt();
       if (malId == null) return const [];
-      final response = await _dio.get<dynamic>(
+
+      final picturesResponse = await request(
         'https://api.jikan.moe/v4/characters/$malId/pictures',
-        options: Options(validateStatus: (status) => status != null && status < 500),
       );
-      final pictures = response.data is Map ? response.data['data'] : null;
+      final pictures = picturesResponse?.data is Map
+          ? picturesResponse!.data['data']
+          : null;
       if (pictures is! List) return const [];
+
       final urls = <String>[];
       for (final item in pictures) {
         if (item is! Map) continue;
         final webp = item['webp'];
         final jpg = item['jpg'];
-        final url = webp is Map ? webp['image_url'] : null;
-        final fallback = jpg is Map ? jpg['image_url'] : null;
-        final value = url is String && url.isNotEmpty
-            ? url
-            : (fallback is String && fallback.isNotEmpty ? fallback : null);
-        if (value != null && !urls.contains(value)) urls.add(value);
+        final webpUrl = webp is Map ? webp['image_url'] : null;
+        final jpgUrl = jpg is Map ? jpg['image_url'] : null;
+        final url = webpUrl is String && webpUrl.isNotEmpty
+            ? webpUrl
+            : (jpgUrl is String && jpgUrl.isNotEmpty ? jpgUrl : null);
+        if (url != null && !urls.contains(url)) urls.add(url);
       }
       return urls;
     } catch (_) {
