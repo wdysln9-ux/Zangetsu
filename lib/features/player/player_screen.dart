@@ -2940,7 +2940,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   color: active ? AppColors.accent : AppColors.textSecondary),
                               const SizedBox(width: 4),
                               Text(
-                                count.toString(),
+                                count >= 100000
+                                    ? '${(count / 1000).round()}k'
+                                    : count >= 1000
+                                        ? '${(count / 1000).toStringAsFixed(1)}k'
+                                        : count.toString(),
                                 style: AppText.caption.copyWith(
                                   color: active ? AppColors.accent : AppColors.textSecondary,
                                   fontSize: 11,
