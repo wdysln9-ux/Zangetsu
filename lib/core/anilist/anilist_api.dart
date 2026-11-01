@@ -679,6 +679,16 @@ class AniListApi {
     return null;
   }
 
+  Future<String?> fetchMediaBannerImage(int mediaId) async {
+    final d = await _gql(
+      'query(\$id:Int){ Media(id:\$id,type:ANIME){ bannerImage } }',
+      {'id': mediaId},
+    );
+    final media = d?['Media'] as Map?;
+    final banner = media?['bannerImage']?.toString();
+    return banner == null || banner.isEmpty ? null : banner;
+  }
+
   Future<List<Map<String, dynamic>>> fetchReviews(int mediaId, {int page = 1}) async {
     final d = await _gql(
       'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:20){ '
