@@ -23,14 +23,52 @@ class AniListMarkdown extends StatelessWidget {
   final TextStyle? textStyle;
 
   String _toHtml(String source) {
-    // Parse AniList center blocks separately so nested Markdown survives.
+    // Protect AniList embeds before Markdown parsing; otherwise URLs in the
+    // parentheses are parsed as ordinary Markdown links.
+    final embeds = <String, String>{};
+    var embedIndex = 0;
+    final protectedSource = source.replaceAllMapped(
+      RegExp(r'img(\d{1,4})?\((https?://[^)\s]+)\)|youtube\(([^)]+)\)|webm\((https?://[^)]+)\)'),
+      (match) {
+        final token = 'ANILIST_EMBED_\${embedIndex++}_TOKEN';
+        if (match[2] != null) {
+          final width = match[1];
+          embeds[token] = width == null
+              ? '<img src="\${match[2]}" />'
+              : '<img src="\${match[2]}" width="\$width" />';
+        } else if (match[3] != null) {
+          final value = match[3]!.trim();
+          final uri = Uri.tryParse(value.startsWith('http') ? value : 'https://youtu.be/\$value');
+          String? id;
+          if (uri != null) {
+            if (uri.host == 'youtu.be' && uri.pathSegments.isNotEmpty) {
+              id = uri.pathSegments.first;
+            } else {
+              id = uri.queryParameters['v'];
+              final index = uri.pathSegments.indexOf('embed');
+              final shorts = uri.pathSegments.indexOf('shorts');
+              final pathIndex = index >= 0 ? index : shorts;
+              if ((id == null || id.isEmpty) && pathIndex >= 0 && pathIndex + 1 < uri.pathSegments.length) {
+                id = uri.pathSegments[pathIndex + 1];
+              }
+            }
+          }
+          embeds[token] = id == null || id.isEmpty
+              ? match[0]!
+              : '<iframe src="https://www.youtube-nocookie.com/embed/\$id?playsinline=1" width="560" height="315" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+        } else {
+          embeds[token] = '<video src="\${match[4]}" controls loop muted></video>';
+        }
+        return token;
+      },
+    );
     final centerBlocks = <String>[];
-    final prepared = source.replaceAllMapped(
+    final prepared = protectedSource.replaceAllMapped(
       RegExp(r'˜˜˜([\s\S]*?)˜˜˜', dotAll: true),
       (match) {
         final index = centerBlocks.length;
         centerBlocks.add(match[1] ?? '');
-        return '\n\nANILIST_CENTER_BLOCK_${index}_PLACEHOLDER\n\n';
+        return '\n\nANILIST_CENTER_BLOCK_\${index}_PLACEHOLDER\n\n';
       },
     );
 
@@ -49,62 +87,6 @@ class AniListMarkdown extends StatelessWidget {
     html = html.replaceAllMapped(
       RegExp(r'~!(.*?)!~', dotAll: true),
       (match) => '<span class="anilist-spoiler">${match[1] ?? ''}</span>',
-    );
-
-    // Simple image syntax: img(url) or img220(url).
-    // Keep the width optional so img(url) uses the available content width.
-    html = html.replaceAllMapped(
-      RegExp(r'img(\d{1,4})?\((https?://[^)\s]+)\)'),
-      (match) {
-        final width = match[1];
-        final src = match[2];
-        return width == null
-            ? '<img src="$src" />'
-            : '<img src="$src" width="$width" />';
-      },
-    );
-
-    // AniList entity shortcuts: [anime=ID], [manga=ID], [character=ID],
-    // [staff=ID], [user=ID], [studio=ID], [activity=ID], [forum=ID].
-    html = html.replaceAllMapped(
-      RegExp(r'\[(anime|manga|character|staff|user|studio|activity|forum)=(\d+)\]', caseSensitive: false),
-      (match) {
-        final kind = match[1]!.toLowerCase();
-        final id = match[2]!;
-        return '<a href="https://anilist.co/$kind/$id">$kind #$id</a>';
-      },
-    );
-
-    html = html.replaceAllMapped(
-      RegExp(r'youtube\(([^)]+)\)'),
-      (match) {
-        final value = match[1]!.trim();
-        final uri = Uri.tryParse(
-          value.startsWith('http') ? value : 'https://youtu.be/$value',
-        );
-        String? id;
-        if (uri != null) {
-          if (uri.host.contains('youtu.be') && uri.pathSegments.isNotEmpty) {
-            id = uri.pathSegments.first;
-          } else {
-            id = uri.queryParameters['v'];
-            final embedIndex = uri.pathSegments.indexOf('embed');
-            if ((id == null || id.isEmpty) &&
-                embedIndex >= 0 &&
-                embedIndex + 1 < uri.pathSegments.length) {
-              id = uri.pathSegments[embedIndex + 1];
-            }
-          }
-        }
-        if (id == null || id.isEmpty) return match[0]!;
-        return '<iframe src="https://www.youtube.com/embed/$id" '
-            'width="560" height="315"></iframe>';
-      },
-    );
-    html = html.replaceAllMapped(
-      RegExp(r'webm\((https?://[^)]+)\)'),
-      (match) =>
-          '<video src="${match[1]}" controls loop muted autoplay></video>',
     );
 
     html = html.replaceAllMapped(
@@ -128,6 +110,9 @@ class AniListMarkdown extends StatelessWidget {
       final centered = '<div class="anilist-center">$innerHtml</div>';
       html = html.replaceAll('<p>$marker</p>', centered);
       html = html.replaceAll(marker, centered);
+    }
+    for (final entry in embeds.entries) {
+      html = html.replaceAll(entry.key, entry.value);
     }
     return html;
   }
@@ -231,6 +216,10 @@ class AniListMarkdown extends StatelessWidget {
                   .clamp(1, 4096);
               return CachedNetworkImage(
                 imageUrl: src,
+                httpHeaders: {
+                  'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36',
+                  'Referer': Uri.tryParse(src)?.origin ?? 'https://anilist.co/',
+                },
                 width: displayWidth,
                 fit: BoxFit.contain,
                 memCacheWidth: pixelWidth,
@@ -240,7 +229,7 @@ class AniListMarkdown extends StatelessWidget {
                   width: displayWidth,
                   height: displayWidth * 0.56,
                 ),
-                errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                errorWidget: (_, __, ___) => SizedBox(width: displayWidth, height: displayWidth * 0.56, child: const Center(child: Icon(Icons.broken_image_outlined, color: Colors.white38))),
               );
             },
           );
@@ -354,7 +343,7 @@ class _YoutubeMarkdownEmbedState extends State<_YoutubeMarkdownEmbed> {
       )
       ..loadRequest(
         widget.uri,
-        headers: const {'Referer': 'https://www.youtube.com/'},
+        headers: const {'Referer': 'https://www.youtube.com/', 'Origin': 'https://www.youtube.com'},
       );
   }
 
