@@ -329,8 +329,8 @@ class PeopleService {
 
       String normalize(String value) => value
           .toLowerCase()
-          .replaceAll(RegExp(r'[^a-z0-9\\s]'), ' ')
-          .replaceAll(RegExp(r'\\s+'), ' ')
+          .replaceAll(RegExp(r'[^a-z0-9\s]'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
           .trim();
 
       final target = normalize(characterName);
