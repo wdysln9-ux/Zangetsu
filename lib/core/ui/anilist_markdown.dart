@@ -26,7 +26,7 @@ class AniListMarkdown extends StatelessWidget {
     // AniList users often write ATX headings without the optional space:
     // "##Heading". Normalize those lines before passing them to the Markdown parser.
     source = source.replaceAllMapped(
-      RegExp(r'^(#{1,6})(?=\\S)', multiLine: true),
+      RegExp(r'^(#{1,6})(?=\S)', multiLine: true),
       (match) => '${match[1]} ',
     );
     // Protect AniList embeds before Markdown parsing; otherwise URLs in the
@@ -34,16 +34,19 @@ class AniListMarkdown extends StatelessWidget {
     final embeds = <String, String>{};
     var embedIndex = 0;
     final protectedSource = source.replaceAllMapped(
-      RegExp(r'img(\d{1,4})?\((https?://[^)\s]+)\)|youtube\(([^)]+)\)|webm\((https?://[^)]+)\)'),
+      RegExp(r'img(?:(\d{1,4})|(\d{1,3})%)?\((https?://[^)\s]+)\)|youtube\(([^)]+)\)|webm\((https?://[^)]+)\)'),
       (match) {
         final token = 'ANILIST_EMBED_${embedIndex++}_TOKEN';
-        if (match[2] != null) {
-          final width = match[1];
-          embeds[token] = width == null
-              ? '<img src="${match[2]}" />'
-              : '<img src="${match[2]}" width="$width" />';
-        } else if (match[3] != null) {
-          final value = match[3]!.trim();
+        if (match[3] != null) {
+          final pxWidth = match[1];
+          final percentWidth = match[2];
+          embeds[token] = percentWidth != null
+              ? '<img src="${match[3]}" style="width:${percentWidth}%;max-width:100%" />'
+              : pxWidth == null
+                  ? '<img src="${match[3]}" />'
+                  : '<img src="${match[3]}" width="$pxWidth" />';
+        } else if (match[4] != null) {
+          final value = match[4]!.trim();
           final uri = Uri.tryParse(value.startsWith('http') ? value : 'https://youtu.be/$value');
           String? id;
           if (uri != null) {
@@ -63,7 +66,7 @@ class AniListMarkdown extends StatelessWidget {
               ? match[0]!
               : '<iframe src="https://www.youtube-nocookie.com/embed/$id?playsinline=1" width="560" height="315" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
         } else {
-          embeds[token] = '<video src="${match[4]}" controls loop muted></video>';
+          embeds[token] = '<video src="${match[5]}" controls loop muted></video>';
         }
         return token;
       },
@@ -183,11 +186,11 @@ class AniListMarkdown extends StatelessWidget {
           case 'center':
             if (element.classes.contains('anilist-center') ||
                 element.localName == 'center') {
-              return {'text-align': 'center', 'width': '100%'};
+              return {'text-align': 'center', 'max-width': '100%', 'width': '100%', 'overflow-wrap': 'anywhere'};
             }
             final align = element.attributes['align'];
             if (align == 'center' || align == 'right' || align == 'justify') {
-              return {'text-align': align!, 'max-width': '100%'};
+              return {'text-align': align, 'max-width': '100%', 'width': '100%', 'overflow-wrap': 'anywhere'};
             }
             break;
         }
