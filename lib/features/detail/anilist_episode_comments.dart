@@ -61,28 +61,26 @@ class _AniListEpisodeCommentsState extends State<AniListEpisodeComments> {
   List<Map<String, dynamic>> _sorted(List<Map<String, dynamic>> threads) {
     final comments = <Map<String, dynamic>>[];
     for (final thread in threads) {
-      final title = (thread['title'] ?? '').toString();
-      final number = RegExp(r'\d+(?:\.\d+)?')
-          .firstMatch(widget.episodeNumber)
-          ?.group(0);
-      if (number == null ||
-          !RegExp(
-            r'(?:episode|ep\.?)[\s:#-]*' +
-                RegExp.escape(number) +
-                r'(?![\d.])',
-            caseSensitive: false,
-          ).hasMatch(title)) {
-        continue;
-      }
+      final threadTitle = (thread['title'] ?? 'Diskusi anime').toString();
       final list = thread['comments'];
-      if (list is List) comments.addAll(list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)));
+      if (list is List) {
+        for (final raw in list.whereType<Map>()) {
+          final comment = Map<String, dynamic>.from(raw);
+          comment['_threadTitle'] = threadTitle;
+          comments.add(comment);
+        }
+      }
     }
     comments.sort((a, b) {
       final la = (a['likeCount'] as num?)?.toInt() ?? 0;
       final lb = (b['likeCount'] as num?)?.toInt() ?? 0;
       final ta = (a['createdAt'] as num?)?.toInt() ?? 0;
       final tb = (b['createdAt'] as num?)?.toInt() ?? 0;
-      return _sort == 0 ? lb.compareTo(la) : _sort == 1 ? tb.compareTo(ta) : ta.compareTo(tb);
+      return _sort == 0
+          ? lb.compareTo(la)
+          : _sort == 1
+              ? tb.compareTo(ta)
+              : ta.compareTo(tb);
     });
     return comments;
   }
@@ -93,7 +91,7 @@ class _AniListEpisodeCommentsState extends State<AniListEpisodeComments> {
     builder: (context, snapshot) {
       if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
       final comments = _sorted(snapshot.data ?? const []);
-      if (comments.isEmpty) return const Center(child: Text('Belum ada komentar untuk episode ini'));
+      if (comments.isEmpty) return const Center(child: Text('Belum ada diskusi di AniList untuk anime ini'));
       return ListView(padding: const EdgeInsets.all(16), children: [
         Row(children: [
           const Text('Komentar', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
@@ -132,7 +130,8 @@ class _AniListEpisodeCommentsState extends State<AniListEpisodeComments> {
             const Icon(Icons.open_in_new, size: 13),
           ]),
         ),
-        const SizedBox(height: 8),
+        Text((item['_threadTitle'] ?? 'Diskusi anime').toString(), style: const TextStyle(color: Color(0xFFF47521), fontSize: 12, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
         Text(body),
         const SizedBox(height: 8),
         Row(children: [
