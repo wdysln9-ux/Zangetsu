@@ -662,6 +662,59 @@ class AniListApi {
     return t.isEmpty ? 'Related' : t[0].toUpperCase() + t.substring(1);
   }
 
+  /// Resolve the AniList media id for community pages.
+  Future<int?> communityMediaId({int? anilistId, int? malId, required String title}) async {
+    if (anilistId != null && anilistId > 0) return anilistId;
+    if (malId != null && malId > 0) {
+      final d = await _gql('query(\$idMal:Int){ Media(idMal:\$idMal,type:ANIME){ id } }', {'idMal': malId});
+      final id = ((d?['Media'] as Map?)?['id'] as num?)?.toInt();
+      if (id != null) return id;
+    }
+    final cleaned = _cleanSearchTitle(title);
+    for (final q in [title, if (cleaned.isNotEmpty && cleaned != title) cleaned]) {
+      final d = await _gql('query(\$search:String){ Media(search:\$search,type:ANIME){ id } }', {'search': q});
+      final id = ((d?['Media'] as Map?)?['id'] as num?)?.toInt();
+      if (id != null) return id;
+    }
+    return null;
+  }
+
+  Future<List<Map<String, dynamic>>> fetchReviews(int mediaId, {int page = 1}) async {
+    final d = await _gql(
+      'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:20){ '
+      'reviews(mediaId:\$id,sort:[RATING_DESC]){ id summary body rating ratingAmount userRating '
+      'createdAt user{id name avatar{large}} } } }',
+      {'id': mediaId, 'page': page},
+    );
+    final rows = (d?['Page'] as Map?)?['reviews'];
+    if (rows is! List) return const [];
+    return [for (final row in rows) if (row is Map) Map<String, dynamic>.from(row)];
+  }
+
+  Future<List<Map<String, dynamic>>> fetchThreads(int mediaId, {int page = 1}) async {
+    final d = await _gql(
+      'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:20){ '
+      'threads(mediaCategoryId:\$id,sort:[REPLIED_AT_DESC]){ id title body viewCount likeCount replyCount '
+      'createdAt updatedAt user{id name avatar{large}} } } }',
+      {'id': mediaId, 'page': page},
+    );
+    final rows = (d?['Page'] as Map?)?['threads'];
+    if (rows is! List) return const [];
+    return [for (final row in rows) if (row is Map) Map<String, dynamic>.from(row)];
+  }
+
+  Future<Map<String, dynamic>?> fetchThread(int threadId) async {
+    final d = await _gql(
+      'query(\$id:Int){ Thread(id:\$id){ id title body viewCount likeCount replyCount '
+      'createdAt updatedAt user{id name avatar{large}} '
+      'comments(sort:[ID],threadId:\$id){ id comment likeCount createdAt user{id name avatar{large}} '
+      'childComments{id comment likeCount createdAt user{id name avatar{large}}} } } }',
+      {'id': threadId},
+    );
+    final thread = d?['Thread'];
+    return thread is Map ? Map<String, dynamic>.from(thread) : null;
+  }
+
   /// Push progress/status for [mediaId]. Returns true on success.
   Future<bool> saveProgress({
     required int mediaId,
