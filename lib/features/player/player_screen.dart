@@ -280,6 +280,7 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
+  int? _episodeVote; // 1 = like, -1 = dislike, null = no vote
   /// Which player this screen should hand off to: the episode list's one-off
   /// pick when there is one, otherwise the standing Settings default.
   ///
