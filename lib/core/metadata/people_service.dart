@@ -315,45 +315,71 @@ class PeopleService {
     );
   }
 
-  /// Find the matching MAL character and load its public picture gallery.
-  Future<List<String>> loadCharacterGallery(
-    String characterName, {
-    int? malId,
-  }) async {
+  /// Search MAL by the AniList character name, choose the closest result,
+  /// then load every picture exposed by that character's Pictures page.
+  Future<List<String>> loadCharacterGallery(String characterName) async {
     try {
-      var resolvedMalId = malId;
-      // Prefer AniList's linked MAL character ID; this avoids selecting a
-      // similarly named character from a fuzzy search result.
-      if (resolvedMalId == null) {
-        final search = await _dio.get<dynamic>(
-          'https://api.jikan.moe/v4/characters',
-          queryParameters: {'q': characterName, 'limit': 8},
-          options: Options(validateStatus: (status) => status != null && status < 500),
-        );
-        final searchData = search.data is Map ? search.data['data'] : null;
-        if (searchData is! List || searchData.isEmpty) return const [];
-        final normalized = characterName.trim().toLowerCase();
-        Map? best;
-        for (final item in searchData) {
-          if (item is! Map) continue;
-          final name = item['name'];
-          if (name is String && name.trim().toLowerCase() == normalized) {
-            best = item;
-            break;
-          }
-        }
-        best ??= searchData.first is Map ? searchData.first as Map : null;
-        resolvedMalId = (best?['mal_id'] as num?)?.toInt();
-      }
-      if (resolvedMalId == null) return const [];
-      final response = await _dio.get<dynamic>(
-        'https://api.jikan.moe/v4/characters/$resolvedMalId/pictures',
+      final search = await _dio.get<dynamic>(
+        'https://api.jikan.moe/v4/characters',
+        queryParameters: {'q': characterName, 'limit': 25},
         options: Options(validateStatus: (status) => status != null && status < 500),
       );
-      final data = response.data is Map ? response.data['data'] : null;
-      if (data is! List) return const [];
+      final data = search.data is Map ? search.data['data'] : null;
+      if (data is! List || data.isEmpty) return const [];
+
+      String normalize(String value) => value
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9\\s]'), ' ')
+          .replaceAll(RegExp(r'\\s+'), ' ')
+          .trim();
+
+      final target = normalize(characterName);
+      final targetTokens = target.split(' ').where((e) => e.length > 1).toSet();
+      Map? best;
+      var bestScore = 0.0;
+      for (final raw in data) {
+        if (raw is! Map) continue;
+        final names = <String>[
+          if (raw['name'] is String) raw['name'] as String,
+          if (raw['name_kanji'] is String) raw['name_kanji'] as String,
+          if (raw['nicknames'] is List) ...(raw['nicknames'] as List).whereType<String>(),
+        ];
+        var score = 0.0;
+        for (final candidate in names) {
+          final normalized = normalize(candidate);
+          if (normalized.isEmpty) continue;
+          if (normalized == target) {
+            score = 1.0;
+            break;
+          }
+          if (normalized.contains(target) || target.contains(normalized)) {
+            score = score < 0.88 ? 0.88 : score;
+          }
+          final tokens = normalized.split(' ').where((e) => e.length > 1).toSet();
+          if (targetTokens.isNotEmpty && tokens.isNotEmpty) {
+            final overlap = targetTokens.intersection(tokens).length /
+                targetTokens.union(tokens).length;
+            if (overlap > score) score = overlap;
+          }
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          best = raw;
+        }
+      }
+
+      // Don't show a random character's gallery when the search is a poor match.
+      if (best == null || bestScore < 0.25) return const [];
+      final malId = (best['mal_id'] as num?)?.toInt();
+      if (malId == null) return const [];
+      final response = await _dio.get<dynamic>(
+        'https://api.jikan.moe/v4/characters/$malId/pictures',
+        options: Options(validateStatus: (status) => status != null && status < 500),
+      );
+      final pictures = response.data is Map ? response.data['data'] : null;
+      if (pictures is! List) return const [];
       final urls = <String>[];
-      for (final item in data) {
+      for (final item in pictures) {
         if (item is! Map) continue;
         final webp = item['webp'];
         final jpg = item['jpg'];
