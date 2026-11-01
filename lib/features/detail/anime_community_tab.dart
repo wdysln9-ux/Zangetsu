@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/anilist/anilist_api.dart';
+import '../../core/anilist/anilist_service.dart';
 import '../../core/di/injector.dart';
 import '../../core/metadata/synopsis_translator.dart';
 import '../../core/theme/app_colors.dart';
@@ -19,7 +19,7 @@ class _AnimeCommunityTabState extends State<AnimeCommunityTab> {
   @override
   void initState(){ super.initState(); future=load(); }
   Future<List<Map<String,dynamic>>> load() async {
-    final api=sl<AniListApi>();
+    final api=sl<AniListService>().api;
     mediaId=await api.communityMediaId(anilistId:widget.anilistId,malId:widget.malId,title:widget.title);
     if(mediaId==null)return [];
     return widget.reviews?api.fetchReviews(mediaId!):api.fetchThreads(mediaId!);
@@ -46,7 +46,7 @@ class _ReviewCard extends StatelessWidget{
   return _Card(onTap:()=>Navigator.push(context,MaterialPageRoute(builder:(_)=>_ReviewPage(data:data,anime:anime))),child:Column(crossAxisAlignment:CrossAxisAlignment.start,children:[
    _User(name:'${u['name']??'AniList user'}',avatar:av['large']?.toString()),const SizedBox(height:10),
    Text('${data['summary']??'Review'}',style:const TextStyle(fontSize:16,fontWeight:FontWeight.bold)),const SizedBox(height:8),
-   Wrap(spacing:8,children:[_Chip('Score ${data['score']??'—'}'),_Chip('$liked out of $amount users liked this review')])
+   _Chip('$liked out of $amount users liked this review')
   ]));
  }
 }
@@ -71,7 +71,7 @@ class _ReviewPage extends StatelessWidget{
    Text(anime,style:TextStyle(color:AppColors.textSecondary)),const SizedBox(height:14),
    _User(name:'${u['name']??'AniList user'}',avatar:av['large']?.toString()),const SizedBox(height:14),
    Text('${data['summary']??'Review'}',style:const TextStyle(fontSize:21,fontWeight:FontWeight.bold)),const SizedBox(height:12),
-   Wrap(spacing:8,children:[_Chip('Score ${data['score']??'—'}'),_Chip('$liked out of $amount users liked this review')]),
+   _Chip('$liked out of $amount users liked this review'),
    const SizedBox(height:20),_TranslatedMarkdown(text:'${data['body']??''}')
   ]));
  }
@@ -81,7 +81,7 @@ class _ThreadPage extends StatelessWidget{
  @override Widget build(BuildContext context){
   final id=(data['id'] as num?)?.toInt();
   return Scaffold(appBar:AppBar(title:const Text('Thread')),body:id==null?const Center(child:Text('Thread tidak tersedia.')):
-   FutureBuilder<Map<String,dynamic>?>(future:sl<AniListApi>().fetchThread(id),builder:(context,s){
+   FutureBuilder<Map<String,dynamic>?>(future:sl<AniListService>().api.fetchThread(id),builder:(context,s){
     final d=s.data??data; final u=d['user'] as Map? ?? {}; final av=u['avatar'] as Map? ?? {};
     final comments=d['comments'] is List?d['comments'] as List:[];
     return ListView(padding:const EdgeInsets.all(14),children:[
