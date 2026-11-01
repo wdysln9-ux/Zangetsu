@@ -46,7 +46,7 @@ class _AniListEpisodeCommentsState extends State<AniListEpisodeComments> {
   }
 
   Future<List<Map<String, dynamic>>> _load() async {
-    const fields = 'id title comments(perPage:50,sort:ID){id comment likeCount createdAt user{id name avatar{large}} childComments{id}}';
+    const fields = 'id title tags comments(perPage:50,sort:ID){id comment likeCount createdAt user{id name avatar{large}} childComments{id}}';
     if (widget.malId != null) {
       final found = await _query(
         r'query($idMal:Int){Media(idMal:$idMal,type:ANIME){threads(perPage:50,sort:ID_DESC){' + fields + '}}}',
@@ -60,8 +60,20 @@ class _AniListEpisodeCommentsState extends State<AniListEpisodeComments> {
 
   List<Map<String, dynamic>> _sorted(List<Map<String, dynamic>> threads) {
     final comments = <Map<String, dynamic>>[];
+    final episode = int.tryParse(widget.episodeNumber.replaceAll(RegExp(r'[^0-9]'), ''));
+    if (episode == null) return comments;
+    final episodePattern = RegExp(
+      r'\\b(?:episode|ep)\\s*0*' + episode.toString() + r'\\b|#\\s*0*' + episode.toString() + r'\\b',
+      caseSensitive: false,
+    );
     for (final thread in threads) {
-      final threadTitle = (thread['title'] ?? 'Diskusi anime').toString();
+      final tags = thread['tags'];
+      final isReleaseDiscussion = tags is List && tags.any(
+        (tag) => tag.toString().trim().toLowerCase() == 'release discussion',
+      );
+      if (!isReleaseDiscussion) continue;
+      final threadTitle = (thread['title'] ?? '').toString();
+      if (!episodePattern.hasMatch(threadTitle)) continue;
       final list = thread['comments'];
       if (list is List) {
         for (final raw in list.whereType<Map>()) {
