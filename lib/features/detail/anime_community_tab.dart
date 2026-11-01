@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../core/anilist/anilist_service.dart';
 import '../../core/di/injector.dart';
 import '../../core/metadata/synopsis_translator.dart';
@@ -58,7 +57,9 @@ int _likedCount(Map data) {
 String _dateLabel(Object? raw) {
   final seconds = (raw as num?)?.toInt();
   if (seconds == null || seconds <= 0) return '';
-  return DateFormat('d MMM yyyy', 'id').format(DateTime.fromMillisecondsSinceEpoch(seconds * 1000));
+  final date = DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  return '${date.day} ${months[date.month - 1]} ${date.year}';
 }
 
 class _ReviewCard extends StatelessWidget {
@@ -246,12 +247,6 @@ class _Comment extends StatelessWidget {
                 Row(children: [
                   _LoveButton(commentId: id, count: (data['likeCount'] as num?)?.toInt() ?? 0, initiallyLiked: data['isLiked'] == true),
                   const SizedBox(width: 18),
-                  TextButton.icon(
-                    onPressed: null,
-                    icon: const Icon(Icons.reply_rounded, size: 16),
-                    label: const Text('Balas'),
-                    style: TextButton.styleFrom(padding: EdgeInsets.zero, visualDensity: VisualDensity.compact, foregroundColor: AppColors.textSecondary),
-                  ),
                 ]),
               ])),
             ]),
