@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/di/injector.dart';
 import '../../core/metadata/synopsis_translator.dart';
+import '../../core/playback/subtitle_translate_service.dart';
 import '../../core/ui/anilist_markdown.dart';
 
 class GlobalChatScreen extends StatefulWidget {
@@ -175,8 +176,8 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
           ),
           const SizedBox(width: 12),
           Container(
-            width: 58,
-            height: 58,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: const Color(0xFF14233D),
               border: Border.all(color: const Color(0xFF347BEA), width: 1.5),
@@ -194,7 +195,7 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
                   'Chat Global',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -224,8 +225,8 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
         customBorder: const CircleBorder(),
         onTap: onTap,
         child: SizedBox(
-          width: 54,
-          height: 54,
+          width: 42,
+          height: 42,
           child: Icon(icon, color: Colors.white, size: 27),
         ),
       ),
@@ -239,7 +240,7 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
             decoration: BoxDecoration(
               color: const Color(0xFF4388F5),
               borderRadius: BorderRadius.circular(28),
@@ -247,12 +248,12 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
             child: const Text('#Global',
                 style: TextStyle(
                     color: Color(0xFF071322),
-                    fontSize: 17,
+                    fontSize: 14,
                     fontWeight: FontWeight.w700)),
           ),
           const SizedBox(width: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
             decoration: BoxDecoration(
               color: const Color(0xFF171C25),
               border: Border.all(color: const Color(0xFF242B37)),
@@ -275,7 +276,7 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
   Widget _notice() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 17, 18, 17),
+      padding: const EdgeInsets.fromLTRB(16, 10, 14, 10),
       decoration: const BoxDecoration(
         color: Color(0xFF211D17),
         border: Border(
@@ -286,7 +287,7 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
       child: const Text(
         '📌 Global chat saat ini masih dikembangkan dan belum banyak fitur yg tersedia, mohon bersabar untuk menunggu update selanjutnya yah 🥰🙏',
         style: TextStyle(
-            color: Color(0xFFD0D0D0), fontSize: 14, height: 1.4),
+            color: Color(0xFFD0D0D0), fontSize: 12, height: 1.35),
       ),
     );
   }
@@ -358,14 +359,14 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
     final rawText = (post['text'] ?? '').toString().trim();
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipOval(
             child: SizedBox(
-              width: 52,
-              height: 52,
+              width: 42,
+              height: 42,
               child: avatar is String && avatar.isNotEmpty
                   ? CachedNetworkImage(
                       imageUrl: avatar,
@@ -375,7 +376,7 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
                   : _avatarFallback(),
             ),
           ),
-          const SizedBox(width: 13),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,12 +384,12 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
                 Text(name,
                     style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.w700)),
                 if (userId.isNotEmpty) ...[
                   const SizedBox(height: 3),
                   Text('#$userId',
-                      style: const TextStyle(color: _muted, fontSize: 13)),
+                      style: const TextStyle(color: _muted, fontSize: 11)),
                 ],
                 const SizedBox(height: 11),
                 _messageBubble(rawText, post),
@@ -405,13 +406,12 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
       future: SynopsisTranslator.instance.translateTextToIndonesian(rawText),
       builder: (context, snapshot) {
         final translated = snapshot.data;
-        final displayText =
-            translated != null && translated.trim().isNotEmpty
-                ? translated
-                : rawText;
+        final displayText = translated != null && translated.trim().isNotEmpty
+            ? SubtitleTranslateService.naturalizeIndonesian(translated)
+            : rawText;
         return Container(
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+          padding: const EdgeInsets.fromLTRB(11, 9, 11, 7),
           decoration: BoxDecoration(
             color: _surface,
             border: Border.all(color: const Color(0xFF252D3B), width: 1),
@@ -424,8 +424,8 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
                 data: displayText,
                 textStyle: const TextStyle(
                   color: Color(0xFFF1F2F5),
-                  fontSize: 16,
-                  height: 1.45,
+                  fontSize: 14,
+                  height: 1.4,
                 ),
               ),
               const SizedBox(height: 5),
@@ -466,7 +466,7 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
         padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
         color: _background,
         child: Container(
-          height: 60,
+          height: 48,
           padding: const EdgeInsets.symmetric(horizontal: 20),
           decoration: BoxDecoration(
             color: const Color(0xFF1C2330),
@@ -477,12 +477,12 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
               const Expanded(
                 child: Text(
                   'Pesan ke #Global...',
-                  style: TextStyle(color: Color(0xFF91A096), fontSize: 16),
+                  style: TextStyle(color: Color(0xFF91A096), fontSize: 14),
                 ),
               ),
               Container(
-                width: 43,
-                height: 43,
+                width: 36,
+                height: 36,
                 decoration: const BoxDecoration(
                     color: Color(0xFF0C111B), shape: BoxShape.circle),
                 child: const Icon(Icons.gif_box_outlined,
