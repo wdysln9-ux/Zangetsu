@@ -77,21 +77,21 @@ class AniListMarkdown extends StatelessWidget {
       (match) {
         final index = centerBlocks.length;
         centerBlocks.add(match[1] ?? '');
-        return '\\n\\nANILIST_CENTER_BLOCK_${index}_PLACEHOLDER\\n\\n';
+        return '\\n\\nANILIST_CENTER_BLOCK_${index}_PLACEHOLDER\n\n';
       },
     );
     final alignedBlocks = <({String body, String align})>[];
     prepared = prepared.replaceAllMapped(
-      RegExp(r'<(center|div|p)\\b([^>]*)>([\\s\\S]*?)</\\1>', caseSensitive: false),
+      RegExp(r'<(center|div|p)\b([^>]*)>([\s\S]*?)</\1>', caseSensitive: false),
       (match) {
         final tag = (match[1] ?? '').toLowerCase();
         final attrs = match[2] ?? '';
         final body = match[3] ?? '';
-        final alignMatch = RegExp(r'align\\s*=\\s*["\\']?(left|center|right|justify)', caseSensitive: false).firstMatch(attrs);
+        final alignMatch = RegExp(r'align\s*=\s*["\\']?(left|center|right|justify)', caseSensitive: false).firstMatch(attrs);
         final align = tag == 'center' ? 'center' : (alignMatch?.group(1)?.toLowerCase() ?? 'left');
         final index = alignedBlocks.length;
         alignedBlocks.add((body: body, align: align));
-        return '\\n\\nANILIST_ALIGN_BLOCK_${index}_PLACEHOLDER\\n\\n';
+        return '\n\nANILIST_ALIGN_BLOCK_${index}_PLACEHOLDER\\n\\n';
       },
     );
 
