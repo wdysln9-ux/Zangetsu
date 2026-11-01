@@ -72,12 +72,26 @@ class AniListMarkdown extends StatelessWidget {
       },
     );
     final centerBlocks = <String>[];
-    final prepared = protectedSource.replaceAllMapped(
-      RegExp(r'˜˜˜([\s\S]*?)˜˜˜', dotAll: true),
+    var prepared = protectedSource.replaceAllMapped(
+      RegExp(r'˜˜˜([\\s\\S]*?)˜˜˜', dotAll: true),
       (match) {
         final index = centerBlocks.length;
         centerBlocks.add(match[1] ?? '');
-        return '\n\nANILIST_CENTER_BLOCK_${index}_PLACEHOLDER\n\n';
+        return '\\n\\nANILIST_CENTER_BLOCK_${index}_PLACEHOLDER\\n\\n';
+      },
+    );
+    final alignedBlocks = <({String body, String align})>[];
+    prepared = prepared.replaceAllMapped(
+      RegExp(r'<(center|div|p)\\b([^>]*)>([\\s\\S]*?)</\\1>', caseSensitive: false),
+      (match) {
+        final tag = (match[1] ?? '').toLowerCase();
+        final attrs = match[2] ?? '';
+        final body = match[3] ?? '';
+        final alignMatch = RegExp(r'align\\s*=\\s*["\\']?(left|center|right|justify)', caseSensitive: false).firstMatch(attrs);
+        final align = tag == 'center' ? 'center' : (alignMatch?.group(1)?.toLowerCase() ?? 'left');
+        final index = alignedBlocks.length;
+        alignedBlocks.add((body: body, align: align));
+        return '\\n\\nANILIST_ALIGN_BLOCK_${index}_PLACEHOLDER\\n\\n';
       },
     );
 
@@ -120,6 +134,22 @@ class AniListMarkdown extends StatelessWidget {
       html = html.replaceAll('<p>$marker</p>', centered);
       html = html.replaceAll(marker, centered);
     }
+    for (var i = 0; i < alignedBlocks.length; i++) {
+      final block = alignedBlocks[i];
+      final inner = block.body.replaceAllMapped(
+        RegExp(r'(?<!\\n)\\n(?!\\n)'),
+        (_) => '  \\n',
+      );
+      final innerHtml = md.markdownToHtml(
+        inner,
+        extensionSet: md.ExtensionSet.gitHubFlavored,
+        encodeHtml: false,
+      );
+      final marker = 'ANILIST_ALIGN_BLOCK_${i}_PLACEHOLDER';
+      final aligned = '<div class="anilist-align-${block.align}">$innerHtml</div>';
+      html = html.replaceAll('<p>$marker</p>', aligned);
+      html = html.replaceAll(marker, aligned);
+    }
     for (final entry in embeds.entries) {
       html = html.replaceAll(entry.key, entry.value);
     }
@@ -140,7 +170,7 @@ class AniListMarkdown extends StatelessWidget {
       customStylesBuilder: (element) {
         switch (element.localName) {
           case 'p':
-            return {'margin': '0 0 8px 0', 'line-height': '1.45'};
+            return {'margin': '0 0 8px 0', 'line-height': '1.45', 'max-width': '100%', 'overflow-wrap': 'anywhere'};
           case 'h1':
             return {'font-size': '1.55em', 'font-weight': '700', 'margin': '12px 0 7px 0'};
           case 'h2':
@@ -185,9 +215,13 @@ class AniListMarkdown extends StatelessWidget {
           case 'div':
           case 'center':
             if (element.classes.contains('anilist-center') ||
+                element.classes.contains('anilist-align-center') ||
                 element.localName == 'center') {
               return {'text-align': 'center', 'max-width': '100%', 'width': '100%', 'overflow-wrap': 'anywhere'};
             }
+            if (element.classes.contains('anilist-align-right')) return {'text-align': 'right', 'max-width': '100%', 'width': '100%'};
+            if (element.classes.contains('anilist-align-justify')) return {'text-align': 'justify', 'max-width': '100%', 'width': '100%'};
+            if (element.classes.contains('anilist-align-left')) return {'text-align': 'left', 'max-width': '100%', 'width': '100%'};
             final align = element.attributes['align'];
             if (align == 'center' || align == 'right' || align == 'justify') {
               return {'text-align': align, 'max-width': '100%', 'width': '100%', 'overflow-wrap': 'anywhere'};
@@ -226,9 +260,11 @@ class AniListMarkdown extends StatelessWidget {
                   ? constraints.maxWidth
                   : MediaQuery.sizeOf(context).width - 32;
               final safeWidth = availableWidth.clamp(1.0, 1200.0);
-              final displayWidth = width == null
+              final percentage = double.tryParse(percent?.group(1) ?? '');
+              final requestedWidth = percentage == null ? width : safeWidth * (percentage / 100).clamp(0.01, 1.0);
+              final displayWidth = requestedWidth == null
                   ? safeWidth
-                  : width.clamp(1, safeWidth).toDouble();
+                  : requestedWidth.clamp(1, safeWidth).toDouble();
               final pixelWidth = (displayWidth *
                       MediaQuery.devicePixelRatioOf(context))
                   .round()
