@@ -63,15 +63,10 @@ class _AniListEpisodeCommentsState extends State<AniListEpisodeComments> {
     final episode = int.tryParse(widget.episodeNumber.replaceAll(RegExp(r'[^0-9]'), ''));
     if (episode == null) return comments;
     final episodePattern = RegExp(
-      r'\b(?:episode|ep)\s*0*' + episode.toString() + r'\b|#\s*0*' + episode.toString() + r'\b',
+      r'\b(?:episode|ep\.?|#)\s*0*' + episode.toString() + r'\b|\b0*' + episode.toString() + r'(?:st|nd|rd|th)\s+episode\b',
       caseSensitive: false,
     );
     for (final thread in threads) {
-      final tags = thread['tags'];
-      final isReleaseDiscussion = tags is List && tags.any(
-        (tag) => tag.toString().trim().toLowerCase() == 'release discussion',
-      );
-      if (!isReleaseDiscussion) continue;
       final threadTitle = (thread['title'] ?? '').toString();
       if (!episodePattern.hasMatch(threadTitle)) continue;
       final list = thread['comments'];
