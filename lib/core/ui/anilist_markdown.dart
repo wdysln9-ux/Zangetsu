@@ -30,15 +30,15 @@ class AniListMarkdown extends StatelessWidget {
     final protectedSource = source.replaceAllMapped(
       RegExp(r'img(\d{1,4})?\((https?://[^)\s]+)\)|youtube\(([^)]+)\)|webm\((https?://[^)]+)\)'),
       (match) {
-        final token = 'ANILIST_EMBED_\${embedIndex++}_TOKEN';
+        final token = 'ANILIST_EMBED_${embedIndex++}_TOKEN';
         if (match[2] != null) {
           final width = match[1];
           embeds[token] = width == null
-              ? '<img src="\${match[2]}" />'
-              : '<img src="\${match[2]}" width="\$width" />';
+              ? '<img src="${match[2]}" />'
+              : '<img src="${match[2]}" width="$width" />';
         } else if (match[3] != null) {
           final value = match[3]!.trim();
-          final uri = Uri.tryParse(value.startsWith('http') ? value : 'https://youtu.be/\$value');
+          final uri = Uri.tryParse(value.startsWith('http') ? value : 'https://youtu.be/$value');
           String? id;
           if (uri != null) {
             if (uri.host == 'youtu.be' && uri.pathSegments.isNotEmpty) {
@@ -55,9 +55,9 @@ class AniListMarkdown extends StatelessWidget {
           }
           embeds[token] = id == null || id.isEmpty
               ? match[0]!
-              : '<iframe src="https://www.youtube-nocookie.com/embed/\$id?playsinline=1" width="560" height="315" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+              : '<iframe src="https://www.youtube-nocookie.com/embed/$id?playsinline=1" width="560" height="315" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
         } else {
-          embeds[token] = '<video src="\${match[4]}" controls loop muted></video>';
+          embeds[token] = '<video src="${match[4]}" controls loop muted></video>';
         }
         return token;
       },
@@ -68,7 +68,7 @@ class AniListMarkdown extends StatelessWidget {
       (match) {
         final index = centerBlocks.length;
         centerBlocks.add(match[1] ?? '');
-        return '\n\nANILIST_CENTER_BLOCK_\${index}_PLACEHOLDER\n\n';
+        return '\n\nANILIST_CENTER_BLOCK_${index}_PLACEHOLDER\n\n';
       },
     );
 
