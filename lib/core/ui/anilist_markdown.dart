@@ -273,10 +273,6 @@ class AniListMarkdown extends StatelessWidget {
               final displayWidth = requestedWidth == null
                   ? safeWidth
                   : requestedWidth.clamp(1, safeWidth).toDouble();
-              final pixelWidth = (displayWidth *
-                      MediaQuery.devicePixelRatioOf(context))
-                  .round()
-                  .clamp(1, 4096);
               return GestureDetector(
                 onTap: () => showDialog<void>(
                   context: context,
@@ -291,8 +287,6 @@ class AniListMarkdown extends StatelessWidget {
                 },
                 width: displayWidth,
                 fit: BoxFit.contain,
-                memCacheWidth: pixelWidth,
-                maxWidthDiskCache: pixelWidth,
                 fadeInDuration: Duration.zero,
                 placeholder: (_, __) => SizedBox(
                   width: displayWidth,
