@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class AniListEpisodeComments extends StatefulWidget {
-  const AniListEpisodeComments({super.key, required this.title, this.malId});
+  const AniListEpisodeComments({super.key, required this.title, required this.episodeNumber, this.malId});
   final String title;
   final int? malId;
+  final String episodeNumber;
   @override
   State<AniListEpisodeComments> createState() => _AniListEpisodeCommentsState();
 }
@@ -50,8 +51,15 @@ class _AniListEpisodeCommentsState extends State<AniListEpisodeComments> {
   List<Map<String, dynamic>> _sorted(List<Map<String, dynamic>> threads) {
     final comments = <Map<String, dynamic>>[];
     for (final thread in threads) {
-      final title = (thread['title'] ?? '').toString().toLowerCase();
-      if (!title.contains('episode') && !title.contains('ep.')) continue;
+      final title = (thread['title'] ?? '').toString();
+      final number = RegExp(r'\\d+(?:\\.\\d+)?')
+          .firstMatch(widget.episodeNumber)
+          ?.group(0);
+      if (number == null ||
+          !RegExp(
+            r'(?:episode|ep\\.?)[\\s:#-]*' + RegExp.escape(number) + r'(?![\\d.])',
+            caseSensitive: false,
+          ).hasMatch(title)) continue;
       final list = thread['comments'];
       if (list is List) comments.addAll(list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)));
     }
