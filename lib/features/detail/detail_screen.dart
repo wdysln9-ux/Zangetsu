@@ -124,6 +124,7 @@ import '../reader/manga_reader_screen.dart';
 import '../reader/novel_reader_screen.dart';
 import '../trailer/trailer_screen.dart';
 import 'cubit/detail_cubit.dart';
+import 'anime_community_tab.dart';
 import 'wrong_title_sheet.dart';
 import '../../l10n/l10n.dart';
 
@@ -477,7 +478,7 @@ class _DetailViewState extends State<_DetailView>
     ..addListener(_onScroll);
 
   late final TabController _tabController = TabController(
-    length: 4,
+    length: (widget.item.type == ProviderType.novel || widget.item.type == ProviderType.manga) ? 4 : 6,
     vsync: this,
   );
 
@@ -2657,6 +2658,8 @@ class _DetailViewState extends State<_DetailView>
                 ),
                 const Tab(text: 'Terkait'),
                 Tab(text: context.l10n.details),
+                if (!isReading) const Tab(text: 'Reviews'),
+                if (!isReading) const Tab(text: 'Threads'),
               ],
             ),
             tint: ThemeController.adaptiveColour ? _tint : null,
@@ -2747,6 +2750,18 @@ class _DetailViewState extends State<_DetailView>
             year: detail.year,
             description: cleanSynopsis(detail.description),
             detail: detail,
+          ),
+          if (!isReading) AnimeCommunityTab(
+            title: detail.title,
+            anilistId: item.anilistId,
+            malId: detail.malId ?? item.malId,
+            reviews: true,
+          ),
+          if (!isReading) AnimeCommunityTab(
+            title: detail.title,
+            anilistId: item.anilistId,
+            malId: detail.malId ?? item.malId,
+            reviews: false,
           ),
         ],
       ),
