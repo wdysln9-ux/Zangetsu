@@ -38,11 +38,11 @@ class _SkipButtonState extends State<_SkipButton>
           duration: const Duration(milliseconds: 110),
           curve: Curves.easeOut,
           child: Material(
-            color: Colors.black.withValues(alpha: 0.38),
+            color: const Color(0xFFFFC928).withValues(alpha: 0.94),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
               side: BorderSide(
-                color: Colors.white.withValues(alpha: 0.6),
+                color: const Color(0xFFFFE08A),
                 width: 1.2,
               ),
             ),
@@ -60,8 +60,8 @@ class _SkipButtonState extends State<_SkipButton>
                 child: Text(
                   widget.label,
                   style: AppText.body.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF241B00),
+                    fontWeight: FontWeight.w800,
                     letterSpacing: 0.3,
                   ),
                 ),
