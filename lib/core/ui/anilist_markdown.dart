@@ -187,7 +187,7 @@ class AniListMarkdown extends StatelessWidget {
             }
             final align = element.attributes['align'];
             if (align == 'center' || align == 'right' || align == 'justify') {
-              return {'text-align': align, 'max-width': '100%'};
+              return {'text-align': align!, 'max-width': '100%'};
             }
             break;
         }
