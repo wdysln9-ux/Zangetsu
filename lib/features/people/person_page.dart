@@ -286,7 +286,7 @@ class _PersonPageState extends State<PersonPage> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(14),
                     child: GestureDetector(
-                      onTap: p.malId == null
+                      onTap: p.name.trim().isEmpty
                           ? null
                           : () => Navigator.of(context).push(
                                 MaterialPageRoute<void>(
