@@ -2815,11 +2815,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || !_episodeCardsScroll.hasClients) return;
         final position = _episodeCardsScroll.position;
-        const cardWidth = 168.0;
         const itemExtent = 178.0; // card + horizontal gap
-        final target = (activeIndex * itemExtent -
-                (position.viewportDimension - cardWidth) / 2)
-            .clamp(0.0, position.maxScrollExtent);
+        // Align the selected card to the left edge so the previous episode
+        // is fully out of view.
+        final target =
+            (activeIndex * itemExtent).clamp(0.0, position.maxScrollExtent);
         _episodeCardsScroll.animateTo(
           target,
           duration: const Duration(milliseconds: 320),
@@ -2845,7 +2845,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
 
     return ColoredBox(
-      color: Colors.black,
+      color: AppColors.bg,
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
         child: Column(
@@ -3035,16 +3035,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              height: 112,
-              child: ListView.separated(
-                padding: EdgeInsets.zero,
-                controller: _episodeCardsScroll,
-                scrollDirection: Axis.horizontal,
-                itemCount: episodes.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
+            Transform.translate(
+              offset: const Offset(-16, 0),
+              child: SizedBox(
+                width: MediaQuery.sizeOf(context).width,
+                height: 112,
+                child: ListView.separated(
+                  padding: EdgeInsets.zero,
+                  controller: _episodeCardsScroll,
+                  scrollDirection: Axis.horizontal,
+                  itemCount: episodes.length,
+                  separatorBuilder: (_, __) => const SizedBox(width: 10),
+                  itemBuilder: (context, index) {
                   final item = episodes[index];
                   final selected = index == activeIndex;
                   final image = (item.thumbnail?.trim().isNotEmpty ?? false)
@@ -3116,7 +3118,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             if (selected)
                               Positioned(
                                 top: 6,
-                                left: 6,
+                                right: 6,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 7,
@@ -3141,7 +3143,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                     ),
                   );
-                },
+                  },
+                ),
               ),
             ),
             if (summary.isNotEmpty) ...[
