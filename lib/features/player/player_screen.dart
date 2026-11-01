@@ -3035,17 +3035,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            OverflowBox(
-              alignment: Alignment.centerLeft,
-              minWidth: 0,
-              maxWidth: MediaQuery.sizeOf(context).width,
-              child: Transform.translate(
-                offset: const Offset(-16, 0),
-                child: SizedBox(
-                  width: MediaQuery.sizeOf(context).width,
-                  height: 112,
-                  child: ListView.separated(
-                  padding: EdgeInsets.zero,
+            SizedBox(
+              width: double.infinity,
+              height: 112,
+              child: ClipRect(
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   controller: _episodeCardsScroll,
                   scrollDirection: Axis.horizontal,
                   itemCount: episodes.length,
@@ -3148,7 +3143,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     ),
                   );
                     },
-                  ),
                 ),
               ),
             ),
