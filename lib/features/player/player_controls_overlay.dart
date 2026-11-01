@@ -786,15 +786,11 @@ class _ControlsOverlay extends StatelessWidget {
                         // move it.
                         final left = _barButtons(
                           context,
-                          compactEpisodePortrait
-                              ? const ['tracks', 'speed', 'more']
-                              : barConfig.left,
+                          barConfig.left,
                         );
                         final right = _barButtons(
                           context,
-                          compactEpisodePortrait
-                              ? const ['episodes', 'rotate']
-                              : barConfig.right,
+                          barConfig.right,
                         );
                         // Buttons are a uniform 48 (12 padding + 24 icon + 12)
                         // and each group adds 8 of its own, so the width the bar
