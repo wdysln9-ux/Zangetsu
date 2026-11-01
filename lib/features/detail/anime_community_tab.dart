@@ -416,7 +416,7 @@ class _TranslatedTextState extends State<_TranslatedText> {
 Future<String?> _translateMarkdownSafely(String source) async {
   final protected = <String>[];
   final pattern = RegExp(
-    r'(```[\s\S]*?```|`[^`\n]+`|!?\[[^\]]*\]\(https?://[^)]+\)|img(?:\d{1,4}|\d{1,3}%)?\(https?://[^)]+\)|youtube\([^)]+\)|webm\(https?://[^)]+\)|https?://[^\s)]+|<[^>]+>)',
+    r'((?:˜˜˜|~~~center[ \t]*\n|~~~)|```[\s\S]*?```|`[^`\n]+`|!?\[[^\]]*\]\(https?://[^)]+\)|img(?:\d{1,4}|\d{1,3}%)?\(https?://[^)]+\)|youtube\([^)]+\)|webm\(https?://[^)]+\)|https?://[^\s)]+|<[^>]+>)',
     caseSensitive: false,
   );
   final masked = source.replaceAllMapped(pattern, (m) {
