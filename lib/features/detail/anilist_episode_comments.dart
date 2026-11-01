@@ -52,14 +52,18 @@ class _AniListEpisodeCommentsState extends State<AniListEpisodeComments> {
     final comments = <Map<String, dynamic>>[];
     for (final thread in threads) {
       final title = (thread['title'] ?? '').toString();
-      final number = RegExp(r'\\d+(?:\\.\\d+)?')
+      final number = RegExp(r'\d+(?:\.\d+)?')
           .firstMatch(widget.episodeNumber)
           ?.group(0);
       if (number == null ||
           !RegExp(
-            r'(?:episode|ep\\.?)[\\s:#-]*' + RegExp.escape(number) + r'(?![\\d.])',
+            r'(?:episode|ep\.?)[\s:#-]*' +
+                RegExp.escape(number) +
+                r'(?![\d.])',
             caseSensitive: false,
-          ).hasMatch(title)) continue;
+          ).hasMatch(title)) {
+        continue;
+      }
       final list = thread['comments'];
       if (list is List) comments.addAll(list.whereType<Map>().map((e) => Map<String, dynamic>.from(e)));
     }
