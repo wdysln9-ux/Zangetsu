@@ -67,7 +67,7 @@ class _ReviewPage extends StatelessWidget{
   final u=data['user'] as Map? ?? {}; final av=u['avatar'] as Map? ?? {};
   final rating=(data['rating'] as num?)?.toInt()??0, amount=(data['ratingAmount'] as num?)?.toInt()??0;
   final liked=((rating.clamp(0,100)*amount)/100).round();
-  return Scaffold(appBar:AppBar(title:const Text('Review')),body:ListView(padding:const EdgeInsets.all(16),children:[
+  return Scaffold(appBar:AppBar(title:const Text('Ulasan')),body:ListView(padding:const EdgeInsets.all(16),children:[
    Text(anime,style:TextStyle(color:AppColors.textSecondary)),const SizedBox(height:14),
    _User(name:'${u['name']??'AniList user'}',avatar:av['large']?.toString()),const SizedBox(height:14),
    Text('${data['summary']??'Review'}',style:const TextStyle(fontSize:21,fontWeight:FontWeight.bold)),const SizedBox(height:12),
@@ -80,7 +80,7 @@ class _ThreadPage extends StatelessWidget{
  const _ThreadPage({required this.data,required this.anime}); final Map<String,dynamic> data; final String anime;
  @override Widget build(BuildContext context){
   final id=(data['id'] as num?)?.toInt();
-  return Scaffold(appBar:AppBar(title:const Text('Thread')),body:id==null?const Center(child:Text('Thread tidak tersedia.')):
+  return Scaffold(appBar:AppBar(title:const Text('Utas')),body:id==null?const Center(child:Text('Thread tidak tersedia.')):
    FutureBuilder<Map<String,dynamic>?>(future:sl<AniListService>().api.fetchThread(id),builder:(context,s){
     final d=s.data??data; final u=d['user'] as Map? ?? {}; final av=u['avatar'] as Map? ?? {};
     final comments=d['comments'] is List?d['comments'] as List:[];
