@@ -411,7 +411,7 @@ class _PersonPageState extends State<PersonPage> {
       if (p.birthday != null) ('Ulang tahun', p.birthday!),
       if (p.bloodType != null) ('Golongan darah', p.bloodType!),
       if (p.favourites != null)
-        ('Favorit AniList', p.favourites!.toString()),
+        ('Favorit', p.favourites!.toString()),
       if (p.description != null)
         ..._manualCharacterFacts(p.description!),
     ];
@@ -424,7 +424,7 @@ class _PersonPageState extends State<PersonPage> {
           const SizedBox(height: 4),
           LayoutBuilder(
             builder: (context, constraints) {
-              final width = (constraints.maxWidth - 30) / 4;
+              final width = (constraints.maxWidth - 20) / 3;
               return Wrap(
                 spacing: 10,
                 runSpacing: 10,
