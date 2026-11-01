@@ -122,9 +122,19 @@ class _MarkdownContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final prepared = text
+        .replaceAllMapped(RegExp(r'~~~([\s\S]*?)~~~'),
+            (m) => '<center>' + m.group(1)! + '</center>')
+        .replaceAllMapped(RegExp(r'img(\d{1,4})\((https?://[^)\s]+)\)'),
+            (m) => '<img alt="Image" src="' + m.group(2)! +
+                '" width="' + m.group(1)! + '">')
+        .replaceAllMapped(RegExp(r'~!([\s\S]+?)!~'),
+            (m) => '<span data-anilist-spoiler="true">' +
+                m.group(1)!.replaceAll('&', '&amp;').replaceAll('<', '&lt;') +
+                '</span>');
     final nodes = md.Document(
       extensionSet: md.ExtensionSet.gitHubWeb,
-    ).parseLines(text.split('\n'));
+    ).parseLines(prepared.split('\n'));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: nodes.map(_block).toList(),
@@ -266,6 +276,11 @@ class _MarkdownContent extends StatelessWidget {
       );
     }
     if (tag == 'br') return const TextSpan(text: '\n');
+    if (tag == 'span' && node.attributes['data-anilist-spoiler'] == 'true') {
+      return TextSpan(text: '[SPOILER] ' + node.textContent,
+        style: const TextStyle(color: Color(0xFFB8BBC7),
+          backgroundColor: Color(0xFF17181D)));
+    }
     return TextSpan(style: style, children: children);
   }
 }
