@@ -1730,7 +1730,7 @@ class _HomeViewState extends State<_HomeView>
                 const Color(0xFF5865F2).withValues(alpha: 0.82),
                 const Color(0xFF23243A).withValues(alpha: 0.92),
               ],
-              empty: const Color(0xFF35395D),
+              empty: const [Color(0xFF35395D), Color(0xFF23243A)],
             ),
             const Center(
               child: Row(
