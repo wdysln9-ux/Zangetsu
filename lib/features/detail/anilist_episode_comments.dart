@@ -116,7 +116,7 @@ class _AniListEpisodeCommentsState extends State<AniListEpisodeComments> {
         Row(children: [
           const Icon(Icons.favorite_border, size: 15),
           const SizedBox(width: 4),
-          Text('\${item['likeCount'] ?? 0}'),
+          Text("${item["likeCount"] ?? 0}"),
           const SizedBox(width: 14),
           const Icon(Icons.mode_comment_outlined, size: 14),
           const SizedBox(width: 4),
