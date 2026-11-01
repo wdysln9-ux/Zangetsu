@@ -213,6 +213,7 @@ class _IconAction extends StatelessWidget {
     required this.tooltip,
     required this.onTap,
     this.active = false,
+    this.filledActive = false,
   });
 
   final IconData icon;
@@ -222,6 +223,7 @@ class _IconAction extends StatelessWidget {
   final String tooltip;
   final VoidCallback onTap;
   final bool active;
+  final bool filledActive;
 
   @override
   Widget build(BuildContext context) {
@@ -236,7 +238,24 @@ class _IconAction extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 24, color: color),
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: active && filledActive ? AppColors.accent : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: active && filledActive
+                        ? AppColors.accent
+                        : AppColors.textTertiary.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Icon(
+                  icon,
+                  size: 24,
+                  color: active && filledActive ? AppColors.bg : color,
+                ),
+              ),
               const SizedBox(height: 6),
               Text(
                 label,
