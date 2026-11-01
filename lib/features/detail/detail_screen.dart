@@ -2536,6 +2536,7 @@ class _DetailViewState extends State<_DetailView>
                 _IconAction(
                   icon: _inMyList ? Icons.check_rounded : Icons.add_rounded,
                   active: _inMyList,
+                  filledActive: true,
                   // Reading-aware: a manga on your list is "Reading", not
                   // "Watching". Display only — the stored status is still
                   // WatchStatus.watching, so My List and the trackers are
