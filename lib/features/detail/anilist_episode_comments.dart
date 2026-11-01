@@ -21,8 +21,13 @@ class _AniListEpisodeCommentsState extends State<AniListEpisodeComments> {
         options: Options(headers: {'Content-Type': 'application/json'},
           validateStatus: (s) => s != null && s < 500));
       final data = response.data;
-      final media = data is Map ? (data['data'] as Map?)?['Media'] : null;
-      final threads = media is Map ? media['threads'] : null;
+      dynamic media;
+      if (data is Map) {
+        final payload = data['data'];
+        if (payload is Map) media = payload['Media'];
+      }
+      dynamic threads;
+      if (media is Map) threads = media['threads'];
       if (threads is List) return threads.whereType<Map>()
           .map((e) => Map<String, dynamic>.from(e)).toList();
     } catch (_) {}
