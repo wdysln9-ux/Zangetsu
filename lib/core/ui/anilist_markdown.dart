@@ -146,7 +146,28 @@ class AniListMarkdown extends StatelessWidget {
       customStylesBuilder: (element) {
         switch (element.localName) {
           case 'p':
-            return {'margin': '0 0 10px 0', 'line-height': '1.45'};
+            return {'margin': '0 0 8px 0', 'line-height': '1.45'};
+          case 'h1':
+            return {'font-size': '1.55em', 'font-weight': '700', 'margin': '12px 0 7px 0'};
+          case 'h2':
+            return {'font-size': '1.35em', 'font-weight': '700', 'margin': '11px 0 6px 0'};
+          case 'h3':
+          case 'h4':
+          case 'h5':
+          case 'h6':
+            return {'font-size': '1.12em', 'font-weight': '700', 'margin': '9px 0 5px 0'};
+          case 'ul':
+          case 'ol':
+            return {'padding-left': '22px', 'margin': '5px 0 9px 0'};
+          case 'li':
+            return {'margin': '2px 0', 'line-height': '1.4'};
+          case 'hr':
+            return {'border': '0', 'border-top': '1px solid #454B58', 'margin': '12px 0'};
+          case 'table':
+            return {'border-collapse': 'collapse', 'width': '100%'};
+          case 'th':
+          case 'td':
+            return {'border': '1px solid #454B58', 'padding': '6px', 'vertical-align': 'top'};
           case 'blockquote':
             return {
               'font-style': 'italic',
