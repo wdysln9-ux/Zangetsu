@@ -91,7 +91,7 @@ class AniListMarkdown extends StatelessWidget {
         final align = tag == 'center' ? 'center' : (alignMatch?.group(1)?.toLowerCase() ?? 'left');
         final index = alignedBlocks.length;
         alignedBlocks.add((body: body, align: align));
-        return '\n\nANILIST_ALIGN_BLOCK_${index}_PLACEHOLDER\\n\\n';
+        return '\n\nANILIST_ALIGN_BLOCK_${index}_PLACEHOLDER\n\n';
       },
     );
 
@@ -254,6 +254,8 @@ class AniListMarkdown extends StatelessWidget {
           final src = element.attributes['src'];
           if (src == null || src.isEmpty) return const SizedBox.shrink();
           final width = double.tryParse(element.attributes['width'] ?? '');
+          final style = element.attributes['style'] ?? '';
+          final percent = RegExp(r'width\s*:\s*(\d+(?:\.\d+)?)%').firstMatch(style);
           return LayoutBuilder(
             builder: (context, constraints) {
               final availableWidth = constraints.maxWidth.isFinite
