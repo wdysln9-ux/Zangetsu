@@ -416,7 +416,7 @@ class _PersonPageState extends State<PersonPage> {
           const SizedBox(height: 4),
           LayoutBuilder(
             builder: (context, constraints) {
-              final width = (constraints.maxWidth - 10) / 2;
+              final width = (constraints.maxWidth - 30) / 4;
               return Wrap(
                 spacing: 10,
                 runSpacing: 10,
@@ -424,8 +424,8 @@ class _PersonPageState extends State<PersonPage> {
                   return Container(
                     width: width,
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 11,
+                      horizontal: 8,
+                      vertical: 10,
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
@@ -657,8 +657,8 @@ class CharacterGalleryPage extends StatefulWidget {
 }
 
 class _CharacterGalleryPageState extends State<CharacterGalleryPage> {
-  late final Future<List<String>> _gallery =
-      sl<PeopleService>().loadCharacterGallery(widget.characterName);
+  late final Future<List<String>> _gallery = sl<PeopleService>()
+      .loadCharacterGallery(widget.characterName, malId: widget.malId);
 
   @override
   Widget build(BuildContext context) {
