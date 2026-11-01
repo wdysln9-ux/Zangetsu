@@ -3035,12 +3035,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ],
             ),
             const SizedBox(height: 10),
-            Transform.translate(
-              offset: const Offset(-16, 0),
-              child: SizedBox(
-                width: MediaQuery.sizeOf(context).width,
-                height: 112,
-                child: ListView.separated(
+            OverflowBox(
+              alignment: Alignment.centerLeft,
+              minWidth: 0,
+              maxWidth: MediaQuery.sizeOf(context).width,
+              child: Transform.translate(
+                offset: const Offset(-16, 0),
+                child: SizedBox(
+                  width: MediaQuery.sizeOf(context).width,
+                  height: 112,
+                  child: ListView.separated(
                   padding: EdgeInsets.zero,
                   controller: _episodeCardsScroll,
                   scrollDirection: Axis.horizontal,
@@ -3143,7 +3147,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       ),
                     ),
                   );
-                  },
+                    },
+                  ),
                 ),
               ),
             ),
