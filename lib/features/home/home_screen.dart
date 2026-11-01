@@ -50,6 +50,7 @@ import '../../l10n/l10n.dart';
 import '../../core/announce/announcement.dart';
 import '../announce/announcement_sheet.dart';
 import '../community/community_sheet.dart';
+import 'global_chat_screen.dart';
 import '../downloads/downloads_screen.dart';
 import '../notify/subscriptions_screen.dart';
 import '../reader/manga_reader_screen.dart';
@@ -1456,6 +1457,8 @@ class _HomeViewState extends State<_HomeView>
                   sl<MetadataRepository>().supportsFilters) ...[
                 const SizedBox(width: 12),
                 Expanded(child: _genresCard(orBorrow(_genresArt()))),
+                const SizedBox(width: 12),
+                Expanded(child: _globalChatCard()),
               ],
             ],
           ),
@@ -1708,6 +1711,44 @@ class _HomeViewState extends State<_HomeView>
       ),
     );
   }
+
+  Widget _globalChatCard() => GestureDetector(
+    key: const ValueKey('home_global_chat_card'),
+    onTap: _slashing ? null : () => Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const GlobalChatScreen()),
+    ),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        height: 52,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _cardBg(
+              (cover: null, headers: null),
+              scrim: [
+                const Color(0xFF5865F2).withValues(alpha: 0.82),
+                const Color(0xFF23243A).withValues(alpha: 0.92),
+              ],
+              empty: const Color(0xFF35395D),
+            ),
+            const Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.forum_rounded, size: 18, color: Colors.white),
+                  SizedBox(width: 7),
+                  Flexible(child: Text('Global Chat', maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14))),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 
   /// A representative cover for [m] from the user's own history — last watched
   /// show (streaming) or last read manga/novel. Null when there's nothing yet.
