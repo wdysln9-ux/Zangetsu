@@ -77,7 +77,7 @@ class AniListMarkdown extends StatelessWidget {
     );
     final centerBlocks = <String>[];
     var prepared = protectedSource.replaceAllMapped(
-      RegExp(r'(?:˜˜˜|~~~center[ \t]*\n)([\s\S]*?)(?:˜˜˜|~~~)', dotAll: true),
+      RegExp(r'(?:˜˜˜|~~~(?:center[ \t]*(?:\r?\n)|[ \t]*(?:\r?\n))?)([\s\S]*?)(?:˜˜˜|~~~)', dotAll: true),
       (match) {
         final index = centerBlocks.length;
         centerBlocks.add(match[1] ?? '');
