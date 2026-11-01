@@ -3150,8 +3150,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             color: AppColors.accent, size: 18),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: Text(
-                            'Ringkasan Episode',
+                          child: AutoTranslatedText(
+                            text: 'Ringkasan Episode',
                             style: AppText.body.copyWith(
                               color: Colors.white,
                               fontSize: 15,
