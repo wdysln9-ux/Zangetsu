@@ -55,7 +55,7 @@ class PeopleService {
   Future<PersonProfile?> _character(int id) async {
     const q =
         'query(\$id:Int){ Character(id:\$id){ '
-        'name{ full native alternative } image{ large } description(asHtml:false) '
+        'idMal name{ full native alternative } image{ large } description(asHtml:false) '
         'age gender dateOfBirth{ year month day } bloodType favourites '
         // No type filter: a manga character's appearances ARE manga, and
         // pinning this to ANIME left every reading character empty.
@@ -111,7 +111,7 @@ class PeopleService {
           : null,
       favourites: (c['favourites'] as num?)?.toInt(),
       photo: _aniImage(c, 'image'),
-      malId: null,
+      malId: (c['idMal'] as num?)?.toInt(),
       description: _plain(c['description'] as String?),
       subtitle: 'Character',
       works: works,
@@ -316,30 +316,38 @@ class PeopleService {
   }
 
   /// Find the matching MAL character and load its public picture gallery.
-  Future<List<String>> loadCharacterGallery(String characterName) async {
+  Future<List<String>> loadCharacterGallery(
+    String characterName, {
+    int? malId,
+  }) async {
     try {
-      final search = await _dio.get<dynamic>(
-        'https://api.jikan.moe/v4/characters',
-        queryParameters: {'q': characterName, 'limit': 8},
-        options: Options(validateStatus: (status) => status != null && status < 500),
-      );
-      final searchData = search.data is Map ? search.data['data'] : null;
-      if (searchData is! List || searchData.isEmpty) return const [];
-      final normalized = characterName.trim().toLowerCase();
-      Map? best;
-      for (final item in searchData) {
-        if (item is! Map) continue;
-        final name = item['name'];
-        if (name is String && name.trim().toLowerCase() == normalized) {
-          best = item;
-          break;
+      var resolvedMalId = malId;
+      // Prefer AniList's linked MAL character ID; this avoids selecting a
+      // similarly named character from a fuzzy search result.
+      if (resolvedMalId == null) {
+        final search = await _dio.get<dynamic>(
+          'https://api.jikan.moe/v4/characters',
+          queryParameters: {'q': characterName, 'limit': 8},
+          options: Options(validateStatus: (status) => status != null && status < 500),
+        );
+        final searchData = search.data is Map ? search.data['data'] : null;
+        if (searchData is! List || searchData.isEmpty) return const [];
+        final normalized = characterName.trim().toLowerCase();
+        Map? best;
+        for (final item in searchData) {
+          if (item is! Map) continue;
+          final name = item['name'];
+          if (name is String && name.trim().toLowerCase() == normalized) {
+            best = item;
+            break;
+          }
         }
+        best ??= searchData.first is Map ? searchData.first as Map : null;
+        resolvedMalId = (best?['mal_id'] as num?)?.toInt();
       }
-      best ??= searchData.first is Map ? searchData.first as Map : null;
-      final malId = (best?['mal_id'] as num?)?.toInt();
-      if (malId == null) return const [];
+      if (resolvedMalId == null) return const [];
       final response = await _dio.get<dynamic>(
-        'https://api.jikan.moe/v4/characters/$malId/pictures',
+        'https://api.jikan.moe/v4/characters/$resolvedMalId/pictures',
         options: Options(validateStatus: (status) => status != null && status < 500),
       );
       final data = response.data is Map ? response.data['data'] : null;
@@ -403,7 +411,6 @@ class PeopleService {
         .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
         .replaceAll(RegExp(r'<[^>]+>'), '')
         .replaceAll(RegExp(r'~!|!~'), '') // AniList spoiler markers
-        .replaceAll('__', '')
         .replaceAll(RegExp(r'\n{3,}'), '\n\n')
         .trim();
     return out.isEmpty ? null : out;
