@@ -722,8 +722,7 @@ class AniListApi {
     final d = await _gql(
       'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:50){ '
       'threadComments(threadId:\$id,sort:[ID]){ id comment likeCount createdAt '
-      'user{id name avatar{large}} childComments{id comment likeCount createdAt '
-      'user{id name avatar{large}}} } } }',
+      'user{id name avatar{large}} } } }',
       {'id': threadId, 'page': page},
     );
     final rows = (d?['Page'] as Map?)?['threadComments'];
