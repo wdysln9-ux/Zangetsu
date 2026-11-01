@@ -19,7 +19,6 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../core/cache/app_image_cache.dart';
 import '../../core/di/injector.dart';
 import '../../core/anilist/anilist_service.dart';
-import '../detail/anilist_episode_comments.dart';
 import '../../core/repository/source_repository.dart';
 import '../../core/zmode/playback_resolver.dart';
 import '../../core/tracker/tracker_hub.dart';
@@ -3128,12 +3127,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 ),
               ),
             ],
-            const SizedBox(height: 24),
-            AniListEpisodeComments(
-              title: widget.showTitle ?? widget.scrobbleTitle ?? '',
-              malId: widget.malId,
-              episodeNumber: number ?? (activeIndex + 1).toString(),
-            ),
           ],
         ),
       ),
