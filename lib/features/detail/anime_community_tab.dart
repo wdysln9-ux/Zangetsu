@@ -262,11 +262,10 @@ class _TranslatedPostState extends State<_TranslatedPost> {
   }
   String _makeCasual(String value) => value
       .replaceAll(RegExp(r'\bAnda\b', caseSensitive: false), 'kamu')
-      .replaceAll(RegExp(r'\bAnda\b', caseSensitive: false), 'kamu')
       .replaceAll(RegExp(r'\bsaya\b', caseSensitive: false), 'aku')
       .replaceAll(RegExp(r'\btidak\b', caseSensitive: false), 'nggak')
-      .replaceAll(RegExp(r'\b tetapi \b', caseSensitive: false), ' tapi ')
-      .replaceAll(RegExp(r'\b sangat \b', caseSensitive: false), ' banget ');
+      .replaceAll(RegExp(r'\btetapi\b', caseSensitive: false), ' tapi ')
+      .replaceAll(RegExp(r'\bsangat\b', caseSensitive: false), ' banget ');
 
   @override
   Widget build(BuildContext context) {
