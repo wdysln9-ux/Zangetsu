@@ -631,7 +631,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _showEpisodeDetails ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky,
     );
     if (_showEpisodeDetails) {
-      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
         // A slightly raised dark tone makes the camera cutout visible instead
         // of blending into the pure-black episode screen.
         statusBarColor: Color(0xFF161616),
