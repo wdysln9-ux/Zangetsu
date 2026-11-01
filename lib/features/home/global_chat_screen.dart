@@ -2,7 +2,6 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:markdown/markdown.dart' as md;
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/di/injector.dart';
 import '../../core/theme/app_text.dart';
@@ -113,10 +112,6 @@ class _GlobalChatScreenState extends State<GlobalChatScreen> {
     );
   }
 
-  Widget _avatarFallback() => Container(color: const Color(0xFF424550), alignment: Alignment.center, child: const Icon(Icons.person_rounded, color: Colors.white70, size: 22));
-}
-
-
 class _MarkdownContent extends StatelessWidget {
   const _MarkdownContent({required this.text});
   final String text;
@@ -127,202 +122,19 @@ class _MarkdownContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lines = text.replaceAll('\r\n', '\n').split('\n');
-    final widgets = <Widget>[];
-    final markdownLines = <String>[];
-    void flush() {
-      if (markdownLines.isEmpty) return;
-      final prepared = _prepare(markdownLines.join('\n'));
-      final nodes = md.Document(
-        extensionSet: md.ExtensionSet.gitHubWeb,
-      ).parseLines(prepared.split('\n'));
-      widgets.addAll(nodes.map(_block));
-      markdownLines.clear();
-    }
-    for (final line in lines) {
-      final match = RegExp(r'^\s*(youtube|webm)\((https?://[^)\s]+)\)\s*
-  }
-
-  String _prepare(String source) {
-    var value = source.replaceAllMapped(
-      RegExp(r'~~~([\s\S]*?)~~~'),
-      (m) => '<center>' + m.group(1)! + '</center>',
+    final nodes = md.Document(
+      extensionSet: md.ExtensionSet.gitHubWeb,
+    ).parseLines(text.split('\n'));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: nodes.map(_block).toList(),
     );
-    value = value.replaceAllMapped(
-      RegExp(r'img(\d{1,4})\((https?://[^)\s]+)\)'),
-      (m) => '<img alt="Image" src="' + m.group(2)! +
-          '" width="' + m.group(1)! + '">',
-    );
-    value = value.replaceAllMapped(
-      RegExp(r'~!([\s\S]+?)!~'),
-      (m) => '<span data-anilist-spoiler="true">' +
-          m.group(1)!.replaceAll('&', '&amp;').replaceAll('<', '&lt;') +
-          '</span>',
-    );
-    final lines = value.split('\n');
-    for (var i = 1; i < lines.length; i++) {
-      if (RegExp(r'^={2,}\s*
-    if (node is md.Text) return _paragraph([node]);
-    if (node is! md.Element) return const SizedBox.shrink();
-    final tag = node.tag;
-    if (tag == 'ul' || tag == 'ol') {
-      var number = 0;
-      return Padding(
-        padding: const EdgeInsets.only(top: 3, bottom: 5),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: (node.children ?? const <md.Node>[]).map((child) {
-            if (child is! md.Element || child.tag != 'li') return _block(child);
-            number++;
-            return Padding(
-              padding: const EdgeInsets.only(left: 5, bottom: 3),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 19,
-                    child: Text(tag == 'ol' ? '$number.' : '•',
-                      style: const TextStyle(color: _muted, fontSize: 14)),
-                  ),
-                  Expanded(child: _inlineBlock(child.children ?? const [])),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      );
-    }
-    if (tag == 'blockquote') {
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 5),
-        padding: const EdgeInsets.only(left: 10, top: 3, bottom: 3),
-        decoration: const BoxDecoration(
-          border: Border(left: BorderSide(color: _link, width: 3)),
-        ),
-        child: DefaultTextStyle(
-          style: const TextStyle(color: _muted, fontStyle: FontStyle.italic,
-            height: 1.45, fontSize: 14),
-          child: _inlineBlock(node.children ?? const []),
-        ),
-      );
-    }
-    if (tag == 'pre') {
-      return Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1D1F26),
-          borderRadius: BorderRadius.circular(7),
-        ),
-        child: SelectableText(node.textContent,
-          style: const TextStyle(color: Color(0xFFD6D9E5),
-            fontFamily: 'monospace', fontSize: 12, height: 1.4)),
-      );
-    }
-    if (tag == 'hr') {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 7),
-        child: Divider(color: Color(0xFF454854), height: 1),
-      );
-    }
-    if (tag == 'img') {
-      final src = node.attributes['src'];
-      final alt = node.attributes['alt'] ?? 'Image';
-      if (src == null || src.isEmpty) return const SizedBox.shrink();
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(7),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 280),
-            child: Image.network(src, fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => Text(alt,
-                style: const TextStyle(color: _muted))),
-          ),
-        ),
-      );
-    }
-    if (tag == 'p' && node.attributes['align'] == 'center' ||
-        tag == 'div' && node.attributes['align'] == 'center' ||
-        tag == 'center') {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 7),
-        child: Center(child: _inlineBlock(node.children ?? const [])),
-      );
-    }
-    if (tag == 'p' && node.attributes['align'] == 'right' ||
-        tag == 'div' && node.attributes['align'] == 'right') {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: _inlineBlock(node.children ?? const []),
-      );
-    }
-    final heading = RegExp(r'^h[1-5]$').hasMatch(tag);
-    if (heading) {
-      final level = int.parse(tag.substring(1));
-      final size = [20.0, 18.0, 16.0, 15.0, 14.0][level - 1];
-      return Padding(
-        padding: const EdgeInsets.only(top: 5, bottom: 4),
-        child: DefaultTextStyle.merge(
-          style: TextStyle(fontSize: size, fontWeight: FontWeight.w700),
-          child: _inlineBlock(node.children ?? const []),
-        ),
-      );
-    }
-    return _paragraph(node.children ?? const []);
-  }
-
-  Widget _paragraph(List<md.Node> nodes) => Padding(
-    padding: const EdgeInsets.only(bottom: 7),
-    child: SelectableText.rich(TextSpan(
-      style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
-      children: nodes.map(_span).toList(),
-    )),
-  );
-
-  Widget _inlineBlock(List<md.Node> nodes) => SelectableText.rich(TextSpan(
-    style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
-    children: nodes.map(_span).toList(),
-  ));
-
-  TextSpan _span(md.Node node) {
-    if (node is md.Text) return TextSpan(text: node.text);
-    if (node is! md.Element) return const TextSpan();
-    final tag = node.tag;
-    final children = (node.children ?? const <md.Node>[]).map(_span).toList();
-    TextStyle? style;
-    if (tag == 'strong' || tag == 'b') {
-      style = const TextStyle(fontWeight: FontWeight.w700);
-    } else if (tag == 'em' || tag == 'i') {
-      style = const TextStyle(fontStyle: FontStyle.italic);
-    } else if (tag == 'del' || tag == 'strike') {
-      style = const TextStyle(decoration: TextDecoration.lineThrough);
-    } else if (tag == 'code') {
-      style = const TextStyle(fontFamily: 'monospace', fontSize: 12,
-        color: Color(0xFFFFC98B), backgroundColor: Color(0xFF1D1F26));
-    } else if (tag == 'a') {
-      style = const TextStyle(color: _link, decoration: TextDecoration.underline);
-    }
-    if (tag == 'br') return const TextSpan(text: '\n');
-    return TextSpan(style: style, children: children);
-  }
-}
-,
-        caseSensitive: false).firstMatch(line);
-      if (match == null) {
-        markdownLines.add(line);
-      } else {
-        flush();
-        widgets.add(_videoEmbed(match.group(1)!, match.group(2)!));
-      }
-    }
-    flush();
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: widgets);
   }
 
   Widget _block(md.Node node) {
-    if (node is md.Text) return _paragraph([node]);
+    if (node is md.Text) {
+      return _paragraph([node]);
+    }
     if (node is! md.Element) return const SizedBox.shrink();
     final tag = node.tag;
     if (tag == 'ul' || tag == 'ol') {
@@ -332,7 +144,9 @@ class _MarkdownContent extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: (node.children ?? const <md.Node>[]).map((child) {
-            if (child is! md.Element || child.tag != 'li') return _block(child);
+            if (child is! md.Element || child.tag != 'li') {
+              return _block(child);
+            }
             number++;
             return Padding(
               padding: const EdgeInsets.only(left: 5, bottom: 3),
@@ -341,8 +155,10 @@ class _MarkdownContent extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: 19,
-                    child: Text(tag == 'ol' ? '$number.' : '•',
-                      style: const TextStyle(color: _muted, fontSize: 14)),
+                    child: Text(
+                      tag == 'ol' ? '$number.' : '•',
+                      style: const TextStyle(color: _muted, fontSize: 14),
+                    ),
                   ),
                   Expanded(child: _inlineBlock(child.children ?? const [])),
                 ],
@@ -360,13 +176,13 @@ class _MarkdownContent extends StatelessWidget {
           border: Border(left: BorderSide(color: _link, width: 3)),
         ),
         child: DefaultTextStyle(
-          style: const TextStyle(color: _muted, fontStyle: FontStyle.italic,
-            height: 1.45, fontSize: 14),
+          style: const TextStyle(color: _muted, height: 1.45, fontSize: 14),
           child: _inlineBlock(node.children ?? const []),
         ),
       );
     }
     if (tag == 'pre') {
+      final code = node.textContent;
       return Container(
         width: double.infinity,
         margin: const EdgeInsets.symmetric(vertical: 6),
@@ -375,9 +191,15 @@ class _MarkdownContent extends StatelessWidget {
           color: const Color(0xFF1D1F26),
           borderRadius: BorderRadius.circular(7),
         ),
-        child: SelectableText(node.textContent,
-          style: const TextStyle(color: Color(0xFFD6D9E5),
-            fontFamily: 'monospace', fontSize: 12, height: 1.4)),
+        child: SelectableText(
+          code,
+          style: const TextStyle(
+            color: Color(0xFFD6D9E5),
+            fontFamily: 'monospace',
+            fontSize: 12,
+            height: 1.4,
+          ),
+        ),
       );
     }
     if (tag == 'hr') {
@@ -386,585 +208,37 @@ class _MarkdownContent extends StatelessWidget {
         child: Divider(color: Color(0xFF454854), height: 1),
       );
     }
-    if (tag == 'img') {
-      final src = node.attributes['src'];
-      final alt = node.attributes['alt'] ?? 'Image';
-      if (src == null || src.isEmpty) return const SizedBox.shrink();
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(7),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 280),
-            child: Image.network(src, fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => Text(alt,
-                style: const TextStyle(color: _muted))),
-          ),
-        ),
-      );
-    }
-    if (tag == 'p' && node.attributes['align'] == 'center' ||
-        tag == 'div' && node.attributes['align'] == 'center' ||
-        tag == 'center') {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 7),
-        child: Center(child: _inlineBlock(node.children ?? const [])),
-      );
-    }
-    if (tag == 'p' && node.attributes['align'] == 'right' ||
-        tag == 'div' && node.attributes['align'] == 'right') {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: _inlineBlock(node.children ?? const []),
-      );
-    }
-    final heading = RegExp(r'^h[1-5]$').hasMatch(tag);
-    if (heading) {
-      final level = int.parse(tag.substring(1));
-      final size = [20.0, 18.0, 16.0, 15.0, 14.0][level - 1];
+    final child = _paragraph(node.children ?? const []);
+    if (tag == 'h1' || tag == 'h2' || tag == 'h3' ||
+        tag == 'h4' || tag == 'h5' || tag == 'h6') {
+      final size = tag == 'h1' ? 20.0 : tag == 'h2' ? 18.0 : 16.0;
       return Padding(
         padding: const EdgeInsets.only(top: 5, bottom: 4),
         child: DefaultTextStyle.merge(
           style: TextStyle(fontSize: size, fontWeight: FontWeight.w700),
-          child: _inlineBlock(node.children ?? const []),
+          child: child,
         ),
       );
     }
-    return _paragraph(node.children ?? const []);
+    return child;
   }
 
   Widget _paragraph(List<md.Node> nodes) => Padding(
     padding: const EdgeInsets.only(bottom: 7),
-    child: SelectableText.rich(TextSpan(
-      style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
-      children: nodes.map(_span).toList(),
-    )),
-  );
-
-  Widget _inlineBlock(List<md.Node> nodes) => SelectableText.rich(TextSpan(
-    style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
-    children: nodes.map(_span).toList(),
-  ));
-
-  TextSpan _span(md.Node node) {
-    if (node is md.Text) return TextSpan(text: node.text);
-    if (node is! md.Element) return const TextSpan();
-    final tag = node.tag;
-    final children = (node.children ?? const <md.Node>[]).map(_span).toList();
-    TextStyle? style;
-    if (tag == 'strong' || tag == 'b') {
-      style = const TextStyle(fontWeight: FontWeight.w700);
-    } else if (tag == 'em' || tag == 'i') {
-      style = const TextStyle(fontStyle: FontStyle.italic);
-    } else if (tag == 'del' || tag == 'strike') {
-      style = const TextStyle(decoration: TextDecoration.lineThrough);
-    } else if (tag == 'code') {
-      style = const TextStyle(fontFamily: 'monospace', fontSize: 12,
-        color: Color(0xFFFFC98B), backgroundColor: Color(0xFF1D1F26));
-    } else if (tag == 'a') {
-      style = const TextStyle(color: _link, decoration: TextDecoration.underline);
-    }
-    if (tag == 'br') return const TextSpan(text: '\n');
-    return TextSpan(style: style, children: children);
-  }
-}
-).hasMatch(lines[i])) {
-        lines[i - 1] = '<h1>' + lines[i - 1] + '</h1>';
-        lines[i] = '';
-      } else if (RegExp(r'^-{2,}\s*
-    if (node is md.Text) return _paragraph([node]);
-    if (node is! md.Element) return const SizedBox.shrink();
-    final tag = node.tag;
-    if (tag == 'ul' || tag == 'ol') {
-      var number = 0;
-      return Padding(
-        padding: const EdgeInsets.only(top: 3, bottom: 5),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: (node.children ?? const <md.Node>[]).map((child) {
-            if (child is! md.Element || child.tag != 'li') return _block(child);
-            number++;
-            return Padding(
-              padding: const EdgeInsets.only(left: 5, bottom: 3),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 19,
-                    child: Text(tag == 'ol' ? '$number.' : '•',
-                      style: const TextStyle(color: _muted, fontSize: 14)),
-                  ),
-                  Expanded(child: _inlineBlock(child.children ?? const [])),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      );
-    }
-    if (tag == 'blockquote') {
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 5),
-        padding: const EdgeInsets.only(left: 10, top: 3, bottom: 3),
-        decoration: const BoxDecoration(
-          border: Border(left: BorderSide(color: _link, width: 3)),
-        ),
-        child: DefaultTextStyle(
-          style: const TextStyle(color: _muted, fontStyle: FontStyle.italic,
-            height: 1.45, fontSize: 14),
-          child: _inlineBlock(node.children ?? const []),
-        ),
-      );
-    }
-    if (tag == 'pre') {
-      return Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1D1F26),
-          borderRadius: BorderRadius.circular(7),
-        ),
-        child: SelectableText(node.textContent,
-          style: const TextStyle(color: Color(0xFFD6D9E5),
-            fontFamily: 'monospace', fontSize: 12, height: 1.4)),
-      );
-    }
-    if (tag == 'hr') {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 7),
-        child: Divider(color: Color(0xFF454854), height: 1),
-      );
-    }
-    if (tag == 'img') {
-      final src = node.attributes['src'];
-      final alt = node.attributes['alt'] ?? 'Image';
-      if (src == null || src.isEmpty) return const SizedBox.shrink();
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(7),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 280),
-            child: Image.network(src, fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => Text(alt,
-                style: const TextStyle(color: _muted))),
-          ),
-        ),
-      );
-    }
-    if (tag == 'p' && node.attributes['align'] == 'center' ||
-        tag == 'div' && node.attributes['align'] == 'center' ||
-        tag == 'center') {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 7),
-        child: Center(child: _inlineBlock(node.children ?? const [])),
-      );
-    }
-    if (tag == 'p' && node.attributes['align'] == 'right' ||
-        tag == 'div' && node.attributes['align'] == 'right') {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: _inlineBlock(node.children ?? const []),
-      );
-    }
-    final heading = RegExp(r'^h[1-5]$').hasMatch(tag);
-    if (heading) {
-      final level = int.parse(tag.substring(1));
-      final size = [20.0, 18.0, 16.0, 15.0, 14.0][level - 1];
-      return Padding(
-        padding: const EdgeInsets.only(top: 5, bottom: 4),
-        child: DefaultTextStyle.merge(
-          style: TextStyle(fontSize: size, fontWeight: FontWeight.w700),
-          child: _inlineBlock(node.children ?? const []),
-        ),
-      );
-    }
-    return _paragraph(node.children ?? const []);
-  }
-
-  Widget _paragraph(List<md.Node> nodes) => Padding(
-    padding: const EdgeInsets.only(bottom: 7),
-    child: SelectableText.rich(TextSpan(
-      style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
-      children: nodes.map(_span).toList(),
-    )),
-  );
-
-  Widget _inlineBlock(List<md.Node> nodes) => SelectableText.rich(TextSpan(
-    style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
-    children: nodes.map(_span).toList(),
-  ));
-
-  TextSpan _span(md.Node node) {
-    if (node is md.Text) return TextSpan(text: node.text);
-    if (node is! md.Element) return const TextSpan();
-    final tag = node.tag;
-    final children = (node.children ?? const <md.Node>[]).map(_span).toList();
-    TextStyle? style;
-    if (tag == 'strong' || tag == 'b') {
-      style = const TextStyle(fontWeight: FontWeight.w700);
-    } else if (tag == 'em' || tag == 'i') {
-      style = const TextStyle(fontStyle: FontStyle.italic);
-    } else if (tag == 'del' || tag == 'strike') {
-      style = const TextStyle(decoration: TextDecoration.lineThrough);
-    } else if (tag == 'code') {
-      style = const TextStyle(fontFamily: 'monospace', fontSize: 12,
-        color: Color(0xFFFFC98B), backgroundColor: Color(0xFF1D1F26));
-    } else if (tag == 'a') {
-      style = const TextStyle(color: _link, decoration: TextDecoration.underline);
-    }
-    if (tag == 'br') return const TextSpan(text: '\n');
-    return TextSpan(style: style, children: children);
-  }
-}
-,
-        caseSensitive: false).firstMatch(line);
-      if (match == null) {
-        markdownLines.add(line);
-      } else {
-        flush();
-        widgets.add(_videoEmbed(match.group(1)!, match.group(2)!));
-      }
-    }
-    flush();
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: widgets);
-  }
-
-  Widget _block(md.Node node) {
-    if (node is md.Text) return _paragraph([node]);
-    if (node is! md.Element) return const SizedBox.shrink();
-    final tag = node.tag;
-    if (tag == 'ul' || tag == 'ol') {
-      var number = 0;
-      return Padding(
-        padding: const EdgeInsets.only(top: 3, bottom: 5),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: (node.children ?? const <md.Node>[]).map((child) {
-            if (child is! md.Element || child.tag != 'li') return _block(child);
-            number++;
-            return Padding(
-              padding: const EdgeInsets.only(left: 5, bottom: 3),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 19,
-                    child: Text(tag == 'ol' ? '$number.' : '•',
-                      style: const TextStyle(color: _muted, fontSize: 14)),
-                  ),
-                  Expanded(child: _inlineBlock(child.children ?? const [])),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      );
-    }
-    if (tag == 'blockquote') {
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 5),
-        padding: const EdgeInsets.only(left: 10, top: 3, bottom: 3),
-        decoration: const BoxDecoration(
-          border: Border(left: BorderSide(color: _link, width: 3)),
-        ),
-        child: DefaultTextStyle(
-          style: const TextStyle(color: _muted, fontStyle: FontStyle.italic,
-            height: 1.45, fontSize: 14),
-          child: _inlineBlock(node.children ?? const []),
-        ),
-      );
-    }
-    if (tag == 'pre') {
-      return Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1D1F26),
-          borderRadius: BorderRadius.circular(7),
-        ),
-        child: SelectableText(node.textContent,
-          style: const TextStyle(color: Color(0xFFD6D9E5),
-            fontFamily: 'monospace', fontSize: 12, height: 1.4)),
-      );
-    }
-    if (tag == 'hr') {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 7),
-        child: Divider(color: Color(0xFF454854), height: 1),
-      );
-    }
-    if (tag == 'img') {
-      final src = node.attributes['src'];
-      final alt = node.attributes['alt'] ?? 'Image';
-      if (src == null || src.isEmpty) return const SizedBox.shrink();
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(7),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 280),
-            child: Image.network(src, fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => Text(alt,
-                style: const TextStyle(color: _muted))),
-          ),
-        ),
-      );
-    }
-    if (tag == 'p' && node.attributes['align'] == 'center' ||
-        tag == 'div' && node.attributes['align'] == 'center' ||
-        tag == 'center') {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 7),
-        child: Center(child: _inlineBlock(node.children ?? const [])),
-      );
-    }
-    if (tag == 'p' && node.attributes['align'] == 'right' ||
-        tag == 'div' && node.attributes['align'] == 'right') {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: _inlineBlock(node.children ?? const []),
-      );
-    }
-    final heading = RegExp(r'^h[1-5]$').hasMatch(tag);
-    if (heading) {
-      final level = int.parse(tag.substring(1));
-      final size = [20.0, 18.0, 16.0, 15.0, 14.0][level - 1];
-      return Padding(
-        padding: const EdgeInsets.only(top: 5, bottom: 4),
-        child: DefaultTextStyle.merge(
-          style: TextStyle(fontSize: size, fontWeight: FontWeight.w700),
-          child: _inlineBlock(node.children ?? const []),
-        ),
-      );
-    }
-    return _paragraph(node.children ?? const []);
-  }
-
-  Widget _paragraph(List<md.Node> nodes) => Padding(
-    padding: const EdgeInsets.only(bottom: 7),
-    child: SelectableText.rich(TextSpan(
-      style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
-      children: nodes.map(_span).toList(),
-    )),
-  );
-
-  Widget _inlineBlock(List<md.Node> nodes) => SelectableText.rich(TextSpan(
-    style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
-    children: nodes.map(_span).toList(),
-  ));
-
-  TextSpan _span(md.Node node) {
-    if (node is md.Text) return TextSpan(text: node.text);
-    if (node is! md.Element) return const TextSpan();
-    final tag = node.tag;
-    final children = (node.children ?? const <md.Node>[]).map(_span).toList();
-    TextStyle? style;
-    if (tag == 'strong' || tag == 'b') {
-      style = const TextStyle(fontWeight: FontWeight.w700);
-    } else if (tag == 'em' || tag == 'i') {
-      style = const TextStyle(fontStyle: FontStyle.italic);
-    } else if (tag == 'del' || tag == 'strike') {
-      style = const TextStyle(decoration: TextDecoration.lineThrough);
-    } else if (tag == 'code') {
-      style = const TextStyle(fontFamily: 'monospace', fontSize: 12,
-        color: Color(0xFFFFC98B), backgroundColor: Color(0xFF1D1F26));
-    } else if (tag == 'a') {
-      style = const TextStyle(color: _link, decoration: TextDecoration.underline);
-    }
-    if (tag == 'br') return const TextSpan(text: '\n');
-    return TextSpan(style: style, children: children);
-  }
-}
-).hasMatch(lines[i])) {
-        lines[i - 1] = '<h2>' + lines[i - 1] + '</h2>';
-        lines[i] = '';
-      }
-    }
-    return lines.join('\n');
-  }
-
-  Widget _videoEmbed(String type, String url) {
-    final youtube = type.toLowerCase() == 'youtube';
-    final uri = Uri.tryParse(url);
-    final id = youtube
-        ? (uri?.queryParameters['v'] ??
-            RegExp(r'youtu\.be/([^?&/]+)').firstMatch(url)?.group(1) ??
-            RegExp(r'/embed/([^?&/]+)').firstMatch(url)?.group(1))
-        : null;
-    return InkWell(
-      onTap: uri == null ? null : () => launchUrl(uri,
-          mode: LaunchMode.externalApplication),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.all(9),
-        decoration: BoxDecoration(color: const Color(0xFF1D1F26),
-          borderRadius: BorderRadius.circular(8)),
-        child: Row(children: [
-          if (youtube && id != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(5),
-              child: CachedNetworkImage(
-                imageUrl: 'https://img.youtube.com/vi/' + id + '/hqdefault.jpg',
-                width: 112, height: 63, fit: BoxFit.cover,
-                errorWidget: (_, _, _) => _videoIcon(youtube)),
-            )
-          else
-            _videoIcon(youtube),
-          const SizedBox(width: 10),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(youtube ? 'YouTube video' : 'Video',
-                style: const TextStyle(color: Color(0xFFE1E2E8),
-                  fontWeight: FontWeight.w600)),
-              const SizedBox(height: 3),
-              const Text('Ketuk untuk membuka',
-                style: TextStyle(color: Color(0xFFB8BBC7), fontSize: 11)),
-            ],
-          )),
-          const Icon(Icons.open_in_new, color: Color(0xFF8EA1E1), size: 17),
-        ]),
+    child: SelectableText.rich(
+      TextSpan(
+        style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
+        children: nodes.map(_span).toList(),
       ),
-    );
-  }
-
-  Widget _videoIcon(bool youtube) => Container(
-    width: 112, height: 63,
-    decoration: BoxDecoration(color: const Color(0xFF343743),
-      borderRadius: BorderRadius.circular(5)),
-    child: Icon(youtube ? Icons.play_circle_fill : Icons.movie,
-      color: const Color(0xFF8EA1E1), size: 34),
+    ),
   );
 
-  Widget _block(md.Node node) {
-    if (node is md.Text) return _paragraph([node]);
-    if (node is! md.Element) return const SizedBox.shrink();
-    final tag = node.tag;
-    if (tag == 'ul' || tag == 'ol') {
-      var number = 0;
-      return Padding(
-        padding: const EdgeInsets.only(top: 3, bottom: 5),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: (node.children ?? const <md.Node>[]).map((child) {
-            if (child is! md.Element || child.tag != 'li') return _block(child);
-            number++;
-            return Padding(
-              padding: const EdgeInsets.only(left: 5, bottom: 3),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 19,
-                    child: Text(tag == 'ol' ? '$number.' : '•',
-                      style: const TextStyle(color: _muted, fontSize: 14)),
-                  ),
-                  Expanded(child: _inlineBlock(child.children ?? const [])),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      );
-    }
-    if (tag == 'blockquote') {
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 5),
-        padding: const EdgeInsets.only(left: 10, top: 3, bottom: 3),
-        decoration: const BoxDecoration(
-          border: Border(left: BorderSide(color: _link, width: 3)),
-        ),
-        child: DefaultTextStyle(
-          style: const TextStyle(color: _muted, fontStyle: FontStyle.italic,
-            height: 1.45, fontSize: 14),
-          child: _inlineBlock(node.children ?? const []),
-        ),
-      );
-    }
-    if (tag == 'pre') {
-      return Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1D1F26),
-          borderRadius: BorderRadius.circular(7),
-        ),
-        child: SelectableText(node.textContent,
-          style: const TextStyle(color: Color(0xFFD6D9E5),
-            fontFamily: 'monospace', fontSize: 12, height: 1.4)),
-      );
-    }
-    if (tag == 'hr') {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 7),
-        child: Divider(color: Color(0xFF454854), height: 1),
-      );
-    }
-    if (tag == 'img') {
-      final src = node.attributes['src'];
-      final alt = node.attributes['alt'] ?? 'Image';
-      if (src == null || src.isEmpty) return const SizedBox.shrink();
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(7),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 280),
-            child: Image.network(src, fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => Text(alt,
-                style: const TextStyle(color: _muted))),
-          ),
-        ),
-      );
-    }
-    if (tag == 'p' && node.attributes['align'] == 'center' ||
-        tag == 'div' && node.attributes['align'] == 'center' ||
-        tag == 'center') {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 7),
-        child: Center(child: _inlineBlock(node.children ?? const [])),
-      );
-    }
-    if (tag == 'p' && node.attributes['align'] == 'right' ||
-        tag == 'div' && node.attributes['align'] == 'right') {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: _inlineBlock(node.children ?? const []),
-      );
-    }
-    final heading = RegExp(r'^h[1-5]$').hasMatch(tag);
-    if (heading) {
-      final level = int.parse(tag.substring(1));
-      final size = [20.0, 18.0, 16.0, 15.0, 14.0][level - 1];
-      return Padding(
-        padding: const EdgeInsets.only(top: 5, bottom: 4),
-        child: DefaultTextStyle.merge(
-          style: TextStyle(fontSize: size, fontWeight: FontWeight.w700),
-          child: _inlineBlock(node.children ?? const []),
-        ),
-      );
-    }
-    return _paragraph(node.children ?? const []);
-  }
-
-  Widget _paragraph(List<md.Node> nodes) => Padding(
-    padding: const EdgeInsets.only(bottom: 7),
-    child: SelectableText.rich(TextSpan(
+  Widget _inlineBlock(List<md.Node> nodes) => SelectableText.rich(
+    TextSpan(
       style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
       children: nodes.map(_span).toList(),
-    )),
+    ),
   );
-
-  Widget _inlineBlock(List<md.Node> nodes) => SelectableText.rich(TextSpan(
-    style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
-    children: nodes.map(_span).toList(),
-  ));
 
   TextSpan _span(md.Node node) {
     if (node is md.Text) return TextSpan(text: node.text);
@@ -976,175 +250,25 @@ class _MarkdownContent extends StatelessWidget {
       style = const TextStyle(fontWeight: FontWeight.w700);
     } else if (tag == 'em' || tag == 'i') {
       style = const TextStyle(fontStyle: FontStyle.italic);
-    } else if (tag == 'del' || tag == 'strike') {
+    } else if (tag == 'del') {
       style = const TextStyle(decoration: TextDecoration.lineThrough);
     } else if (tag == 'code') {
-      style = const TextStyle(fontFamily: 'monospace', fontSize: 12,
-        color: Color(0xFFFFC98B), backgroundColor: Color(0xFF1D1F26));
+      style = const TextStyle(
+        fontFamily: 'monospace',
+        fontSize: 12,
+        color: Color(0xFFFFC98B),
+        backgroundColor: Color(0xFF1D1F26),
+      );
     } else if (tag == 'a') {
-      style = const TextStyle(color: _link, decoration: TextDecoration.underline);
+      style = const TextStyle(
+        color: _link,
+        decoration: TextDecoration.underline,
+      );
     }
     if (tag == 'br') return const TextSpan(text: '\n');
     return TextSpan(style: style, children: children);
   }
 }
-,
-        caseSensitive: false).firstMatch(line);
-      if (match == null) {
-        markdownLines.add(line);
-      } else {
-        flush();
-        widgets.add(_videoEmbed(match.group(1)!, match.group(2)!));
-      }
-    }
-    flush();
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: widgets);
-  }
 
-  Widget _block(md.Node node) {
-    if (node is md.Text) return _paragraph([node]);
-    if (node is! md.Element) return const SizedBox.shrink();
-    final tag = node.tag;
-    if (tag == 'ul' || tag == 'ol') {
-      var number = 0;
-      return Padding(
-        padding: const EdgeInsets.only(top: 3, bottom: 5),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: (node.children ?? const <md.Node>[]).map((child) {
-            if (child is! md.Element || child.tag != 'li') return _block(child);
-            number++;
-            return Padding(
-              padding: const EdgeInsets.only(left: 5, bottom: 3),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 19,
-                    child: Text(tag == 'ol' ? '$number.' : '•',
-                      style: const TextStyle(color: _muted, fontSize: 14)),
-                  ),
-                  Expanded(child: _inlineBlock(child.children ?? const [])),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      );
-    }
-    if (tag == 'blockquote') {
-      return Container(
-        margin: const EdgeInsets.symmetric(vertical: 5),
-        padding: const EdgeInsets.only(left: 10, top: 3, bottom: 3),
-        decoration: const BoxDecoration(
-          border: Border(left: BorderSide(color: _link, width: 3)),
-        ),
-        child: DefaultTextStyle(
-          style: const TextStyle(color: _muted, fontStyle: FontStyle.italic,
-            height: 1.45, fontSize: 14),
-          child: _inlineBlock(node.children ?? const []),
-        ),
-      );
-    }
-    if (tag == 'pre') {
-      return Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1D1F26),
-          borderRadius: BorderRadius.circular(7),
-        ),
-        child: SelectableText(node.textContent,
-          style: const TextStyle(color: Color(0xFFD6D9E5),
-            fontFamily: 'monospace', fontSize: 12, height: 1.4)),
-      );
-    }
-    if (tag == 'hr') {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 7),
-        child: Divider(color: Color(0xFF454854), height: 1),
-      );
-    }
-    if (tag == 'img') {
-      final src = node.attributes['src'];
-      final alt = node.attributes['alt'] ?? 'Image';
-      if (src == null || src.isEmpty) return const SizedBox.shrink();
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 5),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(7),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 280),
-            child: Image.network(src, fit: BoxFit.contain,
-              errorBuilder: (_, _, _) => Text(alt,
-                style: const TextStyle(color: _muted))),
-          ),
-        ),
-      );
-    }
-    if (tag == 'p' && node.attributes['align'] == 'center' ||
-        tag == 'div' && node.attributes['align'] == 'center' ||
-        tag == 'center') {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 7),
-        child: Center(child: _inlineBlock(node.children ?? const [])),
-      );
-    }
-    if (tag == 'p' && node.attributes['align'] == 'right' ||
-        tag == 'div' && node.attributes['align'] == 'right') {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: _inlineBlock(node.children ?? const []),
-      );
-    }
-    final heading = RegExp(r'^h[1-5]$').hasMatch(tag);
-    if (heading) {
-      final level = int.parse(tag.substring(1));
-      final size = [20.0, 18.0, 16.0, 15.0, 14.0][level - 1];
-      return Padding(
-        padding: const EdgeInsets.only(top: 5, bottom: 4),
-        child: DefaultTextStyle.merge(
-          style: TextStyle(fontSize: size, fontWeight: FontWeight.w700),
-          child: _inlineBlock(node.children ?? const []),
-        ),
-      );
-    }
-    return _paragraph(node.children ?? const []);
-  }
-
-  Widget _paragraph(List<md.Node> nodes) => Padding(
-    padding: const EdgeInsets.only(bottom: 7),
-    child: SelectableText.rich(TextSpan(
-      style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
-      children: nodes.map(_span).toList(),
-    )),
-  );
-
-  Widget _inlineBlock(List<md.Node> nodes) => SelectableText.rich(TextSpan(
-    style: const TextStyle(color: _color, height: 1.45, fontSize: 14),
-    children: nodes.map(_span).toList(),
-  ));
-
-  TextSpan _span(md.Node node) {
-    if (node is md.Text) return TextSpan(text: node.text);
-    if (node is! md.Element) return const TextSpan();
-    final tag = node.tag;
-    final children = (node.children ?? const <md.Node>[]).map(_span).toList();
-    TextStyle? style;
-    if (tag == 'strong' || tag == 'b') {
-      style = const TextStyle(fontWeight: FontWeight.w700);
-    } else if (tag == 'em' || tag == 'i') {
-      style = const TextStyle(fontStyle: FontStyle.italic);
-    } else if (tag == 'del' || tag == 'strike') {
-      style = const TextStyle(decoration: TextDecoration.lineThrough);
-    } else if (tag == 'code') {
-      style = const TextStyle(fontFamily: 'monospace', fontSize: 12,
-        color: Color(0xFFFFC98B), backgroundColor: Color(0xFF1D1F26));
-    } else if (tag == 'a') {
-      style = const TextStyle(color: _link, decoration: TextDecoration.underline);
-    }
-    if (tag == 'br') return const TextSpan(text: '\n');
-    return TextSpan(style: style, children: children);
-  }
+  Widget _avatarFallback() => Container(color: const Color(0xFF424550), alignment: Alignment.center, child: const Icon(Icons.person_rounded, color: Colors.white70, size: 22));
 }
