@@ -2892,10 +2892,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 Builder(
                   builder: (context) {
                     final episodeNumber = episode.number ?? (activeIndex + 1);
-                    final exponent = (episodeNumber - 1).clamp(0.0, 1000.0);
+                    final totalEpisodes = episodes.length;
+                    final progress = totalEpisodes <= 1
+                        ? 0.0
+                        : ((episodeNumber - 1) / (totalEpisodes - 1))
+                            .clamp(0.0, 1.0);
                     final viewers = _showPopularity == null
                         ? null
-                        : (_showPopularity! / math.pow(1.02, exponent)).round();
+                        : (_showPopularity! * math.pow(0.4, progress)).round();
                     final likes = viewers == null ? 0 : (viewers * 0.30).round();
                     final dislikes = viewers == null ? 0 : (viewers * 0.02).round();
                     String compact(int value) => value >= 100000
@@ -2916,10 +2920,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 Builder(
                   builder: (context) {
                     final episodeNumber = episode.number ?? (activeIndex + 1);
-                    final exponent = (episodeNumber - 1).clamp(0.0, 1000.0);
+                    final totalEpisodes = episodes.length;
+                    final progress = totalEpisodes <= 1
+                        ? 0.0
+                        : ((episodeNumber - 1) / (totalEpisodes - 1))
+                            .clamp(0.0, 1.0);
                     final viewers = _showPopularity == null
                         ? 0
-                        : (_showPopularity! / math.pow(1.02, exponent)).round();
+                        : (_showPopularity! * math.pow(0.4, progress)).round();
                     final likes = (viewers * 0.30).round() +
                         (_episodeVote == 1 ? 1 : 0);
                     final dislikes = (viewers * 0.02).round() +
