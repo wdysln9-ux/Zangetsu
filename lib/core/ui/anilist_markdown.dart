@@ -105,7 +105,7 @@ class AniListMarkdown extends StatelessWidget {
     final spoilerBlocks = <String, String>{};
     var spoilerIndex = 0;
     prepared = prepared.replaceAllMapped(
-      RegExp(r'~!([\\s\\S]*?)!~'),
+      RegExp(r'~!([\s\S]*?)!~'),
       (match) {
         final token = 'ANILIST_SPOILER_${spoilerIndex++}_TOKEN';
         spoilerBlocks[token] = '<span class="anilist-spoiler">${match[1] ?? ''}</span>';
