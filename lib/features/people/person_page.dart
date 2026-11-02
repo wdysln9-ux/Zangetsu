@@ -328,15 +328,34 @@ class _PersonPageState extends State<PersonPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      _displayName(p.name),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppText.title.copyWith(
-                        fontSize: 23,
-                        height: 1.12,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _displayName(p.name),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppText.title.copyWith(
+                              fontSize: 23,
+                              height: 1.12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        if (p.favourites != null) ...[
+                          const SizedBox(width: 8),
+                          Icon(Icons.favorite, color: AppColors.accent, size: 16),
+                          const SizedBox(width: 4),
+                          Text(
+                            p.favourites.toString(),
+                            style: AppText.caption.copyWith(
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     if (p.nativeName != null && p.nativeName!.isNotEmpty) ...[
                       const SizedBox(height: 6),
