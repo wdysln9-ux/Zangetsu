@@ -3213,7 +3213,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 malId: widget.malId,
                 episodeNumber: number,
               ),
-            ],
           ],
         ),
       ),
