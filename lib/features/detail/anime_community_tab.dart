@@ -269,7 +269,7 @@ class _EpisodeThreadsSectionState extends State<EpisodeThreadsSection> {
     if (mediaId == null) return const [];
     final number = widget.episodeNumber.trim();
     final rows = await api.fetchThreads(mediaId, search: 'Episode $number');
-    final pattern = RegExp(r'(^|[^a-z0-9])(?:episode|ep)\\s*' + RegExp.escape(number) + r'([^0-9]|$)', caseSensitive: false);
+    final pattern = RegExp(r'(^|[^a-z0-9])(?:episode|ep)\s*' + RegExp.escape(number) + r'([^0-9]|$)', caseSensitive: false);
     return rows.where((row) => pattern.hasMatch('${row['title'] ?? ''}')).toList();
   }
 
