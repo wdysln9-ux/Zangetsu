@@ -241,7 +241,7 @@ class _ThreadPageState extends State<_ThreadPage> {
   Widget build(BuildContext context) {
     final id = (widget.data['id'] as num?)?.toInt();
     return Scaffold(
-      appBar: AppBar(title: const Text('Post'), centerTitle: false),
+      appBar: AppBar(title: const Text('Utas'), centerTitle: false, backgroundColor: AppColors.bg, surfaceTintColor: Colors.transparent, elevation: 0),
       body: id == null ? const Center(child: Text('Utas tidak tersedia.')) :
         FutureBuilder<Map<String, dynamic>?>(
           future: threadFuture,
@@ -251,7 +251,7 @@ class _ThreadPageState extends State<_ThreadPage> {
             final avatar = user['avatar'] as Map? ?? {};
             return ListView(padding: EdgeInsets.zero, children: [
               Container(
-                color: AppColors.surface,
+                color: const Color(0xFF18191D),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: Row(children: [
                   const Icon(Icons.forum_outlined, size: 18),
@@ -260,7 +260,7 @@ class _ThreadPageState extends State<_ThreadPage> {
                 ]),
               ),
               Container(
-                color: AppColors.surface2,
+                color: const Color(0xFF202126),
                 padding: const EdgeInsets.fromLTRB(16, 15, 16, 14),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
@@ -277,7 +277,7 @@ class _ThreadPageState extends State<_ThreadPage> {
                   if ((post['body'] ?? '').toString().trim().isNotEmpty) ...[
                     const SizedBox(height: 13),
                     if (snapshot.connectionState == ConnectionState.waiting) const LinearProgressIndicator(),
-                    _TranslatedPost(text: '${post['body'] ?? ''}'),
+                    AniListMarkdown(data: '${post['body'] ?? ''}'),
                   ],
                   const SizedBox(height: 17),
                   Row(children: [
@@ -299,15 +299,15 @@ class _ThreadPageState extends State<_ThreadPage> {
                   ]),
                 ]),
               ),
-              const SizedBox(height: 8),
+              const Divider(height: 1, thickness: 1, color: Color(0xFF303238)),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
                 child: Row(children: [
-                  const Text('Komentar', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                  const Text('Komentar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
                   const SizedBox(width: 7),
                   Text('${post['replyCount'] ?? 0}', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                   const Spacer(),
-                  Text('TERBARU', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .8)),
+                  Text('TERBARU', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .6)),
                   const SizedBox(width: 4),
                   Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.textSecondary),
                 ]),
@@ -373,7 +373,7 @@ class _Comment extends StatelessWidget {
                 Text(_dateLabel(data['createdAt']), style: TextStyle(color: AppColors.textTertiary, fontSize: 10)),
               ]),
               const SizedBox(height: 7),
-              _TranslatedMarkdown(text: '${data['comment'] ?? ''}'),
+              AniListMarkdown(data: '${data['comment'] ?? ''}'),
               const SizedBox(height: 7),
               Row(children: [
                 _LoveButton(commentId: id, count: (data['likeCount'] as num?)?.toInt() ?? 0, initiallyLiked: data['isLiked'] == true),
