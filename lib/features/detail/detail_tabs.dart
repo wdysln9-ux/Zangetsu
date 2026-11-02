@@ -695,9 +695,13 @@ class _DetailsTab extends StatelessWidget {
     ];
   }
 
-  static String _ymd(DateTime d) =>
-      '${d.day.toString().padLeft(2, '0')}/'
-      '${d.month.toString().padLeft(2, '0')}/${d.year}';
+  static String _ymd(DateTime d) {
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
 
   static String _thousands(int n) {
     final s = '$n';
@@ -753,13 +757,15 @@ class _SpoilerTagsState extends State<_SpoilerTags> {
               ),
           ],
         ),
-        if (spoilers.isNotEmpty && !_showSpoilers)
+        if (spoilers.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 10),
             child: GestureDetector(
-              onTap: () => setState(() => _showSpoilers = true),
+              onTap: () => setState(() => _showSpoilers = !_showSpoilers),
               child: Text(
-                context.l10n.showSpoilerTags(spoilers.length),
+                _showSpoilers
+                    ? 'Sembunyikan tag spoiler'
+                    : context.l10n.showSpoilerTags(spoilers.length),
                 style: AppText.caption.copyWith(color: AppColors.accent),
               ),
             ),
