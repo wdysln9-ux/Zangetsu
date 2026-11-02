@@ -630,19 +630,21 @@ Future<String?> _translateMarkdownSafely(String source) async {
 }
 
 class _TranslatedPost extends StatefulWidget {
-  const _TranslatedPost({required this.text});
+  const _TranslatedPost({required this.text, this.showOriginalToggle = false});
   final String text;
+  final bool showOriginalToggle;
   @override
   State<_TranslatedPost> createState() => _TranslatedPostState();
 }
 class _TranslatedPostState extends State<_TranslatedPost> {
   String? translated;
+  bool showOriginal = false;
   @override
   void initState() { super.initState(); _go(); }
   @override
   void didUpdateWidget(covariant _TranslatedPost old) {
     super.didUpdateWidget(old);
-    if (old.text != widget.text) { translated = null; _go(); }
+    if (old.text != widget.text) { translated = null; showOriginal = false; _go(); }
   }
   Future<void> _go() async {
     final value = await _translateMarkdownSafely(widget.text);
@@ -650,7 +652,21 @@ class _TranslatedPostState extends State<_TranslatedPost> {
     setState(() => translated = value);
   }
   @override
-  Widget build(BuildContext context) => AniListMarkdown(data: translated ?? widget.text);
+  Widget build(BuildContext context) {
+    final content = showOriginal ? widget.text : (translated ?? widget.text);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      AniListMarkdown(data: content),
+      if (widget.showOriginalToggle && translated != null && translated != widget.text) ...[
+        const SizedBox(height: 8),
+        Align(alignment: Alignment.centerLeft, child: TextButton(
+          onPressed: () => setState(() => showOriginal = !showOriginal),
+          style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+          child: Text(showOriginal ? 'Lihat terjemahan' : 'Lihat asli',
+            style: TextStyle(color: AppColors.accent, fontSize: 12, fontWeight: FontWeight.w700)),
+        )),
+      ],
+    ]);
+  }
 }
 
 class _TranslatedMarkdown extends StatefulWidget {
