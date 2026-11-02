@@ -702,12 +702,15 @@ class AniListApi {
   }
 
   Future<List<Map<String, dynamic>>> fetchThreads(int mediaId, {int page = 1, String search = ''}) async {
-    final d = await _gql(
-      'query(\$id:Int,\$page:Int,\$search:String){ Page(page:\$page,perPage:50){ '
-      'threads(mediaCategoryId:\$id,search:\$search,sort:[REPLIED_AT_DESC]){ id title body viewCount likeCount isLiked replyCount '
-      'createdAt updatedAt user{id name avatar{large}} } } }',
-      {'id': mediaId, 'page': page, 'search': search},
-    );
+    final hasSearch = search.trim().isNotEmpty;
+    final searchDeclaration = hasSearch ? ',\$search:String' : '';
+    final searchArgument = hasSearch ? ',search:\$search' : '';
+    final query = 'query(\$id:Int,\$page:Int$searchDeclaration){ Page(page:\$page,perPage:50){ '
+        'threads(mediaCategoryId:\$id$searchArgument,sort:[REPLIED_AT_DESC]){ id title body viewCount likeCount isLiked replyCount '
+        'createdAt updatedAt user{id name avatar{large}} } } }';
+    final variables = <String, dynamic>{'id': mediaId, 'page': page};
+    if (hasSearch) variables['search'] = search;
+    final d = await _gql(query, variables);
     final rows = (d?['Page'] as Map?)?['threads'];
     if (rows is! List) return const [];
     return [for (final row in rows) if (row is Map) Map<String, dynamic>.from(row)];
