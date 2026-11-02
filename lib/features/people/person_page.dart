@@ -87,12 +87,14 @@ class _PersonPageState extends State<PersonPage> {
         toolbarHeight: kToolbarHeight,
         leadingWidth: 56,
         iconTheme: const IconThemeData(color: Colors.white, size: 24),
-        title: Text(
-          _displayName(widget.person.name),
-          style: AppText.title.copyWith(color: Colors.white),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+        title: widget.person.source == PersonSource.anilistCharacter
+            ? null
+            : Text(
+                _displayName(widget.person.name),
+                style: AppText.title.copyWith(color: Colors.white),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
       ),
       body: FutureBuilder<PersonProfile?>(
         future: _future,
@@ -246,7 +248,7 @@ class _PersonPageState extends State<PersonPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 286,
+          height: 342,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
@@ -286,7 +288,7 @@ class _PersonPageState extends State<PersonPage> {
               ),
               Positioned(
                 left: 16,
-                top: 20,
+                top: 76,
                 child: SizedBox(
                   width: 126,
                   height: 168,
@@ -321,7 +323,7 @@ class _PersonPageState extends State<PersonPage> {
               Positioned(
                 left: 156,
                 right: 16,
-                top: 92,
+                top: 148,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -409,8 +411,6 @@ class _PersonPageState extends State<PersonPage> {
       if (p.gender != null) ('Gender', _genderLabel(p.gender!)),
       if (p.birthday != null) ('Ulang tahun', p.birthday!),
       if (p.bloodType != null) ('Golongan darah', p.bloodType!),
-      if (p.favourites != null)
-        ('Favorit', p.favourites!.toString()),
       if (p.description != null)
         ..._manualCharacterFacts(p.description!),
     ];
@@ -419,7 +419,16 @@ class _PersonPageState extends State<PersonPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionLabel('Info'),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 14, 16, 6),
+            child: Text(
+              'Info',
+              style: AppText.overline.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
           const SizedBox(height: 4),
           LayoutBuilder(
             builder: (context, constraints) {
