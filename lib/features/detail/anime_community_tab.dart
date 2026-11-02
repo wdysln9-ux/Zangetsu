@@ -340,9 +340,6 @@ class _ThreadPageState extends State<_ThreadPage> {
                       const SizedBox(width: 7),
                       Text('${post['replyCount'] ?? 0}', style: const TextStyle(color: Color(0xFF92949A), fontSize: 12)),
                       const Spacer(),
-                      const Icon(Icons.sort, size: 16, color: Color(0xFFB0B2B8)),
-                      const SizedBox(width: 5),
-                      const Text('Terbaru', style: TextStyle(fontSize: 12, color: Color(0xFFB0B2B8), fontWeight: FontWeight.w700)),
                     ]),
                   ),
                   Padding(
@@ -706,7 +703,7 @@ class _User extends StatelessWidget {
   final String? avatar, date;
   @override
   Widget build(BuildContext context) => Row(children: [
-    CircleAvatar(radius: 16, backgroundImage: avatar == null || avatar!.isEmpty ? null : NetworkImage(avatar!), child: avatar == null || avatar!.isEmpty ? const Icon(Icons.person, size: 18) : null),
+    CircleAvatar(radius: 16, backgroundImage: avatar == null || avatar!.isEmpty ? null : _anilistAvatar(avatar!), child: avatar == null || avatar!.isEmpty ? const Icon(Icons.person, size: 18) : null),
     const SizedBox(width: 9),
     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
