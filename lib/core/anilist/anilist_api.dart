@@ -701,12 +701,12 @@ class AniListApi {
     return [for (final row in rows) if (row is Map) Map<String, dynamic>.from(row)];
   }
 
-  Future<List<Map<String, dynamic>>> fetchThreads(int mediaId, {int page = 1}) async {
+  Future<List<Map<String, dynamic>>> fetchThreads(int mediaId, {int page = 1, String search = ''}) async {
     final d = await _gql(
-      'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:20){ '
-      'threads(mediaCategoryId:\$id,sort:[REPLIED_AT_DESC]){ id title body viewCount likeCount replyCount '
+      'query(\$id:Int,\$page:Int,\$search:String){ Page(page:\$page,perPage:50){ '
+      'threads(mediaCategoryId:\$id,search:\$search,sort:[REPLIED_AT_DESC]){ id title body viewCount likeCount isLiked replyCount '
       'createdAt updatedAt user{id name avatar{large}} } } }',
-      {'id': mediaId, 'page': page},
+      {'id': mediaId, 'page': page, 'search': search},
     );
     final rows = (d?['Page'] as Map?)?['threads'];
     if (rows is! List) return const [];
@@ -727,19 +727,29 @@ class AniListApi {
   /// separately from Thread; requesting them as a Thread field silently
   /// invalidates the whole GraphQL selection.
   Future<List<Map<String, dynamic>>> fetchThreadComments(
-    int threadId, {int page = 1, String sort = 'ID'}
+    int threadId, {int page = 1, String sort = 'ID_DESC'}
   ) async {
-    const allowedSorts = {'ID', 'ID_DESC', 'LIKE_COUNT', 'LIKE_COUNT_DESC', 'CREATED_AT', 'CREATED_AT_DESC'};
-    final safeSort = allowedSorts.contains(sort) ? sort : 'ID_DESC';
+    // AniList's ThreadCommentSort only supports ID and ID_DESC. childComments
+    // is a JSON scalar, so it must be requested without nested selections.
+    final safeSort = sort == 'ID' ? 'ID' : 'ID_DESC';
     final d = await _gql(
       'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:50){ '
       'threadComments(threadId:\$id,sort:[$safeSort]){ id comment likeCount isLiked createdAt '
-      'user{id name avatar{large}} childComments{id comment likeCount isLiked createdAt user{id name avatar{large}} childComments{id comment likeCount isLiked createdAt user{id name avatar{large}}}} } } }',
+      'user{id name avatar{large}} childComments } } }',
       {'id': threadId, 'page': page},
     );
     final rows = (d?['Page'] as Map?)?['threadComments'];
     if (rows is! List) return const [];
     return [for (final row in rows) if (row is Map) Map<String, dynamic>.from(row)];
+  }
+
+  Future<bool> toggleThreadLike(int threadId) async {
+    final d = await _gql(
+      'mutation(\$id:Int){ ToggleLike(id:\$id,type:THREAD){ id } }',
+      {'id': threadId},
+      auth: true,
+    );
+    return d?['ToggleLike'] != null;
   }
 
   /// Toggle a love on an AniList thread comment. Requires a linked AniList account.
