@@ -2904,8 +2904,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         : (_showPopularity! * math.pow(0.4, progress)).round();
                     final ratingShare = ((episode.rating ?? 5.0).clamp(0.0, 10.0)) / 10.0;
                     final totalVotes = viewers == null ? 0 : (viewers * 0.30).round();
-                    final likes = (totalVotes * ratingShare).round();
-                    final dislikes = totalVotes - likes;
                     String compact(int value) => value >= 100000
                         ? '${(value / 1000).round()}k'
                         : value >= 1000
