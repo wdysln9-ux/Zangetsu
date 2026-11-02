@@ -716,7 +716,7 @@ class AniListApi {
   Future<Map<String, dynamic>?> fetchThread(int threadId) async {
     final d = await _gql(
       'query(\$id:Int){ Thread(id:\$id){ id title body viewCount likeCount replyCount '
-      'createdAt updatedAt user{id name avatar{large}} } }',
+      'createdAt updatedAt isLiked user{id name avatar{large}} } }',
       {'id': threadId},
     );
     final thread = d?['Thread'];
