@@ -229,99 +229,171 @@ class _ThreadPage extends StatefulWidget {
   @override
   State<_ThreadPage> createState() => _ThreadPageState();
 }
+
 class _ThreadPageState extends State<_ThreadPage> {
   late Future<Map<String, dynamic>?> threadFuture;
+  final TextEditingController replyController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     final id = (widget.data['id'] as num?)?.toInt();
     threadFuture = id == null ? Future.value(null) : sl<AniListService>().api.fetchThread(id);
   }
+
+  @override
+  void dispose() {
+    replyController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final id = (widget.data['id'] as num?)?.toInt();
     return Scaffold(
-      appBar: AppBar(title: const Text('Utas'), centerTitle: false, backgroundColor: AppColors.bg, surfaceTintColor: Colors.transparent, elevation: 0),
-      body: id == null ? const Center(child: Text('Utas tidak tersedia.')) :
-        FutureBuilder<Map<String, dynamic>?>(
+      backgroundColor: const Color(0xFF0E0F11),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF18191B),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.maybePop(context)),
+        titleSpacing: 0,
+        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Diskusi anime', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+          Text(widget.anime, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, color: Color(0xFF9B9DA3))),
+        ]),
+        actions: [
+          IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.tune)),
+          IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),
+          const SizedBox(width: 4),
+        ],
+      ),
+      body: id == null
+        ? const Center(child: Text('Utas tidak tersedia.'))
+        : FutureBuilder<Map<String, dynamic>?>(
           future: threadFuture,
           builder: (context, snapshot) {
             final post = snapshot.data ?? widget.data;
             final user = post['user'] as Map? ?? {};
             final avatar = user['avatar'] as Map? ?? {};
-            return ListView(padding: EdgeInsets.zero, children: [
-              Container(
-                color: const Color(0xFF18191D),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(children: [
-                  const Icon(Icons.forum_outlined, size: 18),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text('Anime discussion  ·  ${widget.anime}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700))),
-                ]),
-              ),
-              Container(
-                color: const Color(0xFF202126),
-                padding: const EdgeInsets.fromLTRB(16, 15, 16, 14),
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    CircleAvatar(radius: 17, backgroundImage: avatar['large'] == null ? null : NetworkImage('${avatar['large']}'), child: avatar['large'] == null ? const Icon(Icons.person, size: 18) : null),
-                    const SizedBox(width: 9),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('u/${user['name'] ?? 'AniList user'}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
-                      Text('Diposting ${_dateLabel(post['createdAt'])}', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                    ])),
-                    const Icon(Icons.more_horiz, color: AppColors.textSecondary),
-                  ]),
-                  const SizedBox(height: 15),
-                  Text('${post['title'] ?? ''}', style: const TextStyle(fontSize: 21, height: 1.25, fontWeight: FontWeight.w800)),
-                  if ((post['body'] ?? '').toString().trim().isNotEmpty) ...[
-                    const SizedBox(height: 13),
-                    if (snapshot.connectionState == ConnectionState.waiting) const LinearProgressIndicator(),
-                    AniListMarkdown(data: '${post['body'] ?? ''}'),
-                  ],
-                  const SizedBox(height: 17),
-                  Row(children: [
-                    Container(
-                      decoration: BoxDecoration(color: AppColors.bg, borderRadius: BorderRadius.circular(24), border: Border.all(color: AppColors.hairline)),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                      child: Row(children: [
-                        Icon(Icons.arrow_upward_rounded, size: 18, color: AppColors.accent),
-                        const SizedBox(width: 5),
-                        Text('${post['likeCount'] ?? 0}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
-                        const SizedBox(width: 4),
-                        Icon(Icons.arrow_downward_rounded, size: 18, color: AppColors.textSecondary),
+            return Column(children: [
+              Expanded(child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  Container(
+                    color: const Color(0xFF18191B),
+                    padding: const EdgeInsets.fromLTRB(16, 13, 16, 16),
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        CircleAvatar(radius: 17,
+                          backgroundImage: avatar['large'] == null ? null : NetworkImage('${avatar['large']}'),
+                          child: avatar['large'] == null ? const Icon(Icons.person, size: 18) : null),
+                        const SizedBox(width: 9),
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('${user['name'] ?? 'AniList user'}', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800)),
+                          Text('Diposting ${_dateLabel(post['createdAt'])}',
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF96989F))),
+                        ])),
+                        const Icon(Icons.public, size: 16, color: Color(0xFF96989F)),
                       ]),
-                    ),
-                    const SizedBox(width: 10),
-                    _postPill(Icons.mode_comment_outlined, '${post['replyCount'] ?? 0} komentar'),
-                    const Spacer(),
-                    _postPill(Icons.visibility_outlined, '${post['viewCount'] ?? 0}'),
-                  ]),
-                ]),
-              ),
-              const Divider(height: 1, thickness: 1, color: Color(0xFF303238)),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+                      const SizedBox(height: 15),
+                      Text('${post['title'] ?? ''}',
+                        style: const TextStyle(fontSize: 20, height: 1.28, fontWeight: FontWeight.w800, color: Color(0xFFF1F1F2))),
+                      if ((post['body'] ?? '').toString().trim().isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        if (snapshot.connectionState == ConnectionState.waiting)
+                          const LinearProgressIndicator(minHeight: 2),
+                        AniListMarkdown(data: '${post['body'] ?? ''}'),
+                      ],
+                      const SizedBox(height: 17),
+                      Row(children: [
+                        _redditVotePill(count: '${post['likeCount'] ?? 0}'),
+                        const SizedBox(width: 9),
+                        _redditAction(Icons.mode_comment_outlined, '${post['replyCount'] ?? 0}'),
+                        const Spacer(),
+                        IconButton(onPressed: () {}, visualDensity: VisualDensity.compact,
+                          icon: const Icon(Icons.share_outlined, size: 19, color: Color(0xFFB7B9BF))),
+                      ]),
+                    ]),
+                  ),
+                  const Divider(height: 8, thickness: 8, color: Color(0xFF090A0B)),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 13, 16, 7),
+                    child: Row(children: [
+                      const Text('Komentar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                      const SizedBox(width: 7),
+                      Text('${post['replyCount'] ?? 0}', style: const TextStyle(color: Color(0xFF92949A), fontSize: 12)),
+                      const Spacer(),
+                      const Icon(Icons.sort, size: 16, color: Color(0xFFB0B2B8)),
+                      const SizedBox(width: 5),
+                      const Text('Terbaru', style: TextStyle(fontSize: 12, color: Color(0xFFB0B2B8), fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 2, 12, 18),
+                    child: _ThreadComments(threadId: id,
+                      expectedCount: (post['replyCount'] as num?)?.toInt() ?? 0),
+                  ),
+                ],
+              )),
+              SafeArea(top: false, child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFF18191B),
+                  border: Border(top: BorderSide(color: Color(0xFF303136))),
+                ),
+                padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
                 child: Row(children: [
-                  const Text('Komentar', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                  const SizedBox(width: 7),
-                  Text('${post['replyCount'] ?? 0}', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-                  const Spacer(),
-                  Text('TERBARU', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .6)),
-                  const SizedBox(width: 4),
-                  Icon(Icons.keyboard_arrow_down, size: 16, color: AppColors.textSecondary),
+                  const CircleAvatar(radius: 16, backgroundColor: Color(0xFF34363B),
+                    child: Icon(Icons.person, size: 18, color: Color(0xFFB7B9BF))),
+                  const SizedBox(width: 9),
+                  Expanded(child: TextField(
+                    controller: replyController,
+                    minLines: 1,
+                    maxLines: 4,
+                    style: const TextStyle(fontSize: 13, color: Colors.white),
+                    decoration: InputDecoration(
+                      hintText: 'Ikut bergabung dalam percakapan',
+                      hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF92949A)),
+                      filled: true,
+                      fillColor: const Color(0xFF292B30),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(22), borderSide: BorderSide.none),
+                    ),
+                  )),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.image_outlined, color: Color(0xFFB7B9BF), size: 22),
                 ]),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                child: _ThreadComments(threadId: id, expectedCount: (post['replyCount'] as num?)?.toInt() ?? 0),
-              ),
+              )),
             ]);
           },
         ),
     );
   }
 }
+
+Widget _redditVotePill({required String count}) => Container(
+  decoration: BoxDecoration(color: const Color(0xFF292B30), borderRadius: BorderRadius.circular(22)),
+  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+  child: Row(mainAxisSize: MainAxisSize.min, children: [
+    const Icon(Icons.arrow_upward_rounded, size: 18, color: Color(0xFFFF6A3D)),
+    const SizedBox(width: 5),
+    Text(count, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
+    const SizedBox(width: 7),
+    const Icon(Icons.arrow_downward_rounded, size: 18, color: Color(0xFFB4B6BC)),
+  ]),
+);
+
+Widget _redditAction(IconData icon, String label) => Container(
+  decoration: BoxDecoration(color: const Color(0xFF292B30), borderRadius: BorderRadius.circular(22)),
+  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+  child: Row(mainAxisSize: MainAxisSize.min, children: [
+    Icon(icon, size: 16, color: const Color(0xFFB8BAC0)),
+    const SizedBox(width: 6),
+    Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFFE0E1E4))),
+  ]),
+);
 
 Widget _postPill(IconData icon, String label) => Row(mainAxisSize: MainAxisSize.min, children: [
   Icon(icon, size: 15, color: AppColors.textSecondary),
