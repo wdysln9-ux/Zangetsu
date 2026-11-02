@@ -269,10 +269,34 @@ class _EpisodeThreadsSectionState extends State<EpisodeThreadsSection> {
       title: widget.showTitle,
     );
     if (mediaId == null) return const [];
-    final number = widget.episodeNumber.trim();
-    final rows = await api.fetchThreads(mediaId, search: 'Episode $number');
-    final pattern = RegExp(r'(^|[^a-z0-9])(?:episode|ep)\s*' + RegExp.escape(number) + r'([^0-9]|$)', caseSensitive: false);
-    return rows.where((row) => pattern.hasMatch('${row['title'] ?? ''}')).toList();
+    final parsedNumber = int.tryParse(
+      widget.episodeNumber.trim().replaceFirst(RegExp(r'\\.0$'), ''),
+    );
+    if (parsedNumber == null) return const [];
+    final padded = parsedNumber.toString().padLeft(2, '0');
+    final queries = <String>{
+      'Episode $parsedNumber',
+      'Episode $padded',
+      'Ep $parsedNumber',
+      'Ep $padded',
+    };
+    final found = <int, Map<String, dynamic>>{};
+    for (final query in queries) {
+      final rows = await api.fetchThreads(mediaId, search: query);
+      for (final row in rows) {
+        final id = (row['id'] as num?)?.toInt();
+        if (id != null) found[id] = row;
+      }
+    }
+    final pattern = RegExp(
+      r'(^|[^a-z0-9])(?:episode|ep)\\s*0*' +
+          parsedNumber.toString() +
+          r'([^0-9]|$)',
+      caseSensitive: false,
+    );
+    return found.values
+        .where((row) => pattern.hasMatch('${row['title'] ?? ''}'))
+        .toList();
   }
 
   @override
@@ -554,8 +578,23 @@ class _Comment extends StatelessWidget {
       padding: EdgeInsets.only(left: depth == 0 ? 0 : 17, bottom: 2),
       child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         if (depth > 0)
-          Container(width: 2, margin: const EdgeInsets.only(right: 11, top: 2, bottom: 0),
-            decoration: BoxDecoration(color: const Color(0xFF555860), borderRadius: BorderRadius.circular(3))),
+          Padding(
+            padding: const EdgeInsets.only(right: 8, top: 17),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 2,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF555860),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+                Container(width: 8, height: 2, color: const Color(0xFF555860)),
+              ],
+            ),
+          ),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             CircleAvatar(radius: 15, backgroundImage: _anilistAvatar(avatar['large']),
