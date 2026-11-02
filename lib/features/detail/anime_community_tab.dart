@@ -273,7 +273,7 @@ class _ThreadPageState extends State<_ThreadPage> {
                     const Icon(Icons.more_horiz, color: AppColors.textSecondary),
                   ]),
                   const SizedBox(height: 15),
-                  _TranslatedText(text: '${post['title'] ?? ''}', style: const TextStyle(fontSize: 21, height: 1.25, fontWeight: FontWeight.w800)),
+                  Text('${post['title'] ?? ''}', style: const TextStyle(fontSize: 21, height: 1.25, fontWeight: FontWeight.w800)),
                   if ((post['body'] ?? '').toString().trim().isNotEmpty) ...[
                     const SizedBox(height: 13),
                     if (snapshot.connectionState == ConnectionState.waiting) const LinearProgressIndicator(),
