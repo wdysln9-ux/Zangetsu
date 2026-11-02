@@ -732,18 +732,28 @@ class AniListApi {
   Future<List<Map<String, dynamic>>> fetchThreadComments(
     int threadId, {int page = 1, String sort = 'ID_DESC'}
   ) async {
-    // AniList's ThreadCommentSort only supports ID and ID_DESC. childComments
-    // is a JSON scalar, so it must be requested without nested selections.
+    // Follow every page so large threads are not silently cut off after the
+    // first batch returned by AniList.
     final safeSort = sort == 'ID' ? 'ID' : 'ID_DESC';
-    final d = await _gql(
-      'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:50){ '
-      'threadComments(threadId:\$id,sort:[$safeSort]){ id comment likeCount isLiked createdAt '
-      'user{id name avatar{large}} childComments } } }',
-      {'id': threadId, 'page': page},
-    );
-    final rows = (d?['Page'] as Map?)?['threadComments'];
-    if (rows is! List) return const [];
-    return [for (final row in rows) if (row is Map) Map<String, dynamic>.from(row)];
+    final all = <Map<String, dynamic>>[];
+    var currentPage = page;
+    for (var attempt = 0; attempt < 20; attempt++, currentPage++) {
+      final d = await _gql(
+        'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:50){ '
+        'pageInfo{hasNextPage} '
+        'threadComments(threadId:\$id,sort:[$safeSort]){ id comment likeCount isLiked createdAt '
+        'user{id name avatar{large}} childComments } } }',
+        {'id': threadId, 'page': currentPage},
+      );
+      final pageData = d?['Page'] as Map?;
+      final rows = pageData?['threadComments'];
+      if (rows is! List) break;
+      all.addAll([for (final row in rows) if (row is Map) Map<String, dynamic>.from(row)]);
+      if (pageData?['pageInfo'] is! Map ||
+          (pageData!['pageInfo'] as Map)['hasNextPage'] != true ||
+          rows.isEmpty) break;
+    }
+    return all;
   }
 
   Future<bool> toggleThreadLike(int threadId) async {
