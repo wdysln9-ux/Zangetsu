@@ -5,6 +5,7 @@ import '../../core/di/injector.dart';
 import '../../core/metadata/synopsis_translator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/anilist_markdown.dart';
+import '../../core/profiles/viewer_profile.dart';
 
 class AnimeCommunityTab extends StatefulWidget {
   const AnimeCommunityTab({super.key, required this.title, required this.anilistId, required this.malId, required this.reviews});
@@ -170,7 +171,7 @@ class _ReviewPage extends StatelessWidget {
     final score = (data['score'] as num?)?.toInt();
     return Scaffold(
       appBar: AppBar(title: const Text('Ulasan')),
-      body: ListView(
+      body: SelectionArea(child: ListView(
         padding: EdgeInsets.zero,
         children: [
           if (banner != null && banner.isNotEmpty)
@@ -231,7 +232,7 @@ class _ReviewPage extends StatelessWidget {
             ),
           ),
         ],
-      ),
+      )),
     );
   }
 }
@@ -247,6 +248,7 @@ class _ThreadPage extends StatefulWidget {
 class _ThreadPageState extends State<_ThreadPage> {
   late Future<Map<String, dynamic>?> threadFuture;
   final TextEditingController replyController = TextEditingController();
+  bool rawMode = false;
 
   @override
   void initState() {
@@ -280,7 +282,15 @@ class _ThreadPageState extends State<_ThreadPage> {
         actions: [
           IconButton(onPressed: () {}, icon: const Icon(Icons.search)),
           IconButton(onPressed: () {}, icon: const Icon(Icons.tune)),
-          IconButton(onPressed: () {}, icon: const Icon(Icons.more_vert)),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            color: const Color(0xFF24262B),
+            onSelected: (value) => setState(() => rawMode = value == 'raw'),
+            itemBuilder: (_) => [
+              PopupMenuItem(value: rawMode ? 'markdown' : 'raw',
+                child: Text(rawMode ? 'Tampilkan Markdown' : 'Lihat teks raw')),
+            ],
+          ),
           const SizedBox(width: 4),
         ],
       ),
@@ -293,7 +303,7 @@ class _ThreadPageState extends State<_ThreadPage> {
             final user = post['user'] as Map? ?? {};
             final avatar = user['avatar'] as Map? ?? {};
             return Column(children: [
-              Expanded(child: ListView(
+              Expanded(child: SelectionArea(child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
                   Container(
@@ -319,11 +329,11 @@ class _ThreadPageState extends State<_ThreadPage> {
                         const SizedBox(height: 12),
                         if (snapshot.connectionState == ConnectionState.waiting)
                           const LinearProgressIndicator(minHeight: 2),
-                        _TranslatedPost(text: '${post['body'] ?? ''}', showOriginalToggle: true),
+                        rawMode ? SelectableText('${post['body'] ?? ''}', style: const TextStyle(color: Color(0xFFE5E5E7), height: 1.5)) : _TranslatedPost(text: '${post['body'] ?? ''}'),
                       ],
                       const SizedBox(height: 17),
                       Row(children: [
-                        _redditVotePill(count: '${post['likeCount'] ?? 0}'),
+                        _LoveButton(commentId: id, isThread: true, count: (post['likeCount'] as num?)?.toInt() ?? 0, initiallyLiked: post['isLiked'] == true),
                         const SizedBox(width: 9),
                         _redditAction(Icons.mode_comment_outlined, '${post['replyCount'] ?? 0}'),
                         const Spacer(),
@@ -345,10 +355,10 @@ class _ThreadPageState extends State<_ThreadPage> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 2, 12, 18),
                     child: _ThreadComments(threadId: id,
-                      expectedCount: (post['replyCount'] as num?)?.toInt() ?? 0),
+                      expectedCount: (post['replyCount'] as num?)?.toInt() ?? 0, rawMode: rawMode),
                   ),
                 ],
-              )),
+              ))),
               SafeArea(top: false, child: Container(
                 decoration: const BoxDecoration(
                   color: Color(0xFF18191B),
@@ -356,8 +366,7 @@ class _ThreadPageState extends State<_ThreadPage> {
                 ),
                 padding: const EdgeInsets.fromLTRB(12, 9, 12, 9),
                 child: Row(children: [
-                  const CircleAvatar(radius: 16, backgroundColor: Color(0xFF34363B),
-                    child: Icon(Icons.person, size: 18, color: Color(0xFFB7B9BF))),
+                  _CurrentProfileAvatar(),
                   const SizedBox(width: 9),
                   Expanded(child: TextField(
                     controller: replyController,
@@ -384,18 +393,6 @@ class _ThreadPageState extends State<_ThreadPage> {
   }
 }
 
-Widget _redditVotePill({required String count}) => Container(
-  decoration: BoxDecoration(color: const Color(0xFF292B30), borderRadius: BorderRadius.circular(22)),
-  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
-  child: Row(mainAxisSize: MainAxisSize.min, children: [
-    const Icon(Icons.arrow_upward_rounded, size: 18, color: Color(0xFFFF6A3D)),
-    const SizedBox(width: 5),
-    Text(count, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800)),
-    const SizedBox(width: 7),
-    const Icon(Icons.arrow_downward_rounded, size: 18, color: Color(0xFFB4B6BC)),
-  ]),
-);
-
 Widget _redditAction(IconData icon, String label) => Container(
   decoration: BoxDecoration(color: const Color(0xFF292B30), borderRadius: BorderRadius.circular(22)),
   padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
@@ -413,8 +410,9 @@ Widget _postPill(IconData icon, String label) => Row(mainAxisSize: MainAxisSize.
 ]);
 
 class _ThreadComments extends StatefulWidget {
-  const _ThreadComments({required this.threadId, required this.expectedCount});
+  const _ThreadComments({required this.threadId, required this.expectedCount, this.rawMode = false});
   final int threadId, expectedCount;
+  final bool rawMode;
   @override
   State<_ThreadComments> createState() => _ThreadCommentsState();
 }
@@ -457,7 +455,7 @@ class _ThreadCommentsState extends State<_ThreadComments> {
             items: const [
               DropdownMenuItem(value: 'ID_DESC', child: Text('Terbaru')),
               DropdownMenuItem(value: 'ID', child: Text('Terlama')),
-              DropdownMenuItem(value: 'LIKE_COUNT_DESC', child: Text('Paling disukai')),
+
             ],
             onChanged: (value) { if (value != null) _changeSort(value); },
           )),
@@ -473,7 +471,7 @@ class _ThreadCommentsState extends State<_ThreadComments> {
           if (rows.isEmpty) {
             return Text(s.hasError ? 'Komentar gagal dimuat.' : widget.expectedCount > 0 ? 'AniList belum mengirim komentar untuk utas ini.' : 'Belum ada komentar.');
           }
-          return Column(children: [for (final comment in rows) _Comment(data: comment)]);
+          return Column(children: [for (final comment in rows) _Comment(data: comment, rawMode: widget.rawMode)]);
         },
       ),
     ],
@@ -481,9 +479,10 @@ class _ThreadCommentsState extends State<_ThreadComments> {
 }
 
 class _Comment extends StatelessWidget {
-  const _Comment({required this.data, this.depth = 0});
+  const _Comment({required this.data, this.depth = 0, this.rawMode = false});
   final Map<String, dynamic> data;
   final int depth;
+  final bool rawMode;
 
   @override
   Widget build(BuildContext context) {
@@ -510,7 +509,9 @@ class _Comment extends StatelessWidget {
                 Text(_dateLabel(data['createdAt']), style: const TextStyle(color: Color(0xFF85878E), fontSize: 10)),
               ]),
               const SizedBox(height: 7),
-              AniListMarkdown(data: '${data['comment'] ?? ''}'),
+              rawMode
+                ? SelectableText('${data['comment'] ?? ''}', style: const TextStyle(color: Color(0xFFE5E5E7), height: 1.5))
+                : _TranslatedMarkdown(text: '${data['comment'] ?? ''}'),
               const SizedBox(height: 7),
               Row(children: [
                 _LoveButton(commentId: id, count: (data['likeCount'] as num?)?.toInt() ?? 0, initiallyLiked: data['isLiked'] == true),
@@ -527,7 +528,7 @@ class _Comment extends StatelessWidget {
               padding: const EdgeInsets.only(left: 14),
               child: Column(children: [
                 for (final child in children)
-                  if (child is Map) _Comment(data: Map<String, dynamic>.from(child), depth: depth + 1),
+                  if (child is Map) _Comment(data: Map<String, dynamic>.from(child), depth: depth + 1, rawMode: rawMode),
               ]),
             ),
         ])),
@@ -536,8 +537,25 @@ class _Comment extends StatelessWidget {
   }
 }
 
+class _CurrentProfileAvatar extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final profile = sl<ViewerProfileStore>().activeProfile;
+    final url = profile.photoUrl;
+    return CircleAvatar(
+      radius: 16,
+      backgroundColor: const Color(0xFF34363B),
+      backgroundImage: url == null || url.isEmpty ? null : _anilistAvatar(url),
+      child: url == null || url.isEmpty
+        ? const Icon(Icons.person, size: 18, color: Color(0xFFB7B9BF))
+        : null,
+    );
+  }
+}
+
 class _LoveButton extends StatefulWidget {
-  const _LoveButton({required this.commentId, required this.count, required this.initiallyLiked});
+  const _LoveButton({required this.commentId, required this.count, required this.initiallyLiked, this.isThread = false});
+  final bool isThread;
   final int? commentId;
   final int count;
   final bool initiallyLiked;
@@ -561,7 +579,9 @@ class _LoveButtonState extends State<_LoveButton> {
   Widget build(BuildContext context) => InkWell(
     onTap: busy || widget.commentId == null ? null : () async {
       setState(() { busy = true; liked = !liked; count += liked ? 1 : -1; });
-      final ok = await sl<AniListService>().api.toggleThreadCommentLike(widget.commentId!);
+      final ok = widget.isThread
+          ? await sl<AniListService>().api.toggleThreadLike(widget.commentId!)
+          : await sl<AniListService>().api.toggleThreadCommentLike(widget.commentId!);
       if (!mounted) return;
       setState(() {
         busy = false;
