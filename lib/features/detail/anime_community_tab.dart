@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/anilist/anilist_service.dart';
 import '../../core/di/injector.dart';
 import '../../core/metadata/synopsis_translator.dart';
@@ -46,6 +47,17 @@ class _AnimeCommunityTabState extends State<AnimeCommunityTab> {
       );
     },
   );
+}
+
+Map<String, String> _anilistImageHeaders(String url) => {
+  'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36',
+  'Referer': 'https://anilist.co/',
+};
+
+ImageProvider? _anilistAvatar(Object? raw) {
+  final url = raw?.toString() ?? '';
+  if (url.isEmpty) return null;
+  return CachedNetworkImageProvider(url, headers: _anilistImageHeaders(url));
 }
 
 int _likedCount(Map data) {
@@ -105,7 +117,7 @@ class _ThreadCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 13, 14, 5),
             child: Row(children: [
-              CircleAvatar(radius: 13, backgroundImage: avatar['large'] == null ? null : NetworkImage('${avatar['large']}'), child: avatar['large'] == null ? const Icon(Icons.forum_outlined, size: 14) : null),
+              CircleAvatar(radius: 13, backgroundImage: _anilistAvatar(avatar['large']), child: avatar['large'] == null ? const Icon(Icons.forum_outlined, size: 14) : null),
               const SizedBox(width: 8),
               Expanded(child: Text('Anime discussion  ·  u/${user['name'] ?? 'AniList user'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600))),
               Text(_dateLabel(data['createdAt']), style: TextStyle(fontSize: 11, color: AppColors.textTertiary)),
@@ -114,7 +126,7 @@ class _ThreadCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 7, 14, 12),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              _TranslatedText(text: '${data['title'] ?? 'Utas tanpa judul'}', style: const TextStyle(fontSize: 17, height: 1.3, fontWeight: FontWeight.w800)),
+              Text('${data['title'] ?? 'Utas tanpa judul'}', style: const TextStyle(fontSize: 17, height: 1.3, fontWeight: FontWeight.w800)),
               if ((data['body'] ?? '').toString().trim().isNotEmpty) ...[
                 const SizedBox(height: 7),
                 Text(data['body'].toString().replaceAll(RegExp(r'[#>*_]'), '').replaceAll(RegExp(r'\\s+'), ' '), maxLines: 3, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textSecondary, height: 1.35)),
@@ -168,10 +180,12 @@ class _ReviewPage extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    banner,
+                  CachedNetworkImage(
+                    imageUrl: banner,
+                    httpHeaders: _anilistImageHeaders(banner),
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    placeholder: (_, __) => const SizedBox.shrink(),
+                    errorWidget: (_, __, ___) => const SizedBox.shrink(),
                   ),
                   DecoratedBox(
                     decoration: BoxDecoration(
@@ -288,7 +302,7 @@ class _ThreadPageState extends State<_ThreadPage> {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Row(children: [
                         CircleAvatar(radius: 17,
-                          backgroundImage: avatar['large'] == null ? null : NetworkImage('${avatar['large']}'),
+                          backgroundImage: _anilistAvatar(avatar['large']),
                           child: avatar['large'] == null ? const Icon(Icons.person, size: 18) : null),
                         const SizedBox(width: 9),
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -305,7 +319,7 @@ class _ThreadPageState extends State<_ThreadPage> {
                         const SizedBox(height: 12),
                         if (snapshot.connectionState == ConnectionState.waiting)
                           const LinearProgressIndicator(minHeight: 2),
-                        AniListMarkdown(data: '${post['body'] ?? ''}'),
+                        _TranslatedPost(text: '${post['body'] ?? ''}', showOriginalToggle: true),
                       ],
                       const SizedBox(height: 17),
                       Row(children: [
@@ -401,22 +415,71 @@ Widget _postPill(IconData icon, String label) => Row(mainAxisSize: MainAxisSize.
   Text(label, style: TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
 ]);
 
-class _ThreadComments extends StatelessWidget {
+class _ThreadComments extends StatefulWidget {
   const _ThreadComments({required this.threadId, required this.expectedCount});
   final int threadId, expectedCount;
   @override
-  Widget build(BuildContext context) => FutureBuilder<List<Map<String, dynamic>>>(
-    future: sl<AniListService>().api.fetchThreadComments(threadId),
-    builder: (context, s) {
-      if (s.connectionState != ConnectionState.done) return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
-      final comments = s.data ?? const [];
-      if (comments.isEmpty) {
-        return Text(s.hasError ? 'Komentar gagal dimuat.' : expectedCount > 0 ? 'AniList belum mengirim komentar untuk utas ini.' : 'Belum ada komentar.');
-      }
-      return Column(children: [
-        for (final comment in comments) _Comment(data: comment),
-      ]);
-    },
+  State<_ThreadComments> createState() => _ThreadCommentsState();
+}
+
+class _ThreadCommentsState extends State<_ThreadComments> {
+  String sort = 'ID_DESC';
+  late Future<List<Map<String, dynamic>>> commentsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    commentsFuture = _load();
+  }
+
+  Future<List<Map<String, dynamic>>> _load() =>
+      sl<AniListService>().api.fetchThreadComments(widget.threadId, sort: sort);
+
+  void _changeSort(String value) {
+    if (value == sort) return;
+    setState(() {
+      sort = value;
+      commentsFuture = _load();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(4, 7, 4, 9),
+        child: Row(children: [
+          const Text('Urutkan:', style: TextStyle(fontSize: 12, color: Color(0xFF96989F))),
+          const SizedBox(width: 8),
+          DropdownButtonHideUnderline(child: DropdownButton<String>(
+            value: sort,
+            isDense: true,
+            dropdownColor: const Color(0xFF24262B),
+            style: const TextStyle(fontSize: 12, color: Color(0xFFE5E5E7), fontWeight: FontWeight.w700),
+            items: const [
+              DropdownMenuItem(value: 'ID_DESC', child: Text('Terbaru')),
+              DropdownMenuItem(value: 'ID', child: Text('Terlama')),
+              DropdownMenuItem(value: 'LIKE_COUNT_DESC', child: Text('Paling disukai')),
+            ],
+            onChanged: (value) { if (value != null) _changeSort(value); },
+          )),
+        ]),
+      ),
+      FutureBuilder<List<Map<String, dynamic>>>(
+        future: commentsFuture,
+        builder: (context, s) {
+          if (s.connectionState != ConnectionState.done) {
+            return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
+          }
+          final rows = s.data ?? const [];
+          if (rows.isEmpty) {
+            return Text(s.hasError ? 'Komentar gagal dimuat.' : widget.expectedCount > 0 ? 'AniList belum mengirim komentar untuk utas ini.' : 'Belum ada komentar.');
+          }
+          return Column(children: [for (final comment in rows) _Comment(data: comment)]);
+        },
+      ),
+    ],
   );
 }
 
@@ -424,6 +487,7 @@ class _Comment extends StatelessWidget {
   const _Comment({required this.data, this.depth = 0});
   final Map<String, dynamic> data;
   final int depth;
+
   @override
   Widget build(BuildContext context) {
     final user = data['user'] as Map? ?? {};
@@ -432,17 +496,21 @@ class _Comment extends StatelessWidget {
     final id = (data['id'] as num?)?.toInt();
     return Padding(
       padding: EdgeInsets.only(left: depth == 0 ? 0 : 17, bottom: 2),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (depth > 0) Container(width: 2, constraints: const BoxConstraints(minHeight: 65), margin: const EdgeInsets.only(right: 11), color: AppColors.textSecondary.withValues(alpha: .28)),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (depth > 0)
+          Container(width: 2, margin: const EdgeInsets.only(right: 11, top: 2, bottom: 0),
+            decoration: BoxDecoration(color: const Color(0xFF555860), borderRadius: BorderRadius.circular(3))),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            CircleAvatar(radius: 15, backgroundImage: avatar['large'] == null ? null : NetworkImage('${avatar['large']}'), child: avatar['large'] == null ? const Icon(Icons.person, size: 16) : null),
+            CircleAvatar(radius: 15, backgroundImage: _anilistAvatar(avatar['large']),
+              child: avatar['large'] == null ? const Icon(Icons.person, size: 16) : null),
             const SizedBox(width: 9),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                Flexible(child: Text('u/${user['name'] ?? 'AniList user'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
+                Flexible(child: Text('${user['name'] ?? 'AniList user'}', maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
                 const SizedBox(width: 7),
-                Text(_dateLabel(data['createdAt']), style: TextStyle(color: AppColors.textTertiary, fontSize: 10)),
+                Text(_dateLabel(data['createdAt']), style: const TextStyle(color: Color(0xFF85878E), fontSize: 10)),
               ]),
               const SizedBox(height: 7),
               AniListMarkdown(data: '${data['comment'] ?? ''}'),
@@ -450,16 +518,21 @@ class _Comment extends StatelessWidget {
               Row(children: [
                 _LoveButton(commentId: id, count: (data['likeCount'] as num?)?.toInt() ?? 0, initiallyLiked: data['isLiked'] == true),
                 const SizedBox(width: 16),
-                Text('Balas', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w700)),
+                const Text('Balas', style: TextStyle(color: Color(0xFFB5B7BD), fontSize: 11, fontWeight: FontWeight.w700)),
                 const SizedBox(width: 14),
-                const Icon(Icons.more_horiz, size: 17, color: AppColors.textSecondary),
+                const Icon(Icons.more_horiz, size: 17, color: Color(0xFF96989F)),
               ]),
               const SizedBox(height: 13),
             ])),
           ]),
           if (children.isNotEmpty)
-            for (final child in children)
-              if (child is Map) _Comment(data: Map<String, dynamic>.from(child), depth: depth + 1),
+            Padding(
+              padding: const EdgeInsets.only(left: 14),
+              child: Column(children: [
+                for (final child in children)
+                  if (child is Map) _Comment(data: Map<String, dynamic>.from(child), depth: depth + 1),
+              ]),
+            ),
         ])),
       ]),
     );
