@@ -237,6 +237,64 @@ class _ReviewPage extends StatelessWidget {
   }
 }
 
+
+/// Threads whose AniList title explicitly references the active episode.
+/// Hidden when AniList has no matching discussion.
+class EpisodeThreadsSection extends StatefulWidget {
+  const EpisodeThreadsSection({super.key, required this.showTitle, required this.episodeNumber, this.malId});
+  final String showTitle;
+  final String episodeNumber;
+  final int? malId;
+
+  @override
+  State<EpisodeThreadsSection> createState() => _EpisodeThreadsSectionState();
+}
+
+class _EpisodeThreadsSectionState extends State<EpisodeThreadsSection> {
+  late Future<List<Map<String, dynamic>>> future;
+
+  @override
+  void initState() {
+    super.initState();
+    future = _load();
+  }
+
+  Future<List<Map<String, dynamic>>> _load() async {
+    final api = sl<AniListService>().api;
+    final mediaId = await api.communityMediaId(
+      anilistId: null,
+      malId: widget.malId,
+      title: widget.showTitle,
+    );
+    if (mediaId == null) return const [];
+    final number = widget.episodeNumber.trim();
+    final rows = await api.fetchThreads(mediaId, search: 'Episode $number');
+    final pattern = RegExp(r'(^|[^a-z0-9])(?:episode|ep)\\s*' + RegExp.escape(number) + r'([^0-9]|$)', caseSensitive: false);
+    return rows.where((row) => pattern.hasMatch('${row['title'] ?? ''}')).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<List<Map<String, dynamic>>>(
+    future: future,
+    builder: (context, snapshot) {
+      final rows = snapshot.data ?? const [];
+      if (rows.isEmpty) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.only(top: 22),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Diskusi episode', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 10),
+          for (final row in rows)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 9),
+              child: _ThreadCard(data: row, anime: widget.showTitle),
+            ),
+        ]),
+      );
+    },
+  );
+}
+
 class _ThreadPage extends StatefulWidget {
   const _ThreadPage({required this.data, required this.anime});
   final Map<String, dynamic> data;
