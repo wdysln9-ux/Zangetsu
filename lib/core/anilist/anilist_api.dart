@@ -727,12 +727,14 @@ class AniListApi {
   /// separately from Thread; requesting them as a Thread field silently
   /// invalidates the whole GraphQL selection.
   Future<List<Map<String, dynamic>>> fetchThreadComments(
-    int threadId, {int page = 1}
+    int threadId, {int page = 1, String sort = 'ID'}
   ) async {
+    const allowedSorts = {'ID', 'ID_DESC', 'LIKE_COUNT', 'LIKE_COUNT_DESC', 'CREATED_AT', 'CREATED_AT_DESC'};
+    final safeSort = allowedSorts.contains(sort) ? sort : 'ID_DESC';
     final d = await _gql(
       'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:50){ '
-      'threadComments(threadId:\$id,sort:[ID]){ id comment likeCount isLiked createdAt '
-      'user{id name avatar{large}} childComments } } }',
+      'threadComments(threadId:\$id,sort:[$safeSort]){ id comment likeCount isLiked createdAt '
+      'user{id name avatar{large}} childComments{id comment likeCount isLiked createdAt user{id name avatar{large}} childComments{id comment likeCount isLiked createdAt user{id name avatar{large}}}} } } }',
       {'id': threadId, 'page': page},
     );
     final rows = (d?['Page'] as Map?)?['threadComments'];
