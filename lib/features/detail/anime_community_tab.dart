@@ -122,7 +122,7 @@ class _ThreadCard extends StatelessWidget {
             child: Row(children: [
               CircleAvatar(radius: 13, backgroundImage: _anilistAvatar(avatar['large']), child: avatar['large'] == null ? const Icon(Icons.forum_outlined, size: 14) : null),
               const SizedBox(width: 8),
-              Expanded(child: Text('Anime discussion  ·  u/${user['name'] ?? 'AniList user'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600))),
+              Expanded(child: Text('Anime discussion  ·  ${user['name'] ?? 'AniList user'}', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600))),
               Text(_dateLabel(data['createdAt']), style: TextStyle(fontSize: 11, color: AppColors.textTertiary)),
             ]),
           ),
@@ -646,7 +646,7 @@ class _LoveButtonState extends State<_LoveButton> {
       if (!mounted) return;
       setState(() {
         busy = false;
-        if (!ok) { liked = !liked; count += liked ? -1 : 1; }
+        if (!ok) { liked = widget.initiallyLiked; count = widget.count; }
       });
     },
     borderRadius: BorderRadius.circular(16),
