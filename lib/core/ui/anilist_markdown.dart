@@ -140,21 +140,7 @@ class AniListMarkdown extends StatelessWidget {
       html = html.replaceAll(entry.key, entry.value);
     }
 
-    // When multiple AniList image embeds share one paragraph, size them as
-    // inline thumbnails so the HTML renderer can lay them out side by side.
-    html = html.replaceAllMapped(
-      RegExp(r'<p>((?:\\s*<img\\b[^>]*\\/?>(?:\\s*))+)</p>', caseSensitive: false),
-      (match) {
-        final images = RegExp(r'<img\\b[^>]*\\/?>(?:\\s*)', caseSensitive: false)
-            .allMatches(match[1] ?? '').length;
-        if (images < 2) return match[0]!;
-        return '<div class="anilist-image-row">${(match[1] ?? '').replaceAllMapped(RegExp(r'<img\\b([^>]*)>', caseSensitive: false), (image) {
-          final attrs = image[1] ?? '';
-          if (RegExp(r'\\bwidth\\s*=', caseSensitive: false).hasMatch(attrs) || RegExp(r'width\\s*:', caseSensitive: false).hasMatch(attrs)) return image[0]!;
-          return '<img$attrs width="48%">';
-        })}</div>';
-      },
-    );
+
 
     // Render Markdown inside each center block before inserting its HTML.
     for (var i = 0; i < centerBlocks.length; i++) {
@@ -191,6 +177,22 @@ class AniListMarkdown extends StatelessWidget {
     for (final entry in embeds.entries) {
       html = html.replaceAll(entry.key, entry.value);
     }
+
+    // When multiple AniList image embeds share one paragraph, size them as
+    // inline thumbnails so the HTML renderer can lay them out side by side.
+    html = html.replaceAllMapped(
+      RegExp(r'<p>((?:\s*<img\b[^>]*\/?>(?:\s*))+)</p>', caseSensitive: false),
+      (match) {
+        final images = RegExp(r'<img\b[^>]*\/?>(?:\s*)', caseSensitive: false)
+            .allMatches(match[1] ?? '').length;
+        if (images < 2) return match[0]!;
+        return '<div class="anilist-image-row">${(match[1] ?? '').replaceAllMapped(RegExp(r'<img\b([^>]*)>', caseSensitive: false), (image) {
+          final attrs = image[1] ?? '';
+          if (RegExp(r'\bwidth\s*=', caseSensitive: false).hasMatch(attrs) || RegExp(r'width\s*:', caseSensitive: false).hasMatch(attrs)) return image[0]!;
+          return '<img$attrs width="48%">';
+        })}</div>';
+      },
+    );
     return html;
   }
   @override
