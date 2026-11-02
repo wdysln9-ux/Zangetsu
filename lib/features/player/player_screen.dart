@@ -3208,7 +3208,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   ],
                 ),
               ),
-            ),
+            ],
             if (number != null && number.isNotEmpty)
               EpisodeThreadsSection(
                 showTitle: widget.showTitle ?? '',
