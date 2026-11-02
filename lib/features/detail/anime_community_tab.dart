@@ -7,6 +7,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/ui/anilist_markdown.dart';
 import '../../core/profiles/viewer_profile.dart';
 import '../../core/profiles/viewer_profile_avatar.dart';
+import '../auth/auth_cubit.dart';
 
 class AnimeCommunityTab extends StatefulWidget {
   const AnimeCommunityTab({super.key, required this.title, required this.anilistId, required this.malId, required this.reviews});
@@ -600,7 +601,10 @@ class _CurrentProfileAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final profile = sl<ViewerProfileStore>().activeProfile;
-    final url = profile.photoUrl;
+    final accountPhoto = sl.isRegistered<AuthCubit>()
+        ? sl<AuthCubit>().state.avatarUrl
+        : null;
+    final url = profilePhotoForFace(profile: profile, accountPhotoUrl: accountPhoto);
     return ProfileAvatarFace(
       profile: profile,
       photoUrl: url,
