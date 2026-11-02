@@ -327,7 +327,7 @@ class AniListMarkdown extends StatelessWidget {
               return GestureDetector(
                 onTap: () => showDialog<void>(
                   context: context,
-                  barrierColor: Colors.black.withValues(alpha: 0.1),
+                  barrierColor: Colors.black.withValues(alpha: 0.5),
                   builder: (_) => _MarkdownImageViewer(url: src),
                 ),
                 child: CachedNetworkImage(
@@ -397,6 +397,10 @@ class _MarkdownInlineImage extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: CachedNetworkImage(
           imageUrl: url,
+          httpHeaders: {
+            'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36',
+            'Referer': 'https://anilist.co/',
+          },
           width: displayWidth,
           fit: BoxFit.contain,
           fadeInDuration: Duration.zero,
