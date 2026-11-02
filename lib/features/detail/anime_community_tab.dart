@@ -270,7 +270,7 @@ class _EpisodeThreadsSectionState extends State<EpisodeThreadsSection> {
     );
     if (mediaId == null) return const [];
     final parsedNumber = int.tryParse(
-      widget.episodeNumber.trim().replaceFirst(RegExp(r'\.0, ''),
+      widget.episodeNumber.trim().replaceFirst(RegExp(r'\.0$'), ''),
     );
     if (parsedNumber == null) return const [];
     final padded = parsedNumber.toString().padLeft(2, '0');
@@ -857,56 +857,6 @@ class _Stats extends StatelessWidget {
     const SizedBox(width: 4),
     Text(text, style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
   ]);
-}
-), ''),
-    );
-    if (parsedNumber == null) return const [];
-    final padded = parsedNumber.toString().padLeft(2, '0');
-    final queries = <String>{
-      'Episode $parsedNumber',
-      'Episode $padded',
-      'Ep $parsedNumber',
-      'Ep $padded',
-    };
-    final found = <int, Map<String, dynamic>>{};
-    for (final query in queries) {
-      final rows = await api.fetchThreads(mediaId, search: query);
-      for (final row in rows) {
-        final id = (row['id'] as num?)?.toInt();
-        if (id != null) found[id] = row;
-      }
-    }
-    final pattern = RegExp(
-      r'(^|[^a-z0-9])(?:episode|ep)\\s*0*' +
-          parsedNumber.toString() +
-          r'([^0-9]|$)',
-      caseSensitive: false,
-    );
-    return found.values
-        .where((row) => pattern.hasMatch('${row['title'] ?? ''}'))
-        .toList();
-  }
-
-  @override
-  Widget build(BuildContext context) => FutureBuilder<List<Map<String, dynamic>>>(
-    future: future,
-    builder: (context, snapshot) {
-      final rows = snapshot.data ?? const [];
-      if (rows.isEmpty) return const SizedBox.shrink();
-      return Padding(
-        padding: const EdgeInsets.only(top: 22),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Diskusi episode', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 10),
-          for (final row in rows)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 9),
-              child: _ThreadCard(data: row, anime: widget.showTitle),
-            ),
-        ]),
-      );
-    },
-  );
 }
 
 class _ThreadPage extends StatefulWidget {
