@@ -100,6 +100,19 @@ class AniListMarkdown extends StatelessWidget {
       },
     );
 
+    // Protect AniList's ~!spoiler!~ syntax before Markdown parses tildes as
+    // strikethrough. Restore it as an interactive span after HTML generation.
+    final spoilerBlocks = <String, String>{};
+    var spoilerIndex = 0;
+    prepared = prepared.replaceAllMapped(
+      RegExp(r'~!([\\s\\S]*?)!~'),
+      (match) {
+        final token = 'ANILIST_SPOILER_${spoilerIndex++}_TOKEN';
+        spoilerBlocks[token] = '<span class="anilist-spoiler">${match[1] ?? ''}</span>';
+        return token;
+      },
+    );
+
     // AniList treats single newlines as visible line breaks.
     final withBreaks = prepared.replaceAllMapped(
       RegExp(r'(?<!\n)\n(?!\n)'),
@@ -121,6 +134,26 @@ class AniListMarkdown extends StatelessWidget {
       RegExp(r"""<div\s+rel=["']spoiler["']>(.*?)</div>""", dotAll: true),
       (match) =>
           '<span class="anilist-spoiler">${match[1] ?? ''}</span>',
+    );
+
+    for (final entry in spoilerBlocks.entries) {
+      html = html.replaceAll(entry.key, entry.value);
+    }
+
+    // When multiple AniList image embeds share one paragraph, size them as
+    // inline thumbnails so the HTML renderer can lay them out side by side.
+    html = html.replaceAllMapped(
+      RegExp(r'<p>((?:\\s*<img\\b[^>]*\\/?>(?:\\s*))+)</p>', caseSensitive: false),
+      (match) {
+        final images = RegExp(r'<img\\b[^>]*\\/?>(?:\\s*)', caseSensitive: false)
+            .allMatches(match[1] ?? '').length;
+        if (images < 2) return match[0]!;
+        return '<div class="anilist-image-row">${(match[1] ?? '').replaceAllMapped(RegExp(r'<img\\b([^>]*)>', caseSensitive: false), (image) {
+          final attrs = image[1] ?? '';
+          if (RegExp(r'\\bwidth\\s*=', caseSensitive: false).hasMatch(attrs) || RegExp(r'width\\s*:', caseSensitive: false).hasMatch(attrs)) return image[0]!;
+          return '<img$attrs width="48%">';
+        })}</div>';
+      },
     );
 
     // Render Markdown inside each center block before inserting its HTML.
@@ -237,6 +270,22 @@ class AniListMarkdown extends StatelessWidget {
         return null;
       },
       customWidgetBuilder: (element) {
+        if (element.localName == 'div' && element.classes.contains('anilist-image-row')) {
+          final images = element.children.where((child) => child.localName == 'img').toList();
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.start,
+            children: [
+              for (final image in images)
+                if ((image.attributes['src'] ?? '').isNotEmpty)
+                  _MarkdownInlineImage(
+                    url: image.attributes['src']!,
+                    width: double.tryParse(image.attributes['width'] ?? ''),
+                  ),
+            ],
+          );
+        }
         if (element.localName == 'iframe') {
           final src = Uri.tryParse(element.attributes['src'] ?? '');
           final isYoutube = src != null &&
@@ -322,6 +371,37 @@ class AniListMarkdown extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _MarkdownInlineImage extends StatelessWidget {
+  const _MarkdownInlineImage({required this.url, this.width});
+  final String url;
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    final available = MediaQuery.sizeOf(context).width - 48;
+    final displayWidth = (width == null ? available * .48 : available * (width! > 1 ? width! / available : width!))
+        .clamp(80.0, available * .5);
+    return GestureDetector(
+      onTap: () => showDialog<void>(
+        context: context,
+        barrierColor: Colors.black.withValues(alpha: .1),
+        builder: (_) => _MarkdownImageViewer(url: url),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: CachedNetworkImage(
+          imageUrl: url,
+          width: displayWidth,
+          fit: BoxFit.contain,
+          fadeInDuration: Duration.zero,
+          placeholder: (_, __) => SizedBox(width: displayWidth, height: displayWidth * .56),
+          errorWidget: (_, __, ___) => SizedBox(width: displayWidth, height: displayWidth * .56, child: const Icon(Icons.broken_image_outlined)),
+        ),
+      ),
     );
   }
 }
