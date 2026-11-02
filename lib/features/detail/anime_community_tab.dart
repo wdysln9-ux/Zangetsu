@@ -6,6 +6,7 @@ import '../../core/metadata/synopsis_translator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/ui/anilist_markdown.dart';
 import '../../core/profiles/viewer_profile.dart';
+import '../../core/profiles/viewer_profile_avatar.dart';
 
 class AnimeCommunityTab extends StatefulWidget {
   const AnimeCommunityTab({super.key, required this.title, required this.anilistId, required this.malId, required this.reviews});
@@ -600,13 +601,11 @@ class _CurrentProfileAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final profile = sl<ViewerProfileStore>().activeProfile;
     final url = profile.photoUrl;
-    return CircleAvatar(
-      radius: 16,
-      backgroundColor: const Color(0xFF34363B),
-      backgroundImage: url == null || url.isEmpty ? null : _anilistAvatar(url),
-      child: url == null || url.isEmpty
-        ? const Icon(Icons.person, size: 18, color: Color(0xFFB7B9BF))
-        : null,
+    return ProfileAvatarFace(
+      profile: profile,
+      photoUrl: url,
+      iconSize: 18,
+      photoDiameter: 32,
     );
   }
 }
