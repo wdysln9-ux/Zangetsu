@@ -424,10 +424,18 @@ class _PersonPageState extends State<PersonPage> {
       (p.description != null &&
           _manualCharacterFacts(p.description!).isNotEmpty);
 
+  String _cleanCharacterAge(String value) {
+    var age = value.trim();
+    while (age.endsWith('-')) {
+      age = age.substring(0, age.length - 1).trimRight();
+    }
+    return age;
+  }
+
   Widget _characterFacts(PersonProfile p) {
     final facts = <(String, String)>[
       if (p.age != null && p.age!.trim().isNotEmpty)
-        ('Usia', p.age!.trim().replaceFirst(RegExp(r'-+
+        ('Usia', _cleanCharacterAge(p.age!)),
       if (p.gender != null) ('Gender', _genderLabel(p.gender!)),
       if (p.birthday != null) ('Ulang tahun', p.birthday!),
       if (p.bloodType != null) ('Golongan darah', p.bloodType!),
