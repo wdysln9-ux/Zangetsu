@@ -341,6 +341,27 @@ class CategoryStore {
     return true;
   }
 
+  Future<void> updateDescription(String id, String description) async {
+    final profileId = _profileId;
+    final cats = _allFor(profileId);
+    if (!cats.any((c) => c.id == id)) return;
+    final updated = [
+      for (final c in cats)
+        if (c.id == id)
+          ListCategory(id: c.id, name: c.name, position: c.position, kind: c.kind, parentId: c.parentId, description: description)
+        else
+          c,
+    ];
+    await _writeAll(updated, profileId);
+    final c = updated.firstWhere((x) => x.id == id);
+    _push((r, uid) => r.upsertCategory({
+      'id': c.id, 'user_key': uid,
+      if (profileId != kDefaultProfileId) 'profile_id': profileId,
+      'name': c.name, 'position': c.position,
+      'parent_id': c.parentId, 'description': c.description,
+    }));
+  }
+
   /// Removes the category and every assignment to it. Titles are untouched —
   /// deleting a category loses the label, never anything from the list.
   Future<void> delete(String id) async {
