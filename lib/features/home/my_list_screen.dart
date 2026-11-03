@@ -1042,6 +1042,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
     required void Function(MediaItem) onTap,
     required void Function(MyListEntry) onMore,
     bool shrinkWrap = false,
+    bool characterSizing = false,
   }) {
     final cellW = _cellW(context);
     return GridView.builder(
@@ -1055,8 +1056,9 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
       ),
       cacheExtent: 800,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: posterGridColumns(context),
-        childAspectRatio: posterGridAspect(context),
+        // Match the 3-column, 0.5 aspect-ratio grid on character/seiyuu pages.
+        crossAxisCount: characterSizing ? 3 : posterGridColumns(context),
+        childAspectRatio: characterSizing ? 0.5 : posterGridAspect(context),
         crossAxisSpacing: 12,
         mainAxisSpacing: 16,
       ),
@@ -1181,6 +1183,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                 context,
                 modeEntries,
                 shrinkWrap: true,
+                characterSizing: true,
                 onTap: (item) => _openItem(context, item),
                 onMore: (entry) => showListStatusSheet(context, item: entry.item),
               ),
