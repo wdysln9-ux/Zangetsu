@@ -148,6 +148,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
   /// answers for one kind already.
   ContentMode _kind = sl<ContentModeCubit>().state;
   bool _sortDesc = ListSortPrefs.descending;
+  bool _reorderFoldersMode = false;
   VoidCallback? _shuffleAction;
 
   ListSort _sortFor({required bool isMyList}) {
@@ -466,6 +467,23 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
             );
           },
         ),
+        if (isMyList && _categoryFilter == null)
+          MenuItemButton(
+            onPressed: () => setState(
+              () => _reorderFoldersMode = !_reorderFoldersMode,
+            ),
+            style: _libraryMenuItemStyle(selected: _reorderFoldersMode),
+            leadingIcon: Icon(
+              Icons.drag_indicator_rounded,
+              size: 18,
+              color: _reorderFoldersMode
+                  ? AppColors.accent
+                  : AppColors.textSecondary,
+            ),
+            child: Text(
+              _reorderFoldersMode ? 'Selesai mengurutkan' : 'Urutkan folder',
+            ),
+          ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Divider(color: AppColors.hairline, height: 1),
@@ -1142,14 +1160,15 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                           child: _folderCard(context, folders[i], modeEntries,
                             dotColor: _folderDotColors[i % _folderDotColors.length]),
                         ),
-                        ReorderableDragStartListener(
-                          index: i,
-                          child: const Padding(
-                            padding: EdgeInsets.only(left: 8, right: 2),
-                            child: Icon(Icons.drag_indicator_rounded,
-                              color: AppColors.textTertiary, size: 21),
+                        if (_reorderFoldersMode)
+                          ReorderableDragStartListener(
+                            index: i,
+                            child: const Padding(
+                              padding: EdgeInsets.only(left: 8, right: 2),
+                              child: Icon(Icons.drag_indicator_rounded,
+                                color: AppColors.textTertiary, size: 21),
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),
