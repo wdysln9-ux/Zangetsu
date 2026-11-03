@@ -6,11 +6,14 @@ alter table sync_api.profile_list_categories
   add column if not exists parent_id uuid,
   add column if not exists description text not null default '';
 
+create unique index if not exists list_categories_user_id_unique
+  on sync_api.list_categories(user_key, id);
+
 do $$
 begin
   if not exists (select 1 from pg_constraint where conname = 'list_categories_parent_fk') then
     alter table sync_api.list_categories add constraint list_categories_parent_fk
-      foreign key (parent_id) references sync_api.list_categories(id) on delete cascade;
+      foreign key (user_key, parent_id) references sync_api.list_categories(user_key, id) on delete cascade;
   end if;
   if not exists (select 1 from pg_constraint where conname = 'profile_list_categories_parent_fk') then
     alter table sync_api.profile_list_categories add constraint profile_list_categories_parent_fk
