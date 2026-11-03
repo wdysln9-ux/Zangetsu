@@ -383,7 +383,8 @@ class CategoryStore {
         continue;
       }
       final ids = _idsFor(key);
-      if (ids.removeAll(removed).isEmpty) continue;
+      if (!ids.any(removed.contains)) continue;
+      ids.removeAll(removed);
       if (ids.isEmpty) {
         await _box.delete(key);
       } else {
