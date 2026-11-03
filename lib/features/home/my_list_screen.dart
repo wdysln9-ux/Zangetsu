@@ -679,7 +679,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
           content: SizedBox(width: 480, child: TextField(
             controller: controller, autofocus: true, minLines: 5, maxLines: 10,
             style: AppText.body.copyWith(color: AppColors.textPrimary),
-            decoration: const InputDecoration(hintText: 'Tulis deskripsi... **tebal**, *miring*, [tautan](https://contoh.com)'),
+            decoration: const InputDecoration(hintText: 'Tulis deskripsi Markdown...\n# Judul\n![Deskripsi gambar](https://contoh.com/gambar.jpg)'),
           )),
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: Text(context.l10n.cancel)),
@@ -1076,6 +1076,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
             .where((e) => _kind.matchesProvider(e.item.type))
             .toList();
         final folders = (_cats?.all() ?? const <ListCategory>[])
+            .where((c) => c.parentId == null)
             .where(_categoryFitsKind(modeEntries))
             .toList()
           ..sort((a, b) => a.position.compareTo(b.position));
@@ -1118,14 +1119,53 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                   padding: const EdgeInsets.only(bottom: 6),
                   child: _statusFolderCard(context, status, modeEntries),
                 ),
-              for (var i = 0; i < folders.length; i++)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: _folderCard(context, folders[i], modeEntries,
-                      dotColor: _folderDotColors[i % _folderDotColors.length]),
+              if (folders.isNotEmpty)
+                ReorderableListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  buildDefaultDragHandles: false,
+                  itemCount: folders.length,
+                  onReorder: (oldIndex, newIndex) async {
+                    if (newIndex > oldIndex) newIndex--;
+                    final reordered = [...folders];
+                    final moved = reordered.removeAt(oldIndex);
+                    reordered.insert(newIndex, moved);
+                    await _cats?.reorder(reordered.map((c) => c.id).toList());
+                    if (mounted) setState(() {});
+                  },
+                  itemBuilder: (context, i) => Padding(
+                    key: ValueKey(folders[i].id),
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _folderCard(context, folders[i], modeEntries,
+                            dotColor: _folderDotColors[i % _folderDotColors.length]),
+                        ),
+                        ReorderableDragStartListener(
+                          index: i,
+                          child: const Padding(
+                            padding: EdgeInsets.only(left: 8, right: 2),
+                            child: Icon(Icons.drag_indicator_rounded,
+                              color: AppColors.textTertiary, size: 21),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              const Padding(padding: EdgeInsets.only(top: 14, bottom: 8), child: Text('Semua anime tersimpan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600))),
-              _folderGrid(context, modeEntries, shrinkWrap: true, onTap: (item) => _openItem(context, item), onMore: (entry) => showListStatusSheet(context, item: entry.item)),
+              const Padding(
+                padding: EdgeInsets.only(top: 14, bottom: 8),
+                child: Text('Update Terbaru',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+              ),
+              _folderGrid(
+                context,
+                modeEntries,
+                shrinkWrap: true,
+                onTap: (item) => _openItem(context, item),
+                onMore: (entry) => showListStatusSheet(context, item: entry.item),
+              ),
               if (visibleStatuses.isEmpty && folders.isEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 36),
