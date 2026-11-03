@@ -915,7 +915,8 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
             BlocProvider<MyListCubit>.value(value: myListCubit),
             BlocProvider<TrackerListCubit>.value(value: trackerListCubit),
           ],
-          child: Scaffold(
+          child: StatefulBuilder(
+            builder: (pageContext, refreshFolderPage) => Scaffold(
             backgroundColor: AppColors.bg,
             appBar: AppBar(
               backgroundColor: AppColors.bg,
@@ -924,7 +925,14 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                   maxLines: 1, overflow: TextOverflow.ellipsis),
               actions: [
                 if (category != null)
-                  IconButton(icon: const Icon(Icons.create_new_folder_outlined), tooltip: 'Folder baru', onPressed: () => _createCategory(context, parentId: category.id)),
+                  IconButton(
+                    icon: const Icon(Icons.create_new_folder_outlined),
+                    tooltip: 'Folder baru',
+                    onPressed: () async {
+                      await _createCategory(pageContext, parentId: category.id);
+                      if (pageContext.mounted) refreshFolderPage(() {});
+                    },
+                  ),
                 if (category != null)
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert_rounded),
@@ -1001,6 +1009,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                 );
               },
             ),
+          ),
           ),
         ),
       ),
