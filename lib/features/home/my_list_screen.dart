@@ -638,6 +638,11 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
               ),
             ),
             ListTile(
+              leading: const Icon(Icons.description_outlined, color: AppColors.textSecondary),
+              title: const Text('Edit deskripsi'),
+              onTap: () => Navigator.pop(ctx, 'description'),
+            ),
+            ListTile(
               leading: const Icon(
                 Icons.edit_outlined,
                 color: AppColors.textSecondary,
@@ -663,6 +668,30 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
       ),
     );
     if (action == null || !mounted) return;
+
+    if (action == 'description') {
+      final controller = TextEditingController(text: c.description);
+      final value = await showDialog<String>(
+        context: this.context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: const Text('Deskripsi folder (Markdown)'),
+          content: SizedBox(width: 480, child: TextField(
+            controller: controller, autofocus: true, minLines: 5, maxLines: 10,
+            style: AppText.body.copyWith(color: AppColors.textPrimary),
+            decoration: const InputDecoration(hintText: 'Tulis deskripsi... **tebal**, *miring*, [tautan](https://contoh.com)'),
+          )),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(context.l10n.cancel)),
+            FilledButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('Simpan')),
+          ],
+        ),
+      );
+      if (value == null || !mounted) return;
+      await sl<CategoryStore>().updateDescription(c.id, value);
+      if (mounted) setState(() {});
+      return;
+    }
 
     if (action == 'delete') {
       await sl<CategoryStore>().delete(c.id);
