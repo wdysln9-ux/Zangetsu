@@ -1249,6 +1249,11 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
     required bool menu,
     ListCategory? category,
   }) {
+    final childFolderCount = category == null
+        ? 0
+        : (_cats?.all() ?? const <ListCategory>[])
+              .where((child) => child.parentId == category.id)
+              .length;
     // Three overlapping portrait covers, matching the compact library reference.
     final availableCovers = members.take(3).map((e) => e.item.cover)
         .whereType<String>().where((url) => url.isNotEmpty).toList();
@@ -1355,7 +1360,9 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 1),
                     Text(
-                      '${members.length} anime',
+                      childFolderCount > 0
+                          ? '${members.length} anime & $childFolderCount folder'
+                          : '${members.length} anime',
                       style: AppText.caption.copyWith(
                         color: AppColors.textSecondary,
                         fontSize: 11,
