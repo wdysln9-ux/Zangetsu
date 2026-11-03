@@ -63,7 +63,7 @@ class ListCategory {
       name: name,
       position: (raw['position'] as num?)?.toInt() ?? 0,
       kind: kind is String && kind.isNotEmpty ? kind : null,
-      parentId: raw['parentId'] is String ? raw['parentId'] as String : null,
+      parentId: (raw['parentId'] ?? raw['parent_id']) is String ? (raw['parentId'] ?? raw['parent_id']) as String : null,
       description: raw['description'] is String ? raw['description'] as String : '',
     );
   }
@@ -366,16 +366,24 @@ class CategoryStore {
   /// deleting a category loses the label, never anything from the list.
   Future<void> delete(String id) async {
     final profileId = _profileId;
-    await _writeAll(
-      _allFor(profileId).where((c) => c.id != id).toList(),
-      profileId,
-    );
+    final allCats = _allFor(profileId);
+    final removed = <String>{id};
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (final c in allCats) {
+        if (c.parentId != null && removed.contains(c.parentId) && removed.add(c.id)) {
+          changed = true;
+        }
+      }
+    }
+    await _writeAll(allCats.where((c) => !removed.contains(c.id)).toList(), profileId);
     for (final key in _box.keys.toList()) {
       if (!profileOwnsKey(key, profileId) || key == _categoriesKey(profileId)) {
         continue;
       }
       final ids = _idsFor(key);
-      if (!ids.remove(id)) continue;
+      if (ids.removeAll(removed).isEmpty) continue;
       if (ids.isEmpty) {
         await _box.delete(key);
       } else {
@@ -405,7 +413,7 @@ class CategoryStore {
     // Anything not named keeps its relative order at the end, so a stale list
     // can never silently drop a category.
     for (final c in byId.values) {
-      out.add(ListCategory(id: c.id, name: c.name, position: i++));
+      out.add(ListCategory(id: c.id, name: c.name, position: i++, kind: c.kind, parentId: c.parentId, description: c.description));
     }
     await _writeAll(out, profileId);
     for (final c in out) {
