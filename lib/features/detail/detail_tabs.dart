@@ -164,7 +164,7 @@ class _CastTab extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              m.name,
+              _castDisplayName(m),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
@@ -206,6 +206,15 @@ class _AvatarFallback extends StatelessWidget {
       size: 30,
     ),
   );
+}
+
+String _castDisplayName(CastMember member) {
+  final name = member.name.trim();
+  if (member.person?.source != PersonSource.anilistCharacter) return member.name;
+  final parts = name.split(RegExp(r'\s+'));
+  if (parts.length < 2) return name;
+  return [parts.last, ...parts.sublist(1, parts.length - 1), parts.first]
+      .join(' ');
 }
 
 String _indonesianCharacterRole(String value) {
