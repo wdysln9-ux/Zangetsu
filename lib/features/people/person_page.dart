@@ -288,7 +288,7 @@ class _PersonPageState extends State<PersonPage> {
               ),
               Positioned(
                 left: 16,
-                top: 82,
+                top: 88,
                 child: SizedBox(
                   width: 126,
                   height: 168,
