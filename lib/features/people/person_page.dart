@@ -248,7 +248,7 @@ class _PersonPageState extends State<PersonPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 348,
+          height: 260,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
@@ -290,8 +290,8 @@ class _PersonPageState extends State<PersonPage> {
                 left: 16,
                 top: 82,
                 child: SizedBox(
-                  width: 112,
-                  height: 150,
+                  width: 126,
+                  height: 168,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(14),
                     child: GestureDetector(
@@ -309,7 +309,7 @@ class _PersonPageState extends State<PersonPage> {
                           ? CachedNetworkImage(
                               imageUrl: p.photo!,
                               fit: BoxFit.cover,
-                              memCacheWidth: 336,
+                              memCacheWidth: 378,
                               placeholder: (_, _) =>
                                   Container(color: AppColors.surface2),
                               errorWidget: (_, _, _) =>
@@ -321,7 +321,7 @@ class _PersonPageState extends State<PersonPage> {
                 ),
               ),
               Positioned(
-                left: 132,
+                left: 148,
                 right: 16,
                 top: 148,
                 child: Column(
@@ -460,7 +460,7 @@ class _PersonPageState extends State<PersonPage> {
           const SizedBox(height: 4),
           LayoutBuilder(
             builder: (context, constraints) {
-              final width = (constraints.maxWidth - 40) / 3;
+              final width = (constraints.maxWidth - 20) / 3;
               return Wrap(
                 spacing: 10,
                 runSpacing: 10,
