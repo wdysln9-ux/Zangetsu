@@ -1260,8 +1260,8 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
     }
     // Keep all three posters identical in size, staggered from top-left
     // to bottom-right like the reference folder cards.
-    const posterWidth = 34.0;
-    const posterHeight = 44.0;
+    const posterWidth = 29.0;
+    const posterHeight = 38.0;
     return Material(
       color: AppColors.surface,
       borderRadius: BorderRadius.circular(16),
@@ -1269,8 +1269,8 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
         borderRadius: BorderRadius.circular(16),
         onTap: onOpen,
         child: Container(
-          height: 76,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          height: 66,
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.hairline, width: 1.6),
@@ -1278,7 +1278,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
           child: Row(
             children: [
               SizedBox(
-                width: 57,
+                width: 49,
                 height: posterHeight + 4,
                 child: Stack(
                   clipBehavior: Clip.none,
@@ -1286,14 +1286,14 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                     if (covers.isNotEmpty)
                       for (var i = 0; i < 3; i++)
                         Positioned(
-                          left: i * 8.5,
-                          top: i * 2.0,
+                          left: i * 7.0,
+                          top: i * 1.5,
                           child: Container(
                             width: posterWidth,
                             height: posterHeight,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(7),
-                              border: Border.all(color: AppColors.surface, width: 1.2),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: AppColors.surface, width: 1.0),
                               boxShadow: const [
                                 BoxShadow(color: Colors.black38, blurRadius: 3,
                                     offset: Offset(0, 1)),
@@ -1322,7 +1322,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1346,19 +1346,19 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                             overflow: TextOverflow.ellipsis,
                             style: AppText.body.copyWith(
                               color: AppColors.textPrimary,
-                              fontSize: 15.5,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     Text(
                       '${members.length} anime',
                       style: AppText.caption.copyWith(
                         color: AppColors.textSecondary,
-                        fontSize: 12.5,
+                        fontSize: 11,
                       ),
                     ),
                   ],
@@ -1367,9 +1367,9 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
               if (menu && category != null)
                 PopupMenuButton<String>(
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+                  constraints: const BoxConstraints.tightFor(width: 34, height: 34),
                   tooltip: '',
-                  icon: Icon(Icons.more_vert_rounded, size: 18,
+                  icon: Icon(Icons.more_vert_rounded, size: 17,
                       color: AppColors.textSecondary),
                   onSelected: (_) => _manageCategory(context, category),
                   itemBuilder: (_) => [
