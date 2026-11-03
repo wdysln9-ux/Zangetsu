@@ -532,6 +532,11 @@ class CategoryStore {
       );
     }
 
+    cats.sort((a, b) {
+      final p = a.position.compareTo(b.position);
+      return p != 0 ? p : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+
     // Rebuild assignments from scratch, keyed the same way the local box is.
     final byKey = <String, Set<String>>{};
     final knownIds = {for (final c in cats) c.id};
@@ -612,7 +617,10 @@ class CategoryStore {
     final local = _allFor(profileId);
     if (local.length != cats.length) return false;
     for (var i = 0; i < local.length; i++) {
-      if (local[i].id != cats[i].id || local[i].name != cats[i].name) {
+      if (local[i].id != cats[i].id || local[i].name != cats[i].name ||
+          local[i].position != cats[i].position ||
+          local[i].parentId != cats[i].parentId ||
+          local[i].description != cats[i].description) {
         return false;
       }
     }
