@@ -743,7 +743,7 @@ class AniListApi {
       final d = await _gql(
         'query(\$id:Int,\$page:Int,\$perPage:Int){ Page(page:\$page,perPage:\$perPage){ '
         'pageInfo{hasNextPage} '
-        'threadComments(threadId:\$id,sort:[\$safeSort]){ id comment likeCount isLiked createdAt '
+        'threadComments(threadId:\$id,sort:[$safeSort]){ id comment likeCount isLiked createdAt '
         'user{id name avatar{large}} childComments } } }',
         {'id': threadId, 'page': currentPage, 'perPage': perPage},
       );
