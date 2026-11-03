@@ -580,9 +580,14 @@ List<Map<String, dynamic>> _commentChildren(Object? raw) {
     }
   }
   if (value is Map) {
+    // A reply node is itself a comment; keep it so its own childComments
+    // can be rendered recursively by _Comment.
+    if (value.containsKey('id') || value.containsKey('comment')) {
+      return [Map<String, dynamic>.from(value)];
+    }
     final nested = value['childComments'] ?? value['children'] ?? value['replies'];
     if (nested != null) return _commentChildren(nested);
-    return [Map<String, dynamic>.from(value)];
+    return const [];
   }
   if (value is! List) return const [];
   return [
