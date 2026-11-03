@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/anilist/anilist_service.dart';
@@ -555,85 +557,205 @@ class _ThreadCommentsState extends State<_ThreadComments> {
           if (rows.isEmpty) {
             return Text(s.hasError ? 'Komentar gagal dimuat.' : widget.expectedCount > 0 ? 'AniList belum mengirim komentar untuk utas ini.' : 'Belum ada komentar.');
           }
-          return Column(children: [for (final comment in rows) _Comment(data: comment, rawMode: widget.rawMode)]);
+          return Column(children: [
+            for (var i = 0; i < rows.length; i++)
+              _Comment(data: rows[i], rawMode: widget.rawMode, isLast: i == rows.length - 1),
+          ]);
         },
       ),
     ],
   );
 }
 
+/// AniList returns `childComments` as a JSON-encoded string, not as a
+/// GraphQL list. Accept both forms so nested replies are not silently lost.
+List<Map<String, dynamic>> _commentChildren(Object? raw) {
+  Object? value = raw;
+  if (value is String) {
+    if (value.trim().isEmpty) return const [];
+    try {
+      value = jsonDecode(value);
+    } catch (_) {
+      return const [];
+    }
+  }
+  if (value is Map) {
+    final nested = value['childComments'] ?? value['children'] ?? value['replies'];
+    if (nested != null) return _commentChildren(nested);
+    return [Map<String, dynamic>.from(value)];
+  }
+  if (value is! List) return const [];
+  return [
+    for (final item in value)
+      if (item is Map) Map<String, dynamic>.from(item),
+  ];
+}
+
 class _Comment extends StatelessWidget {
-  const _Comment({required this.data, this.depth = 0, this.rawMode = false});
+  const _Comment({
+    required this.data,
+    this.depth = 0,
+    this.rawMode = false,
+    this.isLast = false,
+  });
+
   final Map<String, dynamic> data;
   final int depth;
   final bool rawMode;
+  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
     final user = data['user'] as Map? ?? {};
     final avatar = user['avatar'] as Map? ?? {};
-    final children = data['childComments'] is List ? data['childComments'] as List : const [];
+    final children = _commentChildren(data['childComments']);
     final id = (data['id'] as num?)?.toInt();
+
     return Padding(
-      padding: EdgeInsets.only(left: depth == 0 ? 0 : 17, bottom: 2),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        if (depth > 0)
-          Padding(
-            padding: const EdgeInsets.only(right: 8, top: 17),
-            child: Row(
+      padding: EdgeInsets.only(left: depth == 0 ? 0 : 3, bottom: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (depth > 0)
+            SizedBox(
+              width: 17,
+              child: CustomPaint(
+                painter: _CommentThreadLinePainter(isLast: isLast),
+              ),
+            ),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 2,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF555860),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CircleAvatar(
+                      radius: 15,
+                      backgroundImage: _anilistAvatar(avatar['large']),
+                      child: avatar['large'] == null
+                          ? const Icon(Icons.person, size: 16)
+                          : null,
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  '${user['name'] ?? 'AniList user'}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 7),
+                              Text(
+                                _dateLabel(data['createdAt']),
+                                style: const TextStyle(
+                                  color: Color(0xFF85878E),
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 7),
+                          rawMode
+                              ? SelectableText(
+                                  '${data['comment'] ?? ''}',
+                                  style: const TextStyle(
+                                    color: Color(0xFFE5E5E7),
+                                    height: 1.5,
+                                  ),
+                                )
+                              : _TranslatedMarkdown(
+                                  text: '${data['comment'] ?? ''}',
+                                ),
+                          const SizedBox(height: 7),
+                          Row(
+                            children: [
+                              _LoveButton(
+                                commentId: id,
+                                count: (data['likeCount'] as num?)?.toInt() ?? 0,
+                                initiallyLiked: data['isLiked'] == true,
+                              ),
+                              const SizedBox(width: 16),
+                              const Text(
+                                'Balas',
+                                style: TextStyle(
+                                  color: Color(0xFFB5B7BD),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              const Icon(
+                                Icons.more_horiz,
+                                size: 17,
+                                color: Color(0xFF96989F),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 13),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                Container(width: 8, height: 2, color: const Color(0xFF555860)),
+                if (children.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 14),
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < children.length; i++)
+                          _Comment(
+                            data: children[i],
+                            depth: depth + 1,
+                            rawMode: rawMode,
+                            isLast: i == children.length - 1,
+                          ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            CircleAvatar(radius: 15, backgroundImage: _anilistAvatar(avatar['large']),
-              child: avatar['large'] == null ? const Icon(Icons.person, size: 16) : null),
-            const SizedBox(width: 9),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Flexible(child: Text('${user['name'] ?? 'AniList user'}', maxLines: 1, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
-                const SizedBox(width: 7),
-                Text(_dateLabel(data['createdAt']), style: const TextStyle(color: Color(0xFF85878E), fontSize: 10)),
-              ]),
-              const SizedBox(height: 7),
-              rawMode
-                ? SelectableText('${data['comment'] ?? ''}', style: const TextStyle(color: Color(0xFFE5E5E7), height: 1.5))
-                : _TranslatedMarkdown(text: '${data['comment'] ?? ''}'),
-              const SizedBox(height: 7),
-              Row(children: [
-                _LoveButton(commentId: id, count: (data['likeCount'] as num?)?.toInt() ?? 0, initiallyLiked: data['isLiked'] == true),
-                const SizedBox(width: 16),
-                const Text('Balas', style: TextStyle(color: Color(0xFFB5B7BD), fontSize: 11, fontWeight: FontWeight.w700)),
-                const SizedBox(width: 14),
-                const Icon(Icons.more_horiz, size: 17, color: Color(0xFF96989F)),
-              ]),
-              const SizedBox(height: 13),
-            ])),
-          ]),
-          if (children.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(left: 14),
-              child: Column(children: [
-                for (final child in children)
-                  if (child is Map) _Comment(data: Map<String, dynamic>.from(child), depth: depth + 1, rawMode: rawMode),
-              ]),
-            ),
-        ])),
-      ]),
+        ],
+      ),
     );
   }
+}
+
+/// Draws a continuous vertical rail and a short branch into each reply,
+/// matching the familiar threaded-comment layout.
+class _CommentThreadLinePainter extends CustomPainter {
+  const _CommentThreadLinePainter({required this.isLast});
+  final bool isLast;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF555860)
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+    final branchY = 17.0;
+    if (!isLast) {
+      canvas.drawLine(Offset(7, 0), Offset(7, size.height), paint);
+    } else {
+      canvas.drawLine(Offset(7, 0), Offset(7, branchY), paint);
+    }
+    canvas.drawLine(Offset(7, branchY), Offset(size.width, branchY), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CommentThreadLinePainter oldDelegate) =>
+      oldDelegate.isLast != isLast;
 }
 
 class _CurrentProfileAvatar extends StatelessWidget {
