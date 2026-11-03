@@ -949,7 +949,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                                   ),
                                 ],
                               )
-                            : _grid(
+                            : _folderGrid(
                                 pageContext,
                                 folderEntries,
                                 onTap: (item) => _openItem(pageContext, item),
@@ -967,6 +967,56 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
           ),
         ),
       ),
+    );
+  }
+
+
+  /// A folder page shows only the titles inside that folder. The status and
+  /// category tabs belong to the main library, not inside an opened folder.
+  Widget _folderGrid(
+    BuildContext context,
+    List<MyListEntry> entries, {
+    required void Function(MediaItem) onTap,
+    required void Function(MyListEntry) onMore,
+  }) {
+    final cellW = _cellW(context);
+    return GridView.builder(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        4,
+        16,
+        MediaQuery.paddingOf(context).bottom,
+      ),
+      physics: const AlwaysScrollableScrollPhysics(),
+      cacheExtent: 800,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: posterGridColumns(context),
+        childAspectRatio: posterGridAspect(context),
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: entries.length,
+      itemBuilder: (context, i) {
+        final entry = entries[i];
+        return RevealItem(
+          index: i,
+          child: PosterCard(
+            title: entry.item.title,
+            logoItem: entry.item,
+            imageUrl: entry.item.cover,
+            wideImageUrl: entry.item.banner,
+            genres: entry.item.genres,
+            isAdult: entry.item.isAdult,
+            progressBadge: entry.progress == null
+                ? null
+                : '${entry.item.type == ProviderType.manga || entry.item.type == ProviderType.novel ? 'Ch' : 'EP'} ${entry.progress}',
+            headers: entry.item.coverHeaders,
+            cellWidth: cellW,
+            onTap: () => onTap(entry.item),
+            onLongPress: () => onMore(entry),
+          ),
+        );
+      },
     );
   }
 
