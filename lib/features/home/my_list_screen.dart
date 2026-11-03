@@ -1287,13 +1287,13 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                       for (var i = 0; i < 3; i++)
                         Positioned(
                           left: i * 4.5,
-                          top: i * 1.0,
+                          top: i * 2.0,
                           child: Container(
                             width: posterWidth,
                             height: posterHeight,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: AppColors.surface, width: 1.0),
+                              border: Border.all(color: AppColors.surface, width: 1.6),
                               boxShadow: const [
                                 BoxShadow(color: Colors.black38, blurRadius: 3,
                                     offset: Offset(0, 1)),
