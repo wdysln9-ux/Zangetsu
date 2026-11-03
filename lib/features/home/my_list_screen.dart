@@ -467,8 +467,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
             );
           },
         ),
-        if (isMyList && _categoryFilter == null)
-          MenuItemButton(
+        MenuItemButton(
             onPressed: () => setState(
               () => _reorderFoldersMode = !_reorderFoldersMode,
             ),
