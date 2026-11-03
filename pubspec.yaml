@@ -108,6 +108,7 @@ dependencies:
   # use it ourselves.
   html: ^0.15.6
   markdown: ^7.3.0
+  flutter_markdown: ^0.7.7+1
   # Dominant-colour extraction for the colour-matched hero banner
   palette_generator: ^0.3.3+3
 
