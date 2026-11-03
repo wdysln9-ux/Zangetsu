@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../../core/tracker/tracker_item_url.dart';
 import '../../core/zmode/metadata_provider_prefs.dart';
@@ -571,7 +572,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
   /// Name a new category. Duplicate names are refused by the store (two tabs
   /// reading the same would be indistinguishable), so say so rather than
   /// failing silently.
-  Future<void> _createCategory(BuildContext context) async {
+  Future<void> _createCategory(BuildContext context, {String? parentId}) async {
     final controller = TextEditingController();
     final name = await showDialog<String>(
       context: context,
@@ -601,7 +602,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
     if (name == null || !mounted) return;
     // Stamped with the mode it was made in, so it stops appearing as an empty
     // tab under the other two.
-    final made = await sl<CategoryStore>().create(name, kind: _kind.name);
+    final made = await sl<CategoryStore>().create(name, kind: _kind.name, parentId: parentId);
     if (!mounted) return;
     if (made == null) {
       showGlobalSnack(
@@ -894,6 +895,8 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                   maxLines: 1, overflow: TextOverflow.ellipsis),
               actions: [
                 if (category != null)
+                  IconButton(icon: const Icon(Icons.create_new_folder_outlined), tooltip: 'Folder baru', onPressed: () => _createCategory(context, parentId: category.id)),
+                if (category != null)
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert_rounded),
                     onSelected: (_) async {
@@ -914,9 +917,14 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                     .where((e) => _kind.matchesProvider(e.item.type))
                     .where(contains)
                     .toList();
+                final childFolders = category == null ? <ListCategory>[] : (_cats?.all() ?? const <ListCategory>[]).where((c) => c.parentId == category.id).toList();
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (category != null && category.description.trim().isNotEmpty)
+                      Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: MarkdownBody(data: category.description, styleSheet: MarkdownStyleSheet(p: AppText.body.copyWith(color: AppColors.textSecondary), a: AppText.body.copyWith(color: AppColors.accent)))),
+                    if (childFolders.isNotEmpty)
+                      Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 10), child: Column(children: [for (final child in childFolders) Padding(padding: const EdgeInsets.only(bottom: 6), child: _folderCard(context, child, entries, dotColor: AppColors.accent))])),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                       child: Text(
@@ -978,9 +986,12 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
     List<MyListEntry> entries, {
     required void Function(MediaItem) onTap,
     required void Function(MyListEntry) onMore,
+    bool shrinkWrap = false,
   }) {
     final cellW = _cellW(context);
     return GridView.builder(
+      shrinkWrap: shrinkWrap,
+      physics: shrinkWrap ? const NeverScrollableScrollPhysics() : const AlwaysScrollableScrollPhysics(),
       padding: EdgeInsets.fromLTRB(
         16,
         4,
@@ -1060,7 +1071,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                   TextButton.icon(
                     onPressed: _cats == null ? null : () => _createCategory(context),
                     icon: const Icon(Icons.add_rounded, size: 18),
-                    label: Text(context.l10n.newCategory),
+                    label: const Text('Folder baru'),
                   ),
                 ],
               ),
@@ -1076,6 +1087,8 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                   child: _folderCard(context, folders[i], modeEntries,
                       dotColor: _folderDotColors[i % _folderDotColors.length]),
                 ),
+              const Padding(padding: EdgeInsets.only(top: 14, bottom: 8), child: Text('Semua anime tersimpan', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600))),
+              _folderGrid(context, modeEntries, shrinkWrap: true, onTap: (item) => _openItem(context, item), onMore: (entry) => showListStatusSheet(context, item: entry.item)),
               if (visibleStatuses.isEmpty && folders.isEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 36),
@@ -1179,11 +1192,11 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
         borderRadius: BorderRadius.circular(16),
         onTap: onOpen,
         child: Container(
-          height: 72,
+          height: 76,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.hairline),
+            border: Border.all(color: AppColors.hairline, width: 1.6),
           ),
           child: Row(
             children: [
