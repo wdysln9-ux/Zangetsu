@@ -618,9 +618,10 @@ class _Comment extends StatelessWidget {
 
     return Padding(
       padding: EdgeInsets.only(left: depth == 0 ? 0 : 3, bottom: 2),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
           if (depth > 0)
             SizedBox(
               width: 17,
@@ -731,7 +732,8 @@ class _Comment extends StatelessWidget {
               ],
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -747,15 +749,18 @@ class _CommentThreadLinePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = const Color(0xFF555860)
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round;
-    final branchY = 17.0;
-    if (!isLast) {
-      canvas.drawLine(Offset(7, 0), Offset(7, size.height), paint);
-    } else {
-      canvas.drawLine(Offset(7, 0), Offset(7, branchY), paint);
-    }
-    canvas.drawLine(Offset(7, branchY), Offset(size.width, branchY), paint);
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    const x = 7.0;
+    const branchY = 16.0;
+    final path = Path()
+      ..moveTo(x, 0)
+      ..lineTo(x, branchY - 4)
+      ..quadraticBezierTo(x, branchY, x + 4, branchY)
+      ..lineTo(size.width, branchY);
+    if (!isLast) path.lineTo(size.width, size.height);
+    canvas.drawPath(path, paint);
   }
 
   @override
