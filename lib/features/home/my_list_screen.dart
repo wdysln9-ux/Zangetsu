@@ -1027,7 +1027,6 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
         16,
         MediaQuery.paddingOf(context).bottom,
       ),
-      physics: const AlwaysScrollableScrollPhysics(),
       cacheExtent: 800,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: posterGridColumns(context),
