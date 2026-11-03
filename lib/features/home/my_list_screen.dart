@@ -1031,7 +1031,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
       cacheExtent: 800,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: posterGridColumns(context),
-        childAspectRatio: posterGridAspect(context),
+        childAspectRatio: posterGridAspect(context) * 0.97,
         crossAxisSpacing: 12,
         mainAxisSpacing: 16,
       ),
@@ -1040,7 +1040,13 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
         final entry = entries[i];
         return RevealItem(
           index: i,
-          child: PosterCard(
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: AppColors.hairline, width: 1.5),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: PosterCard(
             title: entry.item.title,
             logoItem: entry.item,
             imageUrl: entry.item.cover,
@@ -1054,6 +1060,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
             cellWidth: cellW,
             onTap: () => onTap(entry.item),
             onLongPress: () => onMore(entry),
+          ),
           ),
         );
       },
