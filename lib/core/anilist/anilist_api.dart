@@ -732,26 +732,33 @@ class AniListApi {
   Future<List<Map<String, dynamic>>> fetchThreadComments(
     int threadId, {int page = 1, String sort = 'ID_DESC'}
   ) async {
-    // Follow every page so large threads are not silently cut off after the
-    // first batch returned by AniList.
+    // Fetch every page of top-level comments. Replies are included in the
+    // childComments JSON field and are expanded by the thread UI.
+    const perPage = 50;
     final safeSort = sort == 'ID' ? 'ID' : 'ID_DESC';
     final all = <Map<String, dynamic>>[];
+    final seenIds = <int>{};
     var currentPage = page;
-    for (var attempt = 0; attempt < 20; attempt++, currentPage++) {
+    for (var attempt = 0; attempt < 100; attempt++, currentPage++) {
       final d = await _gql(
-        'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:50){ '
+        'query(\$id:Int,\$page:Int,\$perPage:Int){ Page(page:\$page,perPage:\$perPage){ '
         'pageInfo{hasNextPage} '
-        'threadComments(threadId:\$id,sort:[$safeSort]){ id comment likeCount isLiked createdAt '
+        'threadComments(threadId:\$id,sort:[\$safeSort]){ id comment likeCount isLiked createdAt '
         'user{id name avatar{large}} childComments } } }',
-        {'id': threadId, 'page': currentPage},
+        {'id': threadId, 'page': currentPage, 'perPage': perPage},
       );
       final pageData = d?['Page'] as Map?;
       final rows = pageData?['threadComments'];
-      if (rows is! List) break;
-      all.addAll([for (final row in rows) if (row is Map) Map<String, dynamic>.from(row)]);
-      if (pageData?['pageInfo'] is! Map ||
-          (pageData!['pageInfo'] as Map)['hasNextPage'] != true ||
-          rows.isEmpty) break;
+      if (rows is! List || rows.isEmpty) break;
+      for (final row in rows) {
+        if (row is! Map) continue;
+        final comment = Map<String, dynamic>.from(row);
+        final id = (comment['id'] as num?)?.toInt();
+        if (id == null || seenIds.add(id)) all.add(comment);
+      }
+      final pageInfo = pageData?['pageInfo'] as Map?;
+      final hasNext = pageInfo?['hasNextPage'];
+      if (hasNext == false || (hasNext == null && rows.length < perPage)) break;
     }
     return all;
   }
