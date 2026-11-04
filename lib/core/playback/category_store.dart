@@ -236,6 +236,18 @@ class CategoryStore {
   static Future<void> init() async {
     if (!Hive.isBoxOpen(boxName)) await openBoxSafely(boxName);
     if (!Hive.isBoxOpen(syncMetaBox)) await openBoxSafely(syncMetaBox);
+
+    // If the local category file was quarantined, its replacement is empty.
+    // The old pull timestamp lives in another box and would otherwise prevent
+    // recovery for up to 12 hours. Force the next cloud pull immediately.
+    if (quarantinedBoxes.contains(boxName) && Hive.isBoxOpen(syncMetaBox)) {
+      final meta = Hive.box(syncMetaBox);
+      for (final key in meta.keys.toList()) {
+        if ('$key'.contains(_syncMetaKey)) {
+          await meta.delete(key);
+        }
+      }
+    }
   }
 
   Box get _box => Hive.box(boxName);
