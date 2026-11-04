@@ -518,6 +518,36 @@ class CategoryStore {
       return;
     }
 
+    // An empty remote response must not erase a populated local library.
+    // This can happen when the VPS bridge/schema has not been deployed yet:
+    // the old implementation treated that empty response as an intentional
+    // deletion and replaced the Hive snapshot with an empty list.
+    final localCats = _allFor(profileId);
+    if (catRows.isEmpty && localCats.isNotEmpty) {
+      try {
+        for (final cat in localCats) {
+          await r.upsertCategory({
+            'id': cat.id,
+            'user_key': uid,
+            if (profileId != kDefaultProfileId) 'profile_id': profileId,
+            'name': cat.name,
+            'position': cat.position,
+            'parent_id': cat.parentId,
+            'description': cat.description,
+          });
+        }
+        debugPrint(
+          '[categories] remote was empty; preserved and uploaded '
+          '${localCats.length} local folders',
+        );
+      } catch (e) {
+        debugPrint('[categories] initial folder upload failed: $e');
+      }
+      // Keep local folders and assignments intact. Do not mark this pull fresh:
+      // retry on the next sync until the server returns the saved rows.
+      return;
+    }
+
     final cats = <ListCategory>[];
     for (final row in catRows) {
       final id = row['id'], name = row['name'];
