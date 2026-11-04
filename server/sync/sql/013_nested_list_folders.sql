@@ -28,3 +28,5 @@ create unique index if not exists list_categories_sibling_name_unique
   on sync_api.list_categories(user_key, coalesce(parent_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(name));
 create unique index if not exists profile_list_categories_sibling_name_unique
   on sync_api.profile_list_categories(user_key, profile_id, coalesce(parent_id, '00000000-0000-0000-0000-000000000000'::uuid), lower(name));
+
+notify pgrst, 'reload schema';
