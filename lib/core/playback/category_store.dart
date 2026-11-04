@@ -575,12 +575,23 @@ class CategoryStore {
       );
     }
 
+    // A pull may have started before a local create/rename finished pushing.
+    // Keep local-only folders instead of letting this older cloud snapshot erase
+    // them. This also protects folders while the bridge is catching up.
+    final cloudIds = cats.map((c) => c.id).toSet();
+    for (final local in _allFor(profileId)) {
+      if (!cloudIds.contains(local.id)) cats.add(local);
+    }
+
     cats.sort((a, b) {
       final p = a.position.compareTo(b.position);
       return p != 0 ? p : a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
 
-    // Rebuild assignments from scratch, keyed the same way the local box is.
+    // Rebuild assignments from cloud, then retain local-only assignments whose
+    // category still exists. A delayed/incomplete cloud snapshot must not
+    // silently detach titles from folders.
+
     final byKey = <String, Set<String>>{};
     final knownIds = {for (final c in cats) c.id};
     for (final row in linkRows) {
@@ -596,6 +607,16 @@ class CategoryStore {
             () => <String>{},
           )
           .add(cat);
+    }
+
+    for (final key in _box.keys.toList()) {
+      if (!profileOwnsKey(key, profileId) || key == _categoriesKey(profileId)) {
+        continue;
+      }
+      final localIds = _idsFor(key)..removeWhere((id) => !knownIds.contains(id));
+      if (localIds.isNotEmpty) {
+        byKey.putIfAbsent(key, () => <String>{}).addAll(localIds);
+      }
     }
 
     // Most pulls find exactly what's already here (nothing changed on another
