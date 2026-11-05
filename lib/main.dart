@@ -57,6 +57,7 @@ import 'features/home/cubit/home_cubit.dart';
 import 'features/onboarding/boot_error_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'features/profiles/profile_launch_gate.dart';
+import 'features/update/update_dialog.dart';
 import 'features/shell/root_shell.dart';
 import 'features/watch_together/ui/party_bar.dart';
 import 'features/watch_together/watch_together_controller.dart';
@@ -349,6 +350,8 @@ class _WatchAppState extends State<WatchApp> with WidgetsBindingObserver {
   bool? _onboardedOverride; // set true once onboarding finishes this session
   bool _handledLaunchTaps = false; // route a notification-tap launch once
   DateTime? _lastSubscriptionCheck;
+  DateTime? _lastAppUpdateCheck;
+  bool _appUpdateCheckRunning = false;
 
   /// Maximum age of the local cloud snapshot before a launch/resume pull.
   /// This balances cross-device freshness against repeated database reads.
@@ -464,6 +467,7 @@ class _WatchAppState extends State<WatchApp> with WidgetsBindingObserver {
       }
       _syncOnResume();
       unawaited(_checkSubscriptions());
+      unawaited(_checkForkUpdate());
       // The wallpaper may have changed while we were away. No-op unless
       // Material You is on, and only rebuilds if the colours actually moved.
       ThemeController.refresh();
@@ -700,6 +704,35 @@ class _WatchAppState extends State<WatchApp> with WidgetsBindingObserver {
     // the pushReplacement above throwing its route away.
     markAppShellReady();
     if (mounted) setState(() {});
+    unawaited(_checkForkUpdate());
+  }
+
+  /// Check the fork's published APK after the shell is visible. A cooldown
+  /// avoids repeated GitHub requests when Android resumes the app frequently.
+  Future<void> _checkForkUpdate() async {
+    if (!Platform.isAndroid ||
+        !_shellRoutePushed ||
+        !mounted ||
+        _appUpdateCheckRunning) {
+      return;
+    }
+    final now = DateTime.now();
+    if (_lastAppUpdateCheck != null &&
+        now.difference(_lastAppUpdateCheck!) < const Duration(minutes: 30)) {
+      return;
+    }
+    _lastAppUpdateCheck = now;
+    _appUpdateCheckRunning = true;
+    try {
+      await Future<void>.delayed(const Duration(seconds: 2));
+      if (!mounted || !_shellRoutePushed) return;
+      final context = rootNavigatorKey.currentContext;
+      if (context != null) await maybeShowUpdateDialog(context);
+    } catch (error, stack) {
+      AppLogger.instance.logError(error, stack);
+    } finally {
+      _appUpdateCheckRunning = false;
+    }
   }
 
   Widget _buildHome() {

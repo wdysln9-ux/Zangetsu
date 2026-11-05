@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: android-apk-${{ github.ref }}
@@ -64,7 +64,13 @@ jobs:
           fi
 
       - name: Build arm64 release APK
-        run: flutter build apk --release --target-platform android-arm64
+        env:
+          BUILD_NAME: 2.5.${{ github.run_number }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          flutter build apk --release --target-platform android-arm64 \
+            --build-name="$BUILD_NAME" \
+            --build-number="$((30000 + BUILD_NUMBER))"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
@@ -73,3 +79,21 @@ jobs:
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
           retention-days: 14
+
+      # Publish only builds from the active development branch. Other branches
+      # still produce downloadable Actions artifacts, but never replace the
+      # update offered to users.
+      - name: Publish in-app update release
+        if: github.ref == 'refs/heads/fix/episode-cards-border-autoscroll'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v2.5.${{ github.run_number }}
+          name: Zangetsu 2.5.${{ github.run_number }}
+          body: |
+            Automatic ARM64 build from commit ${{ github.sha }}.
+
+            This pre-release was published after the Android APK build completed successfully.
+          prerelease: true
+          make_latest: false
+          files: build/app/outputs/flutter-apk/app-release.apk
+          fail_on_unmatched_files: true

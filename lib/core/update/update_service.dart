@@ -40,11 +40,11 @@ class UpdateInfo {
   final bool isPrerelease;
 }
 
-/// In-app updater: checks the public GitHub Releases of the app repo, compares
-/// the latest tag to the running build, downloads the matching APK and hands it
-/// to the Android package installer. The repo is public, so no token is needed.
+/// In-app updater: checks the public GitHub Releases of this fork, compares
+/// the newest successful build tag to the running build, downloads the matching
+/// ARM64 APK and hands it to the Android package installer.
 class UpdateService {
-  static const String _repo = 'Spyou/Zangetsu';
+  static const String _repo = 'wdysln9-ux/Zangetsu';
   static const String _latestUrl =
       'https://api.github.com/repos/$_repo/releases/latest';
   static const String _releasesUrl =
@@ -61,9 +61,10 @@ class UpdateService {
   /// callers must treat null as "nothing to do" (never throws).
   Future<UpdateInfo?> checkForUpdate({bool respectSkip = false}) async {
     try {
-      final beta = await betaOptIn();
-      final release =
-          beta ? await _newestBetaRelease() : await _latestStableRelease();
+      // This fork publishes each successful development build as a GitHub
+      // pre-release. Always inspect that feed so every published commit can
+      // be offered without requiring a separate beta opt-in.
+      final release = await _newestBetaRelease();
       if (release == null) return null;
 
       final rawTag = ((release['tag_name'] as String?) ?? '').trim();
@@ -105,9 +106,8 @@ class UpdateService {
     return res.data;
   }
 
-  /// Newest release **including pre-releases** — the toggle-on behaviour.
-  /// Scans the recent releases list and returns the highest version by
-  /// [compareVersions]; skips drafts.
+  /// Newest published fork build, including pre-releases. Scans recent releases
+  /// and returns the highest version by [compareVersions]; skips drafts.
   Future<Map<String, dynamic>?> _newestBetaRelease() async {
     final res = await _dio.get<List<dynamic>>(
       _releasesUrl,
