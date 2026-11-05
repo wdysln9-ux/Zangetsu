@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:dio/dio.dart';
 
 /// Translates plain text with Google's keyless translation endpoint.
