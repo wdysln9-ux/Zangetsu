@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../../core/tracker/tracker_item_url.dart';
 import '../../core/zmode/metadata_provider_prefs.dart';
@@ -904,7 +903,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
             BlocProvider<TrackerListCubit>.value(value: trackerListCubit),
           ],
           child: StatefulBuilder(
-            builder: (pageContext, refreshFolderPage) => Scaffold(
+            builder: (pageContext, _) => Scaffold(
             backgroundColor: AppColors.bg,
             appBar: AppBar(
               backgroundColor: AppColors.bg,
