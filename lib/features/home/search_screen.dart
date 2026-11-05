@@ -652,7 +652,15 @@ class _SearchViewState extends State<_SearchView>
       return;
     }
     FocusScope.of(context).unfocus();
-    final picked = await showMetaFilterSheet(context, kind, _metaFilters);
+    final picked = await showMetaFilterSheet(
+      context,
+      kind,
+      _metaFilters,
+      hideMyAnime: _hideMyAnime,
+      onHideMyAnimeChanged: (value) {
+        if (value != _hideMyAnime) _toggleHideMyAnime();
+      },
+    );
     if (picked == null || !mounted) return;
     setState(() => _metaFilters = picked);
     _applyMetaFilters(browseDefaults: true);
@@ -1222,7 +1230,6 @@ class _SearchViewState extends State<_SearchView>
             // Adult is not a filter-sheet row: it is a mode you flip while
             // looking at results, so it sits in the open ahead of them rather
             // than tucked in beside the icons. Only when Privacy allows it.
-            if (widget.scope == SearchScope.library) _hideMyAnimeToggle(),
             if (widget.scope == SearchScope.library &&
                 sl<PlaybackPrefs>().adultMetadata &&
                 (!sl.isRegistered<ViewerProfileStore>() ||

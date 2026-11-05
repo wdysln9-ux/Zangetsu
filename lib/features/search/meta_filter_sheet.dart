@@ -21,12 +21,20 @@ Future<MetaFilters?> showMetaFilterSheet(
   ZKind kind,
   MetaFilters current, {
   bool showStatus = true,
+  bool hideMyAnime = false,
+  ValueChanged<bool>? onHideMyAnimeChanged,
 }) => showModalBottomSheet<MetaFilters>(
   context: context,
   backgroundColor: Colors.transparent,
   isScrollControlled: true,
   builder: (_) =>
-      _MetaFilterSheet(kind: kind, initial: current, showStatus: showStatus),
+      _MetaFilterSheet(
+        kind: kind,
+        initial: current,
+        showStatus: showStatus,
+        hideMyAnime: hideMyAnime,
+        onHideMyAnimeChanged: onHideMyAnimeChanged,
+      ),
 );
 
 /// D-pad-friendly dialog variant for TV search.
@@ -42,11 +50,15 @@ class _MetaFilterSheet extends StatefulWidget {
     required this.kind,
     required this.initial,
     required this.showStatus,
+    required this.hideMyAnime,
+    required this.onHideMyAnimeChanged,
   });
 
   final ZKind kind;
   final MetaFilters initial;
   final bool showStatus;
+  final bool hideMyAnime;
+  final ValueChanged<bool>? onHideMyAnimeChanged;
 
   @override
   State<_MetaFilterSheet> createState() => _MetaFilterSheetState();
@@ -54,6 +66,7 @@ class _MetaFilterSheet extends StatefulWidget {
 
 class _MetaFilterSheetState extends State<_MetaFilterSheet> {
   late MetaFilters _f = widget.initial;
+  late bool _hideMyAnime = widget.hideMyAnime;
 
   bool get _isVideo => widget.kind == ZKind.movie || widget.kind == ZKind.tv;
 
@@ -114,6 +127,21 @@ class _MetaFilterSheetState extends State<_MetaFilterSheet> {
                 controller: scroll,
                 padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
                 children: [
+                  if (widget.onHideMyAnimeChanged != null)
+                    SwitchListTile.adaptive(
+                      key: const ValueKey('meta-filter-hide-my-anime'),
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Hide My Anime'),
+                      subtitle: const Text(
+                        'Sembunyikan anime yang sudah ada di daftar AniList kamu',
+                      ),
+                      value: _hideMyAnime,
+                      activeTrackColor: AppColors.accent,
+                      onChanged: (value) {
+                        setState(() => _hideMyAnime = value);
+                        widget.onHideMyAnimeChanged?.call(value);
+                      },
+                    ),
                   // Two per row: these are short label/value pairs, and one
                   // per line pushed half of them below the fold of a half
                   // sheet — the thing the list format was meant to fix.
