@@ -2532,8 +2532,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
     // bottom padding); lower value lifts the text up the frame.
     final pos = p.subtitlePosition.clamp(0, 100);
     final bottom = 16.0 + (100 - pos) * 3.0;
+    final textAlign = switch (p.subtitleJustification) {
+      'left' => TextAlign.left,
+      'right' => TextAlign.right,
+      _ => TextAlign.center,
+    };
     return SubtitleViewConfiguration(
-      textAlign: TextAlign.center,
+      textAlign: textAlign,
       padding: EdgeInsets.fromLTRB(16, 0, 16, bottom),
       style: buildSubtitleTextStyle(p, fontSize: 32.0 * p.subtitleScale),
     );

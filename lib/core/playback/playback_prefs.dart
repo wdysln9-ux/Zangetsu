@@ -932,6 +932,18 @@ class PlaybackPrefs {
   Future<void> setSubtitleFontWeight(int value) =>
       _box.put('subtitleFontWeight', value.clamp(100, 900));
 
+  /// Render subtitle text in italic.
+  bool get subtitleItalic =>
+      _box.get('subtitleItalic', defaultValue: false) as bool;
+  Future<void> setSubtitleItalic(bool value) =>
+      _box.put('subtitleItalic', value);
+
+  /// Multi-line subtitle alignment: left, center, or right.
+  String get subtitleJustification =>
+      _box.get('subtitleJustification', defaultValue: 'center') as String;
+  Future<void> setSubtitleJustification(String value) =>
+      _box.put('subtitleJustification', value);
+
   /// Subtitle font family — one of [kBundledSubtitleFonts], or a family the
   /// user added themselves (see [customSubtitleFonts]). Empty = mpv default
   /// (don't override the font). Maps to mpv's `sub-font`.
