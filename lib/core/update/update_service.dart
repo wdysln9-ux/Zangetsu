@@ -3,6 +3,7 @@ import 'package:watch_app/core/hive/safe_box.dart';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -54,6 +55,8 @@ class UpdateService {
   static const String _betaKey = 'betaOptIn';
 
   final Dio _dio = Dio();
+  static const MethodChannel _downloadsChannel =
+      MethodChannel('zangetsu/update_downloads');
 
   /// Query GitHub for the latest release. Returns an [UpdateInfo] when it is
   /// newer than the installed version (and, when [respectSkip] is true, not the
@@ -176,6 +179,26 @@ class UpdateService {
       }
     }
     return file;
+  }
+
+  /// Save a second copy in the public Android Downloads folder. Android 10+
+  /// uses MediaStore, so no broad storage permission is needed.
+  Future<void> saveApkToDownloads(
+    File apk, {
+    required String fileName,
+  }) async {
+    if (!Platform.isAndroid) return;
+    final android = await DeviceInfoPlugin().androidInfo;
+    if (android.version.sdkInt <= 28) {
+      final status = await Permission.storage.request();
+      if (!status.isGranted) {
+        throw Exception('Storage permission denied');
+      }
+    }
+    await _downloadsChannel.invokeMethod<String>(
+      'saveApkToDownloads',
+      {'sourcePath': apk.path, 'fileName': fileName},
+    );
   }
 
   /// Hand the APK to the system installer. Requests the "install unknown apps"

@@ -2,6 +2,7 @@ package com.spyou.watch_app
 
 import android.app.PictureInPictureParams
 import android.content.ComponentName
+import android.content.ContentValues
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -9,6 +10,8 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
+import android.provider.MediaStore
 import android.os.storage.StorageManager
 import android.speech.RecognizerIntent
 import android.util.Log
@@ -47,6 +50,7 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.util.concurrent.Executors
 
 /// Hosts the "zangetsu/seek_preview" channel, which decodes a single video
@@ -460,6 +464,76 @@ class MainActivity : AppCompatActivity(), FlutterEngineConfigurator {
                     else -> result.notImplemented()
                 }
             }
+
+        // Keep a user-accessible copy of each in-app update in Downloads.
+        // MediaStore is used on Android 10+, avoiding broad storage permissions.
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "zangetsu/update_downloads",
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "saveApkToDownloads" -> {
+                    val sourcePath = call.argument<String>("sourcePath")
+                    val fileName = call.argument<String>("fileName")
+                    if (sourcePath.isNullOrBlank() || fileName.isNullOrBlank()) {
+                        result.error("BAD_ARGS", "sourcePath and fileName are required", null)
+                    } else {
+                        Thread {
+                            try {
+                                val source = File(sourcePath)
+                                if (!source.isFile) throw IllegalArgumentException("Downloaded APK not found")
+                                val savedUri: Uri
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                    val values = ContentValues().apply {
+                                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                                        put(MediaStore.MediaColumns.MIME_TYPE, "application/vnd.android.package-archive")
+                                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                                        put(MediaStore.MediaColumns.IS_PENDING, 1)
+                                    }
+                                    val collection = MediaStore.Downloads.getContentUri(
+                                        MediaStore.VOLUME_EXTERNAL_PRIMARY,
+                                    )
+                                    val uri = contentResolver.insert(collection, values)
+                                        ?: throw IllegalStateException("Could not create Downloads entry")
+                                    try {
+                                        contentResolver.openOutputStream(uri)?.use { output ->
+                                            source.inputStream().use { input -> input.copyTo(output) }
+                                        } ?: throw IllegalStateException("Could not open Downloads file")
+                                        val ready = ContentValues().apply {
+                                            put(MediaStore.MediaColumns.IS_PENDING, 0)
+                                        }
+                                        contentResolver.update(uri, ready, null, null)
+                                        savedUri = uri
+                                    } catch (e: Exception) {
+                                        contentResolver.delete(uri, null, null)
+                                        throw e
+                                    }
+                                } else {
+                                    if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+                                        PackageManager.PERMISSION_GRANTED
+                                    ) throw SecurityException("Storage permission is required")
+                                    val directory = Environment.getExternalStoragePublicDirectory(
+                                        Environment.DIRECTORY_DOWNLOADS,
+                                    )
+                                    if (!directory.exists() && !directory.mkdirs()) {
+                                        throw IllegalStateException("Could not create Downloads folder")
+                                    }
+                                    val destination = File(directory, fileName)
+                                    source.copyTo(destination, overwrite = true)
+                                    savedUri = Uri.fromFile(destination)
+                                }
+                                runOnUiThread { result.success(savedUri.toString()) }
+                            } catch (e: Exception) {
+                                runOnUiThread {
+                                    result.error("SAVE_FAILED", e.message ?: "Could not save APK", null)
+                                }
+                            }
+                        }.start()
+                    }
+                }
+                else -> result.notImplemented()
+            }
+        }
 
         // Manga page OCR/offline translation. Kept on its own method channel so
         // the reader feature does not alter player or source bridge behavior.
