@@ -589,7 +589,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
   /// Name a new category. Duplicate names are refused by the store (two tabs
   /// reading the same would be indistinguishable), so say so rather than
   /// failing silently.
-  Future<void> _createCategory(BuildContext context, {String? parentId}) async {
+  Future<void> _createCategory(BuildContext context) async {
     final controller = TextEditingController();
     final name = await showDialog<String>(
       context: context,
@@ -619,7 +619,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
     if (name == null || !mounted) return;
     // Stamped with the mode it was made in, so it stops appearing as an empty
     // tab under the other two.
-    final made = await sl<CategoryStore>().create(name, kind: _kind.name, parentId: parentId);
+    final made = await sl<CategoryStore>().create(name, kind: _kind.name);
     if (!mounted) return;
     if (made == null) {
       showGlobalSnack(
@@ -655,11 +655,6 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.description_outlined, color: AppColors.textSecondary),
-              title: const Text('Edit deskripsi'),
-              onTap: () => Navigator.pop(ctx, 'description'),
-            ),
-            ListTile(
               leading: const Icon(
                 Icons.edit_outlined,
                 color: AppColors.textSecondary,
@@ -685,30 +680,6 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
       ),
     );
     if (action == null || !mounted) return;
-
-    if (action == 'description') {
-      final controller = TextEditingController(text: c.description);
-      final value = await showDialog<String>(
-        context: this.context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: const Text('Deskripsi folder (Markdown)'),
-          content: SizedBox(width: 480, child: TextField(
-            controller: controller, autofocus: true, minLines: 5, maxLines: 10,
-            style: AppText.body.copyWith(color: AppColors.textPrimary),
-            decoration: const InputDecoration(hintText: 'Tulis deskripsi Markdown...\n# Judul\n![Deskripsi gambar](https://contoh.com/gambar.jpg)'),
-          )),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(context.l10n.cancel)),
-            FilledButton(onPressed: () => Navigator.pop(ctx, controller.text), child: const Text('Simpan')),
-          ],
-        ),
-      );
-      if (value == null || !mounted) return;
-      await sl<CategoryStore>().updateDescription(c.id, value);
-      if (mounted) setState(() {});
-      return;
-    }
 
     if (action == 'delete') {
       await sl<CategoryStore>().delete(c.id);
@@ -942,15 +913,6 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                   maxLines: 1, overflow: TextOverflow.ellipsis),
               actions: [
                 if (category != null)
-                  IconButton(
-                    icon: const Icon(Icons.create_new_folder_outlined),
-                    tooltip: 'Folder baru',
-                    onPressed: () async {
-                      await _createCategory(pageContext, parentId: category.id);
-                      if (pageContext.mounted) refreshFolderPage(() {});
-                    },
-                  ),
-                if (category != null)
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert_rounded),
                     onSelected: (_) async {
@@ -971,14 +933,9 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                     .where((e) => _kind.matchesProvider(e.item.type))
                     .where(contains)
                     .toList();
-                final childFolders = category == null ? <ListCategory>[] : (_cats?.all() ?? const <ListCategory>[]).where((c) => c.parentId == category.id).toList();
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (category != null && category.description.trim().isNotEmpty)
-                      Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 12), child: MarkdownBody(data: category.description, styleSheet: MarkdownStyleSheet(p: AppText.body.copyWith(color: AppColors.textSecondary), a: AppText.body.copyWith(color: AppColors.accent)))),
-                    if (childFolders.isNotEmpty)
-                      Padding(padding: const EdgeInsets.fromLTRB(16, 0, 16, 10), child: Column(children: [for (final child in childFolders) Padding(padding: const EdgeInsets.only(bottom: 6), child: _folderCard(context, child, entries, dotColor: AppColors.accent))])),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                       child: Text(
@@ -1095,7 +1052,6 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
             .where((e) => _kind.matchesProvider(e.item.type))
             .toList();
         final folders = (_cats?.all() ?? const <ListCategory>[])
-            .where((c) => c.parentId == null)
             .where(_categoryFitsKind(modeEntries))
             .toList()
           ..sort((a, b) => a.position.compareTo(b.position));
@@ -1270,11 +1226,6 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
     required bool menu,
     ListCategory? category,
   }) {
-    final childFolderCount = category == null
-        ? 0
-        : (_cats?.all() ?? const <ListCategory>[])
-              .where((child) => child.parentId == category.id)
-              .length;
     // Three overlapping portrait covers, matching the compact library reference.
     final availableCovers = members.take(3).map((e) => e.item.cover)
         .whereType<String>().where((url) => url.isNotEmpty).toList();
@@ -1381,9 +1332,7 @@ class _MyListViewState extends State<_MyListView> with WidgetsBindingObserver {
                     ),
                     const SizedBox(height: 1),
                     Text(
-                      childFolderCount > 0
-                          ? '${members.length} anime & $childFolderCount folder'
-                          : '${members.length} anime',
+                      '${members.length} anime',
                       style: AppText.caption.copyWith(
                         color: AppColors.textSecondary,
                         fontSize: 11,
