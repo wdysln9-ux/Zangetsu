@@ -774,283 +774,331 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
+    final portrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final font = _prefs.subtitleFont;
     final colorHex = _prefs.subtitleColorHex.toUpperCase();
     final size = _prefs.subtitleScale;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.surface2,
-              borderRadius: BorderRadius.circular(2),
+
+    Widget card(String title, IconData icon, List<Widget> children) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.surface2,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.hairline),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+              child: Row(
+                children: [
+                  Icon(icon, color: AppColors.textSecondary, size: 21),
+                  const SizedBox(width: 12),
+                  Text(title, style: AppText.headline),
+                ],
+              ),
             ),
+            ...children,
+            const SizedBox(height: 8),
+          ],
+        ),
+      );
+    }
+
+    final typographyCard = card(
+      'Tipografi',
+      Icons.text_fields_rounded,
+      [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text(context.l10n.font, style: AppText.caption.copyWith(color: AppColors.textSecondary)),
+        ),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: h * (portrait ? 0.25 : 0.20)),
+          child: ListView(
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            children: [
+              for (final f in kBundledSubtitleFonts)
+                _SheetRow(
+                  label: f.isEmpty ? context.l10n.defaultLabel : f,
+                  subtitle: _downloading.contains(f)
+                      ? context.l10n.downloading
+                      : ((_fontAvailable[f] ?? true) ? null : context.l10n.tapToDownloadFont),
+                  loading: _downloading.contains(f),
+                  active: font == f,
+                  onTap: () => _pickFont(f),
+                ),
+              for (final f in _customFonts.keys)
+                _SheetRow(
+                  label: f,
+                  active: font == f,
+                  onTap: () => _pickFont(f),
+                  onRemove: () => _removeCustomFont(f),
+                ),
+              _SheetRow(
+                label: context.l10n.addFont,
+                icon: Icons.upload_file,
+                active: false,
+                onTap: _addCustomFont,
+              ),
+            ],
           ),
+        ),
+        _SheetSectionHeader('Ketebalan Font'),
+        _SliderRow(
+          value: _prefs.subtitleFontWeight.toDouble(),
+          min: 100,
+          max: 900,
+          divisions: 8,
+          label: _prefs.subtitleFontWeight.toString(),
+          onChanged: (v) => _apply(() => _prefs.setSubtitleFontWeight(v.round())),
+        ),
+        _SheetSectionHeader(context.l10n.outlineStyle),
+        if (_prefs.styledSubtitles)
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-            child: Text(context.l10n.subtitleStyle, style: AppText.headline),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
+            child: Text(
+              context.l10n.ownStylingKept,
+              style: AppText.caption.copyWith(color: AppColors.textTertiary),
+            ),
           ),
-          // Live WYSIWYG preview — built with the SAME buildSubtitleTextStyle as
-          // the real overlay, so what you see here is what renders on the video.
-          Container(
-            margin: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-            height: 92,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF33405E), Color(0xFF0E121B)],
+        for (final (id, _) in kSubtitleOutlineTypes)
+          _SheetRow(
+            label: _subtitleOutlineLabel(context.l10n, id),
+            active: _prefs.subtitleOutlineType == id,
+            onTap: () => _apply(() => _prefs.setSubtitleOutlineType(id)),
+          ),
+        _SheetSectionHeader(context.l10n.outlineWidth),
+        _SliderRow(
+          value: _prefs.subtitleOutlineWidth,
+          min: 0,
+          max: 8,
+          divisions: 16,
+          label: _prefs.subtitleOutlineWidth.toStringAsFixed(1),
+          onChanged: (v) => _apply(() => _prefs.setSubtitleOutlineWidth(v)),
+        ),
+        _SheetSectionHeader(context.l10n.subtitleSize),
+        _SliderRow(
+          value: size.clamp(0.6, 2.0),
+          min: 0.6,
+          max: 2.0,
+          divisions: 14,
+          label: '${(size * 100).round()}%',
+          onChanged: (v) => _apply(() => _prefs.setSubtitleScale(v)),
+        ),
+      ],
+    );
+
+    final colorsCard = card(
+      'Warna',
+      Icons.palette_outlined,
+      [
+        _SheetSectionHeader(context.l10n.textColour),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              for (final hex in _colorHexes)
+                _ColorSwatch(
+                  color: _colorFromHex(hex),
+                  label: _subtitleColourLabel(context.l10n, hex),
+                  active: colorHex == hex,
+                  onTap: () => _apply(() => _prefs.setSubtitleColorHex(hex)),
+                ),
+            ],
+          ),
+        ),
+        _SheetSectionHeader(context.l10n.textOpacity),
+        _SliderRow(
+          value: _prefs.subtitleTextOpacity,
+          min: 0.1,
+          max: 1,
+          divisions: 9,
+          label: '${(_prefs.subtitleTextOpacity * 100).round()}%',
+          onChanged: (v) => _apply(() => _prefs.setSubtitleTextOpacity(v)),
+        ),
+        _SheetSectionHeader(context.l10n.outlineColour),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              for (final hex in _colorHexes)
+                _ColorSwatch(
+                  color: _colorFromHex(hex),
+                  label: _subtitleColourLabel(context.l10n, hex),
+                  active: _prefs.subtitleOutlineColorHex.toUpperCase() == hex,
+                  onTap: () => _apply(() => _prefs.setSubtitleOutlineColorHex(hex)),
+                ),
+            ],
+          ),
+        ),
+        _SheetSectionHeader(context.l10n.background),
+        _SliderRow(
+          value: _prefs.subtitleBgOpacity,
+          min: 0,
+          max: 1,
+          divisions: 10,
+          label: '${(_prefs.subtitleBgOpacity * 100).round()}%',
+          onChanged: (v) => _apply(() => _prefs.setSubtitleBgOpacity(v)),
+        ),
+      ],
+    );
+
+    final miscellaneousCard = card(
+      'Lainnya',
+      Icons.tune_rounded,
+      [
+        _SheetSectionHeader('Sudut Bayangan'),
+        _SliderRow(
+          value: _prefs.subtitleShadowAngle,
+          min: 0,
+          max: 360,
+          divisions: 36,
+          label: '${_prefs.subtitleShadowAngle.round()}°',
+          onChanged: (v) => _apply(() => _prefs.setSubtitleShadowAngle(v)),
+        ),
+        _SheetSectionHeader('Jarak Bayangan'),
+        _SliderRow(
+          value: _prefs.subtitleShadowDistance,
+          min: 0,
+          max: 20,
+          divisions: 40,
+          label: '${_prefs.subtitleShadowDistance.toStringAsFixed(1)} px',
+          onChanged: (v) => _apply(() => _prefs.setSubtitleShadowDistance(v)),
+        ),
+        _SheetSectionHeader('Ukuran Bayangan'),
+        _SliderRow(
+          value: _prefs.subtitleShadowBlur,
+          min: 0,
+          max: 20,
+          divisions: 40,
+          label: '${_prefs.subtitleShadowBlur.toStringAsFixed(1)} px',
+          onChanged: (v) => _apply(() => _prefs.setSubtitleShadowBlur(v)),
+        ),
+        _SheetSectionHeader('Warna Bayangan'),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+          child: Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              for (final hex in _colorHexes)
+                _ColorSwatch(
+                  color: _colorFromHex(hex),
+                  label: _subtitleColourLabel(context.l10n, hex),
+                  active: _prefs.subtitleShadowColorHex.toUpperCase() == hex,
+                  onTap: () => _apply(() => _prefs.setSubtitleShadowColorHex(hex)),
+                ),
+            ],
+          ),
+        ),
+        _SheetSectionHeader(context.l10n.positionLabel),
+        _SliderRow(
+          value: _prefs.subtitlePosition.toDouble(),
+          min: 0,
+          max: 100,
+          divisions: 20,
+          label: _prefs.subtitlePosition >= 50
+              ? context.l10n.positionBottom
+              : context.l10n.positionTop,
+          onChanged: (v) => _apply(() => _prefs.setSubtitlePosition(v.round())),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+          child: OutlinedButton.icon(
+            onPressed: _resetToDefault,
+            icon: const Icon(Icons.restart_alt_rounded, size: 19),
+            label: Text(context.l10n.resetToDefault),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textPrimary,
+              side: BorderSide(color: AppColors.hairline),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    Widget page(Widget child) => ListView(
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
+      children: [child],
+    );
+
+    return FractionallySizedBox(
+      heightFactor: 0.94,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.surface2,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                context.l10n.theQuickBrownFox,
-                textAlign: TextAlign.center,
-                style: buildSubtitleTextStyle(_prefs, fontSize: 22.0 * size),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 8, 4),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(context.l10n.subtitleStyle, style: AppText.headline)),
+                    IconButton(
+                      tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
-              children: [
-                _SheetSectionHeader(context.l10n.font),
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: h * 0.28),
-                  child: ListView(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    children: [
-                      for (final f in kBundledSubtitleFonts)
-                        _SheetRow(
-                          label: f.isEmpty ? context.l10n.defaultLabel : f,
-                          subtitle: _downloading.contains(f)
-                              ? context.l10n.downloading
-                              : ((_fontAvailable[f] ?? true)
-                                    ? null
-                                    : context.l10n.tapToDownloadFont),
-                          loading: _downloading.contains(f),
-                          active: font == f,
-                          onTap: () => _pickFont(f),
-                        ),
-                      // The user's own fonts. Always local, so they skip the
-                      // download/availability dance entirely.
-                      for (final f in _customFonts.keys)
-                        _SheetRow(
-                          label: f,
-                          active: font == f,
-                          onTap: () => _pickFont(f),
-                          onRemove: () => _removeCustomFont(f),
-                        ),
-                      _SheetRow(
-                        label: context.l10n.addFont,
-                        icon: Icons.upload_file,
-                        active: false,
-                        onTap: _addCustomFont,
+              Container(
+                margin: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+                height: 76,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFF33405E), Color(0xFF0E121B)],
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    context.l10n.theQuickBrownFox,
+                    textAlign: TextAlign.center,
+                    style: buildSubtitleTextStyle(_prefs, fontSize: 22.0 * size),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: portrait
+                    ? PageView(
+                        children: [
+                          page(typographyCard),
+                          page(colorsCard),
+                          page(miscellaneousCard),
+                        ],
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        children: [typographyCard, colorsCard, miscellaneousCard],
                       ),
-                    ],
-                  ),
-                ),
-                _SheetSectionHeader(context.l10n.textColour),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      for (final hex in _colorHexes)
-                        _ColorSwatch(
-                          color: _colorFromHex(hex),
-                          label: _subtitleColourLabel(context.l10n, hex),
-                          active: colorHex == hex,
-                          onTap: () =>
-                              _apply(() => _prefs.setSubtitleColorHex(hex)),
-                        ),
-                    ],
-                  ),
-                ),
-                _SheetSectionHeader(context.l10n.textOpacity),
-                _SliderRow(
-                  value: _prefs.subtitleTextOpacity,
-                  min: 0.1,
-                  max: 1,
-                  divisions: 9,
-                  label: '${(_prefs.subtitleTextOpacity * 100).round()}%',
-                  onChanged: (v) =>
-                      _apply(() => _prefs.setSubtitleTextOpacity(v)),
-                ),
-                _SheetSectionHeader('Ketebalan Font'),
-                _SliderRow(
-                  value: _prefs.subtitleFontWeight.toDouble(),
-                  min: 100,
-                  max: 900,
-                  divisions: 8,
-                  label: _prefs.subtitleFontWeight.toString(),
-                  onChanged: (v) => _apply(
-                    () => _prefs.setSubtitleFontWeight(v.round()),
-                  ),
-                ),
-                _SheetSectionHeader(context.l10n.outlineStyle),
-                // Subtitles that carry their own styling (.ass signs, karaoke)
-                // keep it while styled subtitles are on — that is the whole
-                // point of that switch — so say so here rather than let this
-                // sheet look broken for those tracks.
-                if (_prefs.styledSubtitles)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
-                    child: Text(
-                      context.l10n.ownStylingKept,
-                      style: AppText.caption.copyWith(
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                  ),
-                for (final (id, _) in kSubtitleOutlineTypes)
-                  _SheetRow(
-                    label: _subtitleOutlineLabel(context.l10n, id),
-                    active: _prefs.subtitleOutlineType == id,
-                    onTap: () =>
-                        _apply(() => _prefs.setSubtitleOutlineType(id)),
-                  ),
-                _SheetSectionHeader(context.l10n.outlineColour),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      for (final hex in _colorHexes)
-                        _ColorSwatch(
-                          color: _colorFromHex(hex),
-                          label: _subtitleColourLabel(context.l10n, hex),
-                          active:
-                              _prefs.subtitleOutlineColorHex.toUpperCase() ==
-                              hex,
-                          onTap: () => _apply(
-                            () => _prefs.setSubtitleOutlineColorHex(hex),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                _SheetSectionHeader(context.l10n.outlineWidth),
-                _SliderRow(
-                  value: _prefs.subtitleOutlineWidth,
-                  min: 0,
-                  max: 8,
-                  divisions: 16,
-                  label: _prefs.subtitleOutlineWidth.toStringAsFixed(1),
-                  onChanged: (v) =>
-                      _apply(() => _prefs.setSubtitleOutlineWidth(v)),
-                ),
-                _SheetSectionHeader('Sudut Bayangan'),
-                _SliderRow(
-                  value: _prefs.subtitleShadowAngle,
-                  min: 0,
-                  max: 360,
-                  divisions: 36,
-                  label: '${_prefs.subtitleShadowAngle.round()}°',
-                  onChanged: (v) => _apply(
-                    () => _prefs.setSubtitleShadowAngle(v),
-                  ),
-                ),
-                _SheetSectionHeader('Jarak Bayangan'),
-                _SliderRow(
-                  value: _prefs.subtitleShadowDistance,
-                  min: 0,
-                  max: 20,
-                  divisions: 40,
-                  label: '${_prefs.subtitleShadowDistance.toStringAsFixed(1)} px',
-                  onChanged: (v) => _apply(
-                    () => _prefs.setSubtitleShadowDistance(v),
-                  ),
-                ),
-                _SheetSectionHeader('Ukuran Bayangan'),
-                _SliderRow(
-                  value: _prefs.subtitleShadowBlur,
-                  min: 0,
-                  max: 20,
-                  divisions: 40,
-                  label: '${_prefs.subtitleShadowBlur.toStringAsFixed(1)} px',
-                  onChanged: (v) => _apply(
-                    () => _prefs.setSubtitleShadowBlur(v),
-                  ),
-                ),
-                _SheetSectionHeader('Warna Bayangan'),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                  child: Wrap(
-                    spacing: 12,
-                    children: [
-                      for (final hex in _colorHexes)
-                        _ColorSwatch(
-                          color: _colorFromHex(hex),
-                          label: _subtitleColourLabel(context.l10n, hex),
-                          active: _prefs.subtitleShadowColorHex.toUpperCase() == hex,
-                          onTap: () => _apply(
-                            () => _prefs.setSubtitleShadowColorHex(hex),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                _SheetSectionHeader(context.l10n.background),
-                _SliderRow(
-                  value: _prefs.subtitleBgOpacity,
-                  min: 0,
-                  max: 1,
-                  divisions: 10,
-                  label: '${(_prefs.subtitleBgOpacity * 100).round()}%',
-                  onChanged: (v) =>
-                      _apply(() => _prefs.setSubtitleBgOpacity(v)),
-                ),
-                _SheetSectionHeader(context.l10n.positionLabel),
-                _SliderRow(
-                  value: _prefs.subtitlePosition.toDouble(),
-                  min: 0,
-                  max: 100,
-                  divisions: 20,
-                  label: _prefs.subtitlePosition >= 50
-                      ? context.l10n.positionBottom
-                      : context.l10n.positionTop,
-                  onChanged: (v) =>
-                      _apply(() => _prefs.setSubtitlePosition(v.round())),
-                ),
-                _SheetSectionHeader(context.l10n.subtitleSize),
-                _SliderRow(
-                  value: size.clamp(0.6, 2.0),
-                  min: 0.6,
-                  max: 2.0,
-                  divisions: 14,
-                  label: '${(size * 100).round()}%',
-                  onChanged: (v) => _apply(() => _prefs.setSubtitleScale(v)),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                  child: OutlinedButton.icon(
-                    onPressed: _resetToDefault,
-                    icon: const Icon(Icons.restart_alt_rounded, size: 19),
-                    label: Text(context.l10n.resetToDefault),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimary,
-                      side: BorderSide(color: AppColors.hairline),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
