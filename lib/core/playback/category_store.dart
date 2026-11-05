@@ -19,15 +19,11 @@ class ListCategory {
     required this.name,
     required this.position,
     this.kind,
-    this.parentId,
-    this.description = '',
   });
 
   final String id;
   final String name;
   final int position;
-  final String? parentId;
-  final String description;
 
   /// Which mode this was made in ([ContentMode.name]), or null for the ones
   /// created before categories remembered. A kind means the category belongs
@@ -46,8 +42,6 @@ class ListCategory {
     'name': name,
     'position': position,
     if (kind != null) 'kind': kind,
-    'parentId': parentId,
-    'description': description,
   };
 
   static ListCategory? fromMap(Object? raw) {
@@ -63,8 +57,6 @@ class ListCategory {
       name: name,
       position: (raw['position'] as num?)?.toInt() ?? 0,
       kind: kind is String && kind.isNotEmpty ? kind : null,
-      parentId: (raw['parentId'] ?? raw['parent_id']) is String ? (raw['parentId'] ?? raw['parent_id']) as String : null,
-      description: raw['description'] is String ? raw['description'] as String : '',
     );
   }
 }
@@ -275,12 +267,12 @@ class CategoryStore {
   /// Creates a category and returns it, or null when [name] is blank or already
   /// taken (compared case-insensitively — two categories called "gym" and "Gym"
   /// would be indistinguishable on screen).
-  Future<ListCategory?> create(String name, {String? kind, String? parentId, String description = ''}) async {
+  Future<ListCategory?> create(String name, {String? kind}) async {
     final trimmed = name.trim();
     if (trimmed.isEmpty) return null;
     final profileId = _profileId;
     final cats = _allFor(profileId);
-    if (cats.any((c) => c.parentId == parentId && c.name.toLowerCase() == trimmed.toLowerCase())) {
+    if (cats.any((c) => c.name.toLowerCase() == trimmed.toLowerCase())) {
       return null;
     }
     final cat = ListCategory(
@@ -290,8 +282,6 @@ class CategoryStore {
       name: trimmed,
       position: cats.isEmpty ? 0 : cats.last.position + 1,
       kind: kind,
-      parentId: parentId,
-      description: description,
     );
     await _writeAll([...cats, cat], profileId);
     _push(
@@ -301,8 +291,6 @@ class CategoryStore {
         if (profileId != kDefaultProfileId) 'profile_id': profileId,
         'name': cat.name,
         'position': cat.position,
-        'parent_id': cat.parentId,
-        'description': cat.description,
       }),
     );
     return cat;
@@ -323,7 +311,7 @@ class CategoryStore {
     await _writeAll([
       for (final c in cats)
         if (c.id == id)
-          ListCategory(id: c.id, name: trimmed, position: c.position, kind: c.kind, parentId: c.parentId, description: c.description)
+          ListCategory(id: c.id, name: trimmed, position: c.position, kind: c.kind)
         else
           c,
     ], profileId);
@@ -334,32 +322,9 @@ class CategoryStore {
         if (profileId != kDefaultProfileId) 'profile_id': profileId,
         'name': trimmed,
         'position': cats.firstWhere((c) => c.id == id).position,
-        'parent_id': cats.firstWhere((c) => c.id == id).parentId,
-        'description': cats.firstWhere((c) => c.id == id).description,
       }),
     );
     return true;
-  }
-
-  Future<void> updateDescription(String id, String description) async {
-    final profileId = _profileId;
-    final cats = _allFor(profileId);
-    if (!cats.any((c) => c.id == id)) return;
-    final updated = [
-      for (final c in cats)
-        if (c.id == id)
-          ListCategory(id: c.id, name: c.name, position: c.position, kind: c.kind, parentId: c.parentId, description: description)
-        else
-          c,
-    ];
-    await _writeAll(updated, profileId);
-    final c = updated.firstWhere((x) => x.id == id);
-    _push((r, uid) => r.upsertCategory({
-      'id': c.id, 'user_key': uid,
-      if (profileId != kDefaultProfileId) 'profile_id': profileId,
-      'name': c.name, 'position': c.position,
-      'parent_id': c.parentId, 'description': c.description,
-    }));
   }
 
   /// Removes the category and every assignment to it. Titles are untouched —
@@ -368,15 +333,6 @@ class CategoryStore {
     final profileId = _profileId;
     final allCats = _allFor(profileId);
     final removed = <String>{id};
-    var changed = true;
-    while (changed) {
-      changed = false;
-      for (final c in allCats) {
-        if (c.parentId != null && removed.contains(c.parentId) && removed.add(c.id)) {
-          changed = true;
-        }
-      }
-    }
     await _writeAll(allCats.where((c) => !removed.contains(c.id)).toList(), profileId);
     for (final key in _box.keys.toList()) {
       if (!profileOwnsKey(key, profileId) || key == _categoriesKey(profileId)) {
@@ -408,13 +364,13 @@ class CategoryStore {
     for (final id in orderedIds) {
       final c = byId.remove(id);
       if (c != null) {
-        out.add(ListCategory(id: c.id, name: c.name, position: i++, kind: c.kind, parentId: c.parentId, description: c.description));
+        out.add(ListCategory(id: c.id, name: c.name, position: i++, kind: c.kind));
       }
     }
     // Anything not named keeps its relative order at the end, so a stale list
     // can never silently drop a category.
     for (final c in byId.values) {
-      out.add(ListCategory(id: c.id, name: c.name, position: i++, kind: c.kind, parentId: c.parentId, description: c.description));
+      out.add(ListCategory(id: c.id, name: c.name, position: i++, kind: c.kind));
     }
     await _writeAll(out, profileId);
     for (final c in out) {
@@ -425,8 +381,6 @@ class CategoryStore {
           if (profileId != kDefaultProfileId) 'profile_id': profileId,
           'name': c.name,
           'position': c.position,
-          'parent_id': c.parentId,
-          'description': c.description,
         }),
       );
     }
@@ -527,8 +481,6 @@ class CategoryStore {
           id: id,
           name: name,
           position: (row['position'] as num?)?.toInt() ?? 0,
-          parentId: row['parent_id'] is String ? row['parent_id'] as String : null,
-          description: row['description'] is String ? row['description'] as String : '',
         ),
       );
     }
@@ -620,8 +572,7 @@ class CategoryStore {
     for (var i = 0; i < local.length; i++) {
       if (local[i].id != cats[i].id || local[i].name != cats[i].name ||
           local[i].position != cats[i].position ||
-          local[i].parentId != cats[i].parentId ||
-          local[i].description != cats[i].description) {
+          ) {
         return false;
       }
     }
