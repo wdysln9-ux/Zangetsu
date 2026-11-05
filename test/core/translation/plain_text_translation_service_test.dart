@@ -148,4 +148,51 @@ void main() {
       throwsA(isA<DioException>()),
     );
   });
+
+  test('reads detected source language from Google response', () {
+    expect(
+      PlainTextTranslationService.detectedSourceLanguage(
+        '[[["Halo","Hello",null,null,3]],null,"en"]',
+      ),
+      'en',
+    );
+    expect(
+      PlainTextTranslationService.detectedSourceLanguage(
+        '[[["مرحبا","مرحبا",null,null,3]],null,"ar"]',
+      ),
+      'ar',
+    );
+    expect(
+      PlainTextTranslationService.detectedSourceLanguage('<html>blocked</html>'),
+      isNull,
+    );
+  });
+
+  test('only translates when detected source is English', () async {
+    final english = PlainTextTranslationService(
+      dio: _dioRespondingWith('[[["Halo","Hello",null,null,3]],null,"en"]'),
+    );
+    expect(
+      await english.translateIfSourceLanguage(
+        'Hello',
+        sourceLanguage: 'auto',
+        targetLanguage: 'id',
+        expectedSourceLanguage: 'en',
+      ),
+      'Halo',
+    );
+
+    final arabic = PlainTextTranslationService(
+      dio: _dioRespondingWith('[[["مرحبا","مرحبا",null,null,3]],null,"ar"]'),
+    );
+    expect(
+      await arabic.translateIfSourceLanguage(
+        'مرحبا',
+        sourceLanguage: 'auto',
+        targetLanguage: 'id',
+        expectedSourceLanguage: 'en',
+      ),
+      isNull,
+    );
+  });
 }
