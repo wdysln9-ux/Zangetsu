@@ -875,8 +875,11 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-          child: Row(
-            children: [
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               IconButton.filledTonal(
                 tooltip: 'Tebal',
                 onPressed: () => _apply(() => _prefs.setSubtitleFontWeight(
@@ -919,13 +922,14 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
                     size: 23,
                   ),
                 ),
-              const Spacer(),
+              const SizedBox(width: 4),
               TextButton.icon(
                 onPressed: _resetTypography,
                 icon: const Icon(Icons.format_clear_rounded, size: 19),
                 label: const Text('Reset'),
               ),
-            ],
+              ],
+            ),
           ),
         ),
         Padding(
@@ -1110,6 +1114,7 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
             max: 255,
             divisions: 255,
             label: colorChannels[item.$2].toString(),
+            activeColor: item.$3,
             onChanged: (v) => setColorChannel(item.$2, v),
           ),
       ],
@@ -1330,7 +1335,9 @@ class _SliderRow extends StatelessWidget {
     required this.divisions,
     required this.label,
     required this.onChanged,
+    this.activeColor,
   });
+  final Color? activeColor;
   final double value;
   final double min;
   final double max;
@@ -1361,8 +1368,8 @@ class _SliderRow extends StatelessWidget {
           Expanded(
             child: SliderTheme(
               data: SliderTheme.of(context).copyWith(
-                activeTrackColor: AppColors.accent,
-                thumbColor: AppColors.accent,
+                activeTrackColor: activeColor ?? AppColors.accent,
+                thumbColor: activeColor ?? AppColors.accent,
                 inactiveTrackColor: AppColors.surface2,
               ),
               child: Slider(
