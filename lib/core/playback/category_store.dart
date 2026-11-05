@@ -570,9 +570,9 @@ class CategoryStore {
     final local = _allFor(profileId);
     if (local.length != cats.length) return false;
     for (var i = 0; i < local.length; i++) {
-      if (local[i].id != cats[i].id || local[i].name != cats[i].name ||
-          local[i].position != cats[i].position ||
-          ) {
+      if (local[i].id != cats[i].id ||
+          local[i].name != cats[i].name ||
+          local[i].position != cats[i].position) {
         return false;
       }
     }
