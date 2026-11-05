@@ -108,7 +108,7 @@ TextStyle buildSubtitleTextStyle(PlaybackPrefs p, {required double fontSize}) {
     height: 1.4,
     fontSize: fontSize,
     fontFamily: p.subtitleFont.isEmpty ? null : p.subtitleFont,
-    fontWeight: FontWeight.values[(p.subtitleFontWeight ~/ 100).clamp(1, 9) - 1],
+    fontWeight: FontWeight.values[(p.subtitleFontWeight ~/ 100).clamp(1, 9).toInt() - 1],
     fontStyle: p.subtitleItalic ? FontStyle.italic : FontStyle.normal,
     color: parseSubtitleHex(p.subtitleColorHex, opacity: p.subtitleTextOpacity),
     backgroundColor:

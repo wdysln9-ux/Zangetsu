@@ -1027,14 +1027,14 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
     };
     Future<void> setColorChannel(int channel, double value) async {
       final raw = selectedHex().replaceFirst('#', '').toUpperCase();
-      final normalized = raw.length == 8 ? raw : '${raw}FF';
+      final normalized = raw.length == 8 ? raw : raw.length == 6 ? '${raw}FF' : 'FFFFFFFF';
       final parts = [
         int.parse(normalized.substring(0, 2), radix: 16),
         int.parse(normalized.substring(2, 4), radix: 16),
         int.parse(normalized.substring(4, 6), radix: 16),
         int.parse(normalized.substring(6, 8), radix: 16),
       ];
-      parts[channel] = value.round().clamp(0, 255);
+      parts[channel] = value.round().clamp(0, 255).toInt();
       final hex = '#${parts.map((v) => v.toRadixString(16).padLeft(2, '0').toUpperCase()).join()}';
       await _apply(() async {
         switch (_selectedColor) {
@@ -1050,7 +1050,8 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
       });
     }
 
-    final currentHex = selectedHex().replaceFirst('#', '').toUpperCase();
+    final rawCurrentHex = selectedHex().replaceFirst('#', '').toUpperCase();
+    final currentHex = rawCurrentHex.length == 8 ? rawCurrentHex : rawCurrentHex.length == 6 ? '${rawCurrentHex}FF' : 'FFFFFFFF';
     final colorChannels = [
       int.parse(currentHex.substring(0, 2), radix: 16),
       int.parse(currentHex.substring(2, 4), radix: 16),
@@ -1261,6 +1262,7 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
     final a = h.substring(6, 8);
     return Color(int.parse('$a$rgb', radix: 16));
   }
+}
 
 /// A circular colour swatch with a label, accent-ringed when active.
 class _ColorSwatch extends StatelessWidget {
