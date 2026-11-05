@@ -29,8 +29,8 @@ TABLE_FIELDS = {
         "user_key", "profile_id", "source_id", "item_id", "title", "cover",
         "cover_headers", "url", "type", "status", "added_at",
     ),
-    "list_categories": ("id", "user_key", "name", "position", "created_at", "parent_id", "description"),
-    "profile_list_categories": ("user_key", "profile_id", "id", "name", "position", "parent_id", "description"),
+    "list_categories": ("id", "user_key", "name", "position", "created_at"),
+    "profile_list_categories": ("user_key", "profile_id", "id", "name", "position"),
     "mylist_categories": ("user_key", "source_id", "item_id", "category_id"),
     "profile_mylist_categories": (
         "user_key", "profile_id", "source_id", "item_id", "category_id"
