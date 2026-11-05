@@ -10,6 +10,7 @@ import '../../core/zmode/zmode_module.dart';
 import '../../core/zmode/zmode_ids.dart';
 import '../../core/zmode/metadata_filters.dart';
 import '../../core/app_mode.dart';
+import '../../core/anilist/anilist_service.dart';
 import '../../core/di/injector.dart';
 import '../../core/mode/content_mode.dart';
 import '../../core/mode/content_mode_cubit.dart';
@@ -287,6 +288,10 @@ class _SearchViewState extends State<_SearchView>
   final _myList = sl<MyListStore>();
   final _history = sl<SearchHistory>();
   final _searchPrefs = sl<SearchPrefs>();
+  bool _hideMyAnime = false;
+  bool _loadingMyAnime = false;
+  Set<int> _myAniListAnimeIds = {};
+  Set<int> _myAniListMalIds = {};
 
   /// Owns the ecosystem [TabBar]'s controller — see [_ecoTabControllerFor].
   TabController? _ecoTabController;
@@ -483,6 +488,80 @@ class _SearchViewState extends State<_SearchView>
       ZKind.manga => context.l10n.searchManga,
       ZKind.novel => context.l10n.searchNovels,
     };
+  }
+
+  Future<void> _toggleHideMyAnime() async {
+    if (_hideMyAnime) {
+      setState(() => _hideMyAnime = false);
+      return;
+    }
+    final aniList = sl<AniListService>();
+    if (!aniList.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hubungkan akun AniList untuk memakai Hide My Anime.')),
+      );
+      return;
+    }
+    setState(() => _loadingMyAnime = true);
+    try {
+      final entries = await aniList.fetchList();
+      if (!mounted) return;
+      final anime = entries.where((e) => e.item.type == ProviderType.anime);
+      setState(() {
+        _myAniListAnimeIds = {
+          for (final e in anime)
+            if (e.item.anilistId != null) e.item.anilistId!,
+        };
+        _myAniListMalIds = {
+          for (final e in anime)
+            if (e.item.malId != null) e.item.malId!,
+        };
+        _hideMyAnime = true;
+        _loadingMyAnime = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingMyAnime = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Daftar AniList gagal dimuat. Coba lagi.')),
+      );
+    }
+  }
+
+  Widget _hideMyAnimeToggle() {
+    final active = _hideMyAnime;
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 8),
+      child: GestureDetector(
+        onTap: _loadingMyAnime ? null : _toggleHideMyAnime,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(
+            color: active ? AppColors.accent.withValues(alpha: 0.16) : AppColors.surface,
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: active ? AppColors.accent : AppColors.hairline),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_loadingMyAnime)
+                const SizedBox(width: 11, height: 11, child: CircularProgressIndicator(strokeWidth: 1.5))
+              else
+                Icon(Icons.visibility_off_outlined, size: 13, color: active ? AppColors.accent : AppColors.textSecondary),
+              const SizedBox(width: 5),
+              Text(
+                'Hide My Anime',
+                style: AppText.caption.copyWith(
+                  fontSize: 10.5,
+                  color: active ? AppColors.accent : AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// The 18+ toggle. Visible only once Settings → Privacy allows it, and the
@@ -1143,6 +1222,7 @@ class _SearchViewState extends State<_SearchView>
             // Adult is not a filter-sheet row: it is a mode you flip while
             // looking at results, so it sits in the open ahead of them rather
             // than tucked in beside the icons. Only when Privacy allows it.
+            if (widget.scope == SearchScope.library) _hideMyAnimeToggle(),
             if (widget.scope == SearchScope.library &&
                 sl<PlaybackPrefs>().adultMetadata &&
                 (!sl.isRegistered<ViewerProfileStore>() ||
@@ -1640,10 +1720,23 @@ class _SearchViewState extends State<_SearchView>
 
   // ── Results body (grouped per source, layout-aware) ─────────────────────────
   Widget _resultsBody(
-    SearchState state,
+    SearchState rawState,
     double cellW,
     List<({String id, String name})> modeSources,
   ) {
+    final state = _hideMyAnime
+        ? rawState.copyWith(
+            groups: rawState.groups.map((group) => group.withItems(
+              group.items.where((item) {
+                final byAniList = item.anilistId != null &&
+                    _myAniListAnimeIds.contains(item.anilistId);
+                final byMal = item.malId != null &&
+                    _myAniListMalIds.contains(item.malId);
+                return !byAniList && !byMal;
+              }).toList(growable: false),
+            )).toList(growable: false),
+          )
+        : rawState;
     final groups = state.sortedVisibleGroups;
 
     // Sources still loading: those switched on for search that haven't
