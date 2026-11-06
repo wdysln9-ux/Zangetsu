@@ -602,12 +602,14 @@ class _Comment extends StatelessWidget {
     this.depth = 0,
     this.rawMode = false,
     this.isLast = false,
+    this.isThread = false,
   });
 
   final Map<String, dynamic> data;
   final int depth;
   final bool rawMode;
   final bool isLast;
+  final bool isThread;
 
   @override
   Widget build(BuildContext context) {
@@ -690,6 +692,7 @@ class _Comment extends StatelessWidget {
                                 commentId: id,
                                 count: (data['likeCount'] as num?)?.toInt() ?? 0,
                                 initiallyLiked: data['isLiked'] == true,
+                                isThread: isThread,
                               ),
                               const SizedBox(width: 16),
                               const Text(
