@@ -1,0 +1,415 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:get_it/get_it.dart';
+import 'package:hive/hive.dart';
+import 'package:watch_app/core/anilist/anilist_service.dart';
+import 'package:watch_app/core/app_mode.dart';
+import 'package:watch_app/core/appwrite/appwrite_service.dart';
+import 'package:watch_app/core/download/download_prefs.dart';
+import 'package:watch_app/core/playback/playback_prefs.dart';
+import 'package:watch_app/core/playback/search_prefs.dart';
+import 'package:watch_app/core/profiles/viewer_profile.dart';
+import 'package:watch_app/core/reading/manga_translation/manga_page_translation_models.dart';
+import 'package:watch_app/core/reading/reader_prefs.dart';
+import 'package:watch_app/core/torrent/torrent_prefs.dart';
+import 'package:watch_app/core/provider/provider_registry.dart';
+import 'package:watch_app/core/state/active_source_cubit.dart';
+import 'package:watch_app/core/supabase/supabase_service.dart';
+import 'package:watch_app/core/locale/locale_controller.dart';
+import 'package:watch_app/core/theme/theme_controller.dart';
+import 'package:watch_app/core/tracker/mal_service.dart';
+import 'package:watch_app/core/tracker/simkl_service.dart';
+import 'package:watch_app/features/auth/auth_cubit.dart';
+import 'package:watch_app/features/auth/migration_bridge.dart';
+import 'package:watch_app/features/profiles/viewer_profile_home_screen.dart';
+import 'package:watch_app/features/settings/settings_screen.dart';
+import 'package:watch_app/l10n/app_localizations.dart';
+
+MigrationBridge _fakeBridge() => MigrationBridge(
+  invoke: (_, __) async => const {'ok': false},
+  signInPassword: (_, __) async => false,
+  verifyOtp: (_, __) async => false,
+);
+
+// ── Minimal stubs (mirrors settings_screen_tv_test.dart / AppMode wiring) ────
+
+class _StubSearchPrefs extends SearchPrefs {
+  @override
+  SearchLayout get layout => SearchLayout.vertical;
+}
+
+class _StubProviderRegistry implements ProviderRegistry {
+  @override
+  noSuchMethod(Invocation i) => super.noSuchMethod(i);
+
+  @override
+  List<ProviderRegistryEntry> getAll() => const [];
+
+  @override
+  ProviderRegistryEntry? entryFor(String sourceId) => null;
+
+  @override
+  Set<String> nsfwSourceIds() => const {};
+}
+
+class _StubAniList implements AniListService {
+  @override
+  bool get isConnected => false;
+  @override
+  noSuchMethod(Invocation i) => super.noSuchMethod(i);
+}
+
+class _StubMal implements MalService {
+  @override
+  bool get isConnected => false;
+  @override
+  noSuchMethod(Invocation i) => super.noSuchMethod(i);
+}
+
+class _StubSimkl implements SimklService {
+  @override
+  bool get isConnected => false;
+  @override
+  noSuchMethod(Invocation i) => super.noSuchMethod(i);
+}
+
+class _MangaTranslationReaderPrefs extends ReaderPrefs {
+  String sourceLanguage = 'ja';
+  String targetLanguage = 'en';
+  MangaTranslationEngine engine = MangaTranslationEngine.online;
+  MangaOnlineTranslationProvider provider =
+      MangaOnlineTranslationProvider.google;
+
+  @override
+  String get mangaTranslationSourceLanguage => sourceLanguage;
+
+  @override
+  Future<void> setMangaTranslationSourceLanguage(String value) async {
+    sourceLanguage = value;
+  }
+
+  @override
+  String get mangaTranslationTargetLanguage => targetLanguage;
+
+  @override
+  Future<void> setMangaTranslationTargetLanguage(String value) async {
+    targetLanguage = value;
+  }
+
+  @override
+  MangaTranslationEngine get mangaTranslationEngine => engine;
+
+  @override
+  Future<void> setMangaTranslationEngine(MangaTranslationEngine value) async {
+    engine = value;
+  }
+
+  @override
+  MangaOnlineTranslationProvider get mangaOnlineTranslationProvider => provider;
+
+  @override
+  Future<void> setMangaOnlineTranslationProvider(
+    MangaOnlineTranslationProvider value,
+  ) async {
+    provider = value;
+  }
+}
+
+void _mockPathProvider(WidgetTester tester) {
+  const channel = MethodChannel('plugins.flutter.io/path_provider');
+  tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+    channel,
+    (call) async => '/tmp/test',
+  );
+}
+
+void main() {
+  late ActiveSourceCubit activeCubit;
+  late Directory _hiveDir;
+
+  setUp(() async {
+    _hiveDir = await Directory.systemTemp.createTemp();
+    Hive.init(_hiveDir.path);
+    await Hive.openBox(DownloadPrefs.boxName);
+    await Hive.openBox(TorrentPrefs.boxName);
+    await Hive.openBox(ThemeController.boxName);
+    await Hive.openBox(LocaleController.boxName);
+    await LocaleController.init();
+    await Hive.openBox(PlaybackPrefs.boxName);
+    await ReaderPrefs.init();
+    await ViewerProfileStore.init();
+    final sl = GetIt.instance;
+    sl
+      ..registerSingleton<AppMode>(AppMode(isTv: false))
+      ..registerSingleton<SearchPrefs>(_StubSearchPrefs())
+      ..registerSingleton<ProviderRegistry>(_StubProviderRegistry())
+      ..registerSingleton<AniListService>(_StubAniList())
+      ..registerSingleton<MalService>(_StubMal())
+      ..registerSingleton<SimklService>(_StubSimkl())
+      ..registerSingleton<PlaybackPrefs>(PlaybackPrefs())
+      ..registerSingleton<DownloadPrefs>(DownloadPrefs())
+      ..registerSingleton<TorrentPrefs>(TorrentPrefs())
+      ..registerSingleton<ReaderPrefs>(ReaderPrefs());
+    sl.registerSingleton<ViewerProfileStore>(ViewerProfileStore());
+    activeCubit = ActiveSourceCubit();
+  });
+
+  tearDown(() async {
+    await activeCubit.close();
+    await GetIt.instance.reset();
+    await Hive.deleteFromDisk();
+    if (_hiveDir.existsSync()) await _hiveDir.delete(recursive: true);
+  });
+
+  Future<void> _pumpSettings(
+    WidgetTester tester, {
+    bool showBackButton = false,
+    bool openFromProfile = false,
+  }) async {
+    _mockPathProvider(tester);
+    await tester.binding.setSurfaceSize(const Size(1000, 2200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final authCubit = AuthCubit(
+      SupabaseService(),
+      AppwriteService(),
+      _fakeBridge(),
+    );
+    addTearDown(authCubit.close);
+    GetIt.instance.registerSingleton<AuthCubit>(authCubit);
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthCubit>.value(value: authCubit),
+          BlocProvider<ActiveSourceCubit>.value(value: activeCubit),
+        ],
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: openFromProfile
+              ? const ViewerProfileHomeScreen()
+              : SettingsScreen(showBackButton: showBackButton),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets(
+    'top level shows one combined profile row and one row per section',
+    (tester) async {
+      await _pumpSettings(tester);
+
+      // Each section is now a single drill-down row.
+      for (final section in const [
+        'Account & sync',
+        'Sources',
+        'Playback',
+        'Downloads',
+        'Interface',
+        'Advanced',
+        'About',
+      ]) {
+        expect(
+          find.text(section),
+          findsOneWidget,
+          reason: 'category: $section',
+        );
+      }
+      expect(find.text('Profiles & account'), findsOneWidget);
+      expect(find.text('Watching as Home · Not signed in'), findsOneWidget);
+      expect(find.text('Profiles'), findsNothing);
+      // Notifications is Android-only (its sole entry), so its category is absent
+      // on the non-Android test host.
+      expect(find.text('Notifications'), findsNothing);
+      // The individual settings live INSIDE their section now, not up top.
+      expect(find.text('Providers'), findsNothing);
+      expect(find.text('Storage'), findsNothing);
+      expect(find.text('Backup & Restore'), findsNothing);
+    },
+  );
+
+  testWidgets('route-pushed Settings shows a visible back button', (
+    tester,
+  ) async {
+    await _pumpSettings(tester, openFromProfile: true);
+    await tester.tap(find.byTooltip('Profile menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('App settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppBar), findsOneWidget);
+    expect(find.byIcon(Icons.arrow_back), findsOneWidget);
+  });
+
+  testWidgets(
+    'combined profile row opens viewer manager and keeps sign-in available',
+    (tester) async {
+      await _pumpSettings(tester);
+
+      await tester.tap(find.text('Profiles & account'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Profiles'), findsOneWidget);
+      expect(find.text('Ask who is watching on launch'), findsOneWidget);
+      expect(find.text('Not signed in'), findsOneWidget);
+      expect(find.text('Sign in'), findsOneWidget);
+    },
+  );
+
+  testWidgets('tapping a category drills into its settings', (tester) async {
+    await _pumpSettings(tester);
+
+    await tester.tap(find.text('Sources'));
+    await tester.pumpAndSettle();
+
+    // The Sources section's tiles are now on screen.
+    for (final t in const ['Providers', 'Source health']) {
+      expect(find.text(t), findsOneWidget, reason: 'tile: $t');
+    }
+    expect(find.text('Active source'), findsNothing);
+    // Other sections' rows are gone (we're on the Sources sub-page).
+    expect(find.text('Downloads'), findsNothing);
+    expect(find.text('About'), findsNothing);
+  });
+
+  test(
+    'Android Player is marked experimental in the player settings label',
+    () {
+      final l10n = lookupAppLocalizations(const Locale('en'));
+
+      expect(l10n.androidPlayer, 'Android Player (Experimental)');
+    },
+  );
+
+  testWidgets('Reading section has a Reader entry that opens reader defaults', (
+    tester,
+  ) async {
+    await _pumpSettings(tester);
+
+    await tester.tap(find.text('Reading'));
+    await tester.pumpAndSettle();
+    expect(find.text('Reader'), findsOneWidget);
+
+    await tester.tap(find.text('Reader'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('MANGA'), findsOneWidget);
+    expect(find.text('NOVEL'), findsOneWidget);
+  });
+
+  testWidgets('Manga page translation is configurable in Reader settings', (
+    tester,
+  ) async {
+    final translationPrefs = _MangaTranslationReaderPrefs();
+    GetIt.instance
+      ..unregister<ReaderPrefs>()
+      ..registerSingleton<ReaderPrefs>(translationPrefs);
+
+    const translationChannel = MethodChannel('zangetsu/manga_translation');
+    final methodCalls = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      translationChannel,
+      (call) async {
+        methodCalls.add(call.method);
+        return switch (call.method) {
+          'supportedOcrLanguages' ||
+          'supportedOfflineLanguages' => ['ja', 'en', 'hi'],
+          _ => null,
+        };
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        translationChannel,
+        null,
+      ),
+    );
+
+    await _pumpSettings(tester);
+
+    await tester.tap(find.text('Reading'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reader'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Manga page translation'), findsOneWidget);
+    await tester.tap(find.text('Manga page translation'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Translate page'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('manga-translation-source')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('manga-translation-target')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('manga-translation-submit')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('manga-translation-source')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('manga-language-hi')));
+    await tester.pumpAndSettle();
+    Navigator.of(
+      tester.element(find.byKey(const ValueKey('manga-translation-source'))),
+    ).pop();
+    await tester.pumpAndSettle();
+
+    expect(translationPrefs.mangaTranslationSourceLanguage, 'hi');
+    expect(methodCalls, ['supportedOcrLanguages', 'supportedOfflineLanguages']);
+    expect(methodCalls, isNot(contains('recognize')));
+    expect(methodCalls, isNot(contains('translateTexts')));
+    expect(methodCalls, isNot(contains('downloadModels')));
+  });
+
+  testWidgets('Manga translation appearance opens from Reader settings', (
+    tester,
+  ) async {
+    await _pumpSettings(tester);
+
+    await tester.tap(find.text('Reading'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reader'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Manga translation appearance'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('manga-translation-appearance-preview')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('manga-translation-appearance-size')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('manga-translation-appearance-opacity')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('search cuts across every section (flat filtered list)', (
+    tester,
+  ) async {
+    await _pumpSettings(tester);
+
+    await tester.enterText(find.byType(TextField), 'backup');
+    await tester.pumpAndSettle();
+
+    // The matching tile surfaces regardless of its section…
+    expect(find.text('Backup & Restore'), findsOneWidget);
+    // …and non-matching tiles/categories are filtered out.
+    expect(find.text('Providers'), findsNothing);
+    expect(find.text('Sources'), findsNothing);
+  });
+}

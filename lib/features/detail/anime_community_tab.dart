@@ -242,46 +242,29 @@ class _ReviewPage extends StatelessWidget {
 }
 
 
-/// Threads whose AniList title explicitly references the active episode.
-/// Hidden when AniList has no matching discussion.
+/// Episode discussions are rendered inline as ordinary comments.
 class EpisodeThreadsSection extends StatefulWidget {
   const EpisodeThreadsSection({super.key, required this.showTitle, required this.episodeNumber, this.malId});
   final String showTitle;
   final String episodeNumber;
   final int? malId;
-
   @override
   State<EpisodeThreadsSection> createState() => _EpisodeThreadsSectionState();
 }
 
 class _EpisodeThreadsSectionState extends State<EpisodeThreadsSection> {
   late Future<List<Map<String, dynamic>>> future;
-
   @override
-  void initState() {
-    super.initState();
-    future = _load();
-  }
+  void initState() { super.initState(); future = _load(); }
 
   Future<List<Map<String, dynamic>>> _load() async {
     final api = sl<AniListService>().api;
-    final mediaId = await api.communityMediaId(
-      anilistId: null,
-      malId: widget.malId,
-      title: widget.showTitle,
-    );
+    final mediaId = await api.communityMediaId(anilistId: null, malId: widget.malId, title: widget.showTitle);
     if (mediaId == null) return const [];
-    final parsedNumber = int.tryParse(
-      widget.episodeNumber.trim().replaceFirst(RegExp(r'\.0$'), ''),
-    );
+    final parsedNumber = int.tryParse(widget.episodeNumber.trim().replaceFirst(RegExp(r'\.0$'), ''));
     if (parsedNumber == null) return const [];
     final padded = parsedNumber.toString().padLeft(2, '0');
-    final queries = <String>{
-      'Episode $parsedNumber',
-      'Episode $padded',
-      'Ep $parsedNumber',
-      'Ep $padded',
-    };
+    final queries = <String>{'Episode $parsedNumber', 'Episode $padded', 'Ep $parsedNumber', 'Ep $padded'};
     final found = <int, Map<String, dynamic>>{};
     for (final query in queries) {
       final rows = await api.fetchThreads(mediaId, search: query);
@@ -291,20 +274,19 @@ class _EpisodeThreadsSectionState extends State<EpisodeThreadsSection> {
       }
     }
     final pattern = RegExp(
-      r'(^|[^a-z0-9])(?:episode|ep)\s*0*' +
-          parsedNumber.toString() +
-          r'([^0-9]|$)',
+      r'(^|[^a-z0-9])(?:episode|ep)\s*0*' + parsedNumber.toString() + r'([^0-9]|$)',
       caseSensitive: false,
     );
-    return found.values
-        .where((row) => pattern.hasMatch('${row['title'] ?? ''}'))
-        .toList();
+    return found.values.where((row) => pattern.hasMatch('${row['title'] ?? ''}')).toList();
   }
 
   @override
   Widget build(BuildContext context) => FutureBuilder<List<Map<String, dynamic>>>(
     future: future,
     builder: (context, snapshot) {
+      if (snapshot.connectionState != ConnectionState.done) {
+        return const Padding(padding: EdgeInsets.only(top: 22), child: Center(child: CircularProgressIndicator()));
+      }
       final rows = snapshot.data ?? const [];
       if (rows.isEmpty) return const SizedBox.shrink();
       return Padding(
@@ -312,11 +294,57 @@ class _EpisodeThreadsSectionState extends State<EpisodeThreadsSection> {
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('Diskusi episode', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
           const SizedBox(height: 10),
-          for (final row in rows)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 9),
-              child: _ThreadCard(data: row, anime: widget.showTitle),
-            ),
+          for (final row in rows) _EpisodeThreadInline(data: row),
+        ]),
+      );
+    },
+  );
+}
+
+class _EpisodeThreadInline extends StatefulWidget {
+  const _EpisodeThreadInline({required this.data});
+  final Map<String, dynamic> data;
+  @override
+  State<_EpisodeThreadInline> createState() => _EpisodeThreadInlineState();
+}
+
+class _EpisodeThreadInlineState extends State<_EpisodeThreadInline> {
+  late Future<List<Map<String, dynamic>>> commentsFuture;
+  @override
+  void initState() { super.initState(); commentsFuture = _loadComments(); }
+
+  Future<List<Map<String, dynamic>>> _loadComments() {
+    final id = (widget.data['id'] as num?)?.toInt();
+    if (id == null) return Future.value(const []);
+    return sl<AniListService>().api.fetchThreadComments(id);
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<List<Map<String, dynamic>>>(
+    future: commentsFuture,
+    builder: (context, snapshot) {
+      final thread = widget.data;
+      final title = (thread['title'] ?? '').toString().trim();
+      final body = (thread['body'] ?? '').toString().trim();
+      final postText = [if (title.isNotEmpty) '**$title**', if (body.isNotEmpty) body].join('\n\n');
+      final rootComment = <String, dynamic>{
+        'id': thread['id'],
+        'comment': postText,
+        'user': thread['user'],
+        'createdAt': thread['createdAt'],
+        'likeCount': thread['likeCount'],
+        'isLiked': thread['isLiked'],
+        'childComments': snapshot.data ?? const [],
+      };
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          _Comment(data: rootComment, isThread: true),
+          if (snapshot.connectionState != ConnectionState.done)
+            const Padding(padding: EdgeInsets.only(left: 26, top: 3, bottom: 10), child: LinearProgressIndicator(minHeight: 2)),
+          if (snapshot.hasError)
+            const Padding(padding: EdgeInsets.only(left: 26, bottom: 8),
+              child: Text('Komentar gagal dimuat.', style: TextStyle(color: Color(0xFF96989F), fontSize: 12))),
         ]),
       );
     },

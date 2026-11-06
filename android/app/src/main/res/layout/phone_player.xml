@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/player_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/phone_player_background">
+
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/player_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:surface_type="surface_view"
+        app:resize_mode="fit"
+        app:use_controller="false" />
+
+    <FrameLayout
+        android:id="@+id/controls"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone">
+
+        <View
+            android:id="@+id/top_scrim"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/phone_player_top_scrim_height"
+            android:layout_gravity="top"
+            android:background="@drawable/phone_player_scrim_top" />
+
+        <View
+            android:id="@+id/bottom_scrim"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/phone_player_bottom_scrim_height"
+            android:layout_gravity="bottom"
+            android:background="@drawable/phone_player_scrim_bottom" />
+
+        <LinearLayout
+            android:id="@+id/top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top"
+            android:layout_marginStart="@dimen/phone_player_top_bar_side_margin"
+            android:layout_marginTop="@dimen/phone_player_top_bar_top_margin"
+            android:layout_marginEnd="@dimen/phone_player_top_bar_side_margin"
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="4dp">
+
+            <ImageView
+                android:id="@+id/btn_back"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/phone_player_icon_ripple"
+                android:clickable="true"
+                android:contentDescription="@string/phone_player_desc_back"
+                android:focusable="true"
+                android:padding="13dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/phone_player_back"
+                android:tint="@color/phone_player_on_surface" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
+
+                <TextView
+                    android:id="@+id/title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:textColor="@color/phone_player_on_surface"
+                    android:textSize="18sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/episode_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:ellipsize="end"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:textColor="@color/phone_player_on_surface_variant"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/btn_more"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/phone_player_icon_ripple"
+                android:clickable="true"
+                android:contentDescription="@string/phone_player_desc_more"
+                android:focusable="true"
+                android:padding="13dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/phone_player_more" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/btn_previous"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/phone_player_icon_ripple"
+                android:clickable="true"
+                android:contentDescription="@string/phone_player_desc_previous"
+                android:focusable="true"
+                android:padding="13dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/phone_player_previous"
+                android:tint="@color/phone_player_on_surface" />
+
+            <FrameLayout
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginHorizontal="16dp">
+
+                <ImageView
+                    android:id="@+id/btn_play"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/phone_player_primary_button"
+                    android:contentDescription="@string/phone_player_desc_play"
+                    android:foreground="@drawable/phone_player_primary_ripple"
+                    android:padding="15dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ic_pip_pause"
+                    android:tint="@color/phone_player_on_surface" />
+            </FrameLayout>
+
+            <ImageView
+                android:id="@+id/btn_next"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="@drawable/phone_player_icon_ripple"
+                android:clickable="true"
+                android:contentDescription="@string/phone_player_desc_next"
+                android:focusable="true"
+                android:padding="13dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/phone_player_next"
+                android:tint="@color/phone_player_on_surface" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/bottom_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="@dimen/phone_player_bottom_bar_bottom_margin"
+            android:orientation="vertical"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="4dp">
+
+                <TextView
+                    android:id="@+id/position"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:importantForAccessibility="no"
+                    android:minWidth="48dp"
+                    android:text="0:00"
+                    android:textColor="@color/phone_player_on_surface"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <SeekBar
+                    android:id="@+id/seek"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_marginHorizontal="12dp"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/phone_player_desc_seek"
+                    android:max="1000"
+                    android:progressDrawable="@drawable/phone_player_seek_track"
+                    android:thumb="@drawable/phone_player_seek_thumb" />
+
+                <TextView
+                    android:id="@+id/duration"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:gravity="end"
+                    android:importantForAccessibility="no"
+                    android:minWidth="46dp"
+                    android:text="0:00"
+                    android:textColor="@color/phone_player_on_surface"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <include layout="@layout/phone_player_quick_actions" />
+        </LinearLayout>
+    </FrameLayout>
+    <!-- Buffering indicator: above the controls so it stays visible while the
+         chrome is up. -->
+    <com.spyou.watch_app.PhoneLoadingIndicatorView
+        android:id="@+id/loading"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="center"
+        android:contentDescription="@string/phone_player_desc_loading" />
+
+    <include layout="@layout/phone_player_loading_overlay" />
+
+</FrameLayout>

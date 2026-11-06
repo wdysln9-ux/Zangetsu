@@ -1,0 +1,1329 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../core/di/injector.dart';
+import '../../core/mode/content_mode.dart';
+import '../../core/mode/content_mode_cubit.dart';
+import '../../core/models/media_item.dart';
+import '../../core/playback/playback_prefs.dart';
+import '../../core/profiles/viewer_profile.dart';
+import '../../core/playback/search_history.dart';
+import '../../core/playback/search_scope.dart';
+import '../../core/playback/search_prefs.dart';
+import '../../core/repository/source_repository.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text.dart';
+import '../../l10n/l10n.dart';
+import '../../core/tv/tv_focusable.dart';
+import '../../core/tv/tv_list_focusable.dart';
+import '../../core/tv/tv_poster_tile.dart';
+import '../../core/ui/poster_card.dart';
+import '../../core/tv/tv_shell_tab_scope.dart';
+import '../../core/tv/tv_text_field.dart';
+import '../../core/ui/dock_visibility.dart';
+import '../../core/ui/states.dart';
+import '../../core/zmode/metadata_filters.dart';
+import '../../core/zmode/metadata_repository.dart';
+import '../../core/zmode/genre_catalog.dart';
+import '../../core/zmode/zmode_ids.dart';
+import '../../core/zmode/zmode_module.dart';
+import '../../core/zmode/zmode_prefs.dart';
+import '../detail/detail_screen.dart';
+import 'genres_screen_tv.dart';
+import 'tv_search_input_screen.dart';
+import '../search/bloc/search_bloc.dart';
+import '../search/bloc/search_event.dart';
+import '../search/bloc/search_state.dart';
+import '../search/meta_filter_dialog_tv.dart';
+import '../search/search_meta_filter_helpers.dart';
+
+/// TV Search: D-pad-navigable layout backed by the same [SearchBloc] provided
+/// by the parent [SearchScreen].
+///
+/// Classic keeps the original field and system keyboard. New renders the
+/// compact keyboard, controls and results directly in this destination, so
+/// Back returns to Home without an intermediate Classic screen.
+///
+/// Results render as a 6-column focusable poster grid using [TvPosterTile].
+/// OK on a card opens Detail via the same [DetailScreen.route] the phone uses.
+class SearchScreenTv extends StatefulWidget {
+  const SearchScreenTv({
+    super.key,
+    this.initialQuery,
+    this.history,
+    required this.scope,
+    this.forceMode,
+    this.fixedSourceId,
+    this.fixedSourceName,
+  });
+
+  final String? initialQuery;
+
+  /// Recent search terms. Production [SearchScreen] passes the injector
+  /// singleton; tests pass a stub (or omit it) so they don't need GetIt.
+  final SearchHistory? history;
+
+  /// Library (metadata) vs sources (installed extensions).
+  final SearchScope scope;
+
+  /// Tab-scoped source search from browse-sources; null on the main Search tab.
+  final ContentMode? forceMode;
+
+  /// Pins this screen to Home's selected Source Catalogue source.
+  final String? fixedSourceId;
+  final String? fixedSourceName;
+
+  @override
+  State<SearchScreenTv> createState() => _SearchScreenTvState();
+}
+
+class _SearchScreenTvState extends State<SearchScreenTv> {
+  /// 6 columns fills a 1920-wide TV at ~140 dp card width with comfortable gaps.
+
+  bool get _isLibrary => widget.scope == SearchScope.library;
+  bool get _newSearch =>
+      sl.isRegistered<SearchPrefs>() &&
+      sl<SearchPrefs>().tvSearchStyle == 'new';
+  SearchPrefs? _stylePrefs;
+
+  MetaFilters _metaFilters = const MetaFilters();
+
+  /// Native voice-search bridge (system RecognizerIntent; no plugin, no mic
+  /// permission — the system dialog does the recording).
+  static const _voiceChannel = MethodChannel('zangetsu/voice_search');
+
+  /// Only show the mic when the device actually has a speech recognizer.
+  /// Stays false on any error and on non-Android, so the mic simply never
+  /// appears there — the screen is unchanged.
+  bool _voiceAvailable = false;
+
+  late final TextEditingController _controller;
+
+  /// True while this screen told the shell to stand down on Back (active
+  /// query). Cleared when we return to idle or dispose, so Home's double-back
+  /// and Settings' own intercept are not left stuck.
+  bool _ownsIntercept = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialQuery ?? '');
+    _controller.addListener(_onFieldText);
+    if (sl.isRegistered<SearchPrefs>()) {
+      _stylePrefs = sl<SearchPrefs>();
+      _stylePrefs!.addListener(_onStyleChanged);
+    }
+    ZModePrefs.revision.addListener(_onStreamKind);
+    _checkVoice();
+  }
+
+  /// Rebuilds immediately when the saved Classic/New preference changes.
+  void _onStyleChanged() {
+    if (!mounted) return;
+    _syncShellBackIntercept(context.read<SearchBloc>().state);
+    setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncShellBackIntercept(context.read<SearchBloc>().state);
+  }
+
+  /// Hint / metadata filters follow Anime ↔ Movie/TV. Only rebuild when this
+  /// tab is the active shell page — [TickerMode] stays true for every
+  /// [IndexedStack] child on Android TV, so rebuilding Search while Home is
+  /// visible was freezing the UI for seconds.
+  bool get _isActiveShellTab {
+    final scope = TvShellTabScope.maybeOf(context);
+    if (scope == null) return true; // pushed route, not an idle shell tab
+    return scope.activeIndex == TvShellTab.search;
+  }
+
+  void _onStreamKind() {
+    if (!mounted) return;
+    if (!_isActiveShellTab) return;
+    setState(() {});
+  }
+
+  Future<void> _checkVoice() async {
+    try {
+      final ok = await _voiceChannel.invokeMethod<bool>('isAvailable') ?? false;
+      if (mounted && ok) setState(() => _voiceAvailable = true);
+    } catch (_) {
+      // No native handler / not Android → leave the mic hidden.
+    }
+  }
+
+  /// Open the system voice dialog; on a recognised phrase, fill the field and
+  /// run the search (same path as pressing OK on the keyboard).
+  Future<void> _startVoice() async {
+    try {
+      final text = await _voiceChannel.invokeMethod<String>('listen', {
+        'prompt': context.l10n.speakTheTitle,
+      });
+      if (!mounted || text == null || text.isEmpty) return;
+      _controller.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+      context.read<SearchBloc>().add(SearchRunRequested(text));
+    } catch (_) {
+      // Recogniser cancelled / unavailable — nothing to do.
+    }
+  }
+
+  /// Searches the current catalogue with the same source and genre restrictions.
+  Future<List<MediaItem>> _loadTypingRecommendations(String query) async {
+    if (_isLibrary && sl.isRegistered<MetadataRepository>()) {
+      return sl<MetadataRepository>().tvSearchWithSourceRecovery(
+        query,
+        filters: _metaFilters,
+      );
+    }
+    if (sl.isRegistered<SourceRepository>()) {
+      final result = await sl<SourceRepository>().searchStatus(
+        query,
+        sourceId: widget.fixedSourceId,
+        cache: true,
+      );
+      return result.items;
+    }
+    return const [];
+  }
+
+  void _onFieldText() {
+    if (!mounted) return;
+    _syncShellBackIntercept(context.read<SearchBloc>().state);
+  }
+
+  /// Field text, a running/finished search, or live suggestions — anything
+  /// that is not the idle root (recents / genres).
+  bool _isActiveSearch(SearchState s) =>
+      _controller.text.trim().isNotEmpty ||
+      s.query.trim().isNotEmpty ||
+      s.status != SearchStatus.idle ||
+      s.suggestions.isNotEmpty;
+
+  void _syncShellBackIntercept(SearchState state) {
+    final want = !_newSearch && _isActiveShellTab && _isActiveSearch(state);
+    if (want) {
+      shellBackIntercepted.value = true;
+      _ownsIntercept = true;
+    } else if (_ownsIntercept) {
+      shellBackIntercepted.value = false;
+      _ownsIntercept = false;
+    }
+  }
+
+  /// Back from results / a typed query: stay on Search, show the idle root.
+  void _clearToRoot() {
+    _controller.clear();
+    context.read<SearchBloc>().add(const SearchQueryChanged(''));
+  }
+
+  @override
+  void dispose() {
+    _stylePrefs?.removeListener(_onStyleChanged);
+    ZModePrefs.revision.removeListener(_onStreamKind);
+    _controller.removeListener(_onFieldText);
+    if (_ownsIntercept) {
+      shellBackIntercepted.value = false;
+      _ownsIntercept = false;
+    }
+    _controller.dispose();
+    super.dispose();
+  }
+
+  List<String> _tagsFor(MediaItem m) {
+    // Quality is NOT here — it has its own top-right corner on the card.
+    final t = <String>[];
+    if ((m.dubCount ?? 0) > 0) t.add('DUB');
+    if ((m.subCount ?? 0) > 0 && t.length < 2) t.add('SUB');
+    return t;
+  }
+
+  void _openDetail(MediaItem item) {
+    Navigator.push(context, DetailScreen.route(item));
+  }
+
+  /// Records submitted drafts without navigating away from inline search.
+  Future<void> _recordNewSearch(String query) async {
+    if (!_isLibrary && query.trim().isNotEmpty) {
+      context.read<SearchBloc>().add(SearchRunRequested(query));
+    }
+    await widget.history?.add(query);
+    if (mounted) setState(() {});
+  }
+
+  void _openNewSearchDetail(MediaItem item) {
+    if (!_isLibrary) widget.history?.add(_controller.text);
+    _openDetail(item);
+  }
+
+  Future<void> _openMetaFilters() async {
+    final picked = await pickMetaFilters(
+      context,
+      _metaFilters,
+      useDialog: true,
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _metaFilters = picked);
+    if (!_newSearch) applyMetaFilters(context, _metaFilters);
+  }
+
+  /// Applies a genre directly to New search without opening the Classic page.
+  Future<void> _openNewGenres() async {
+    if (!sl.isRegistered<MetadataRepository>() ||
+        !sl<MetadataRepository>().supportsFilters) {
+      await _openMetaFilters();
+      return;
+    }
+    final kind = sl.isRegistered<ContentModeCubit>()
+        ? browseKindFor(sl<ContentModeCubit>().state, ZModePrefs.streamKind)
+        : ZKind.anime;
+    final genres = GenreCatalog.genresFor(kind);
+    final picked = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(context.l10n.genres),
+        children: [
+          SizedBox(
+            width: 360,
+            height: 300,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              children: [
+                for (final genre in ['', ...genres])
+                  TvFocusable(
+                    waitForKeyUp: true,
+                    autofocus: genre.isEmpty,
+                    onTap: () => Navigator.pop(dialogContext, genre),
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              genre.isEmpty ? context.l10n.clear : genre,
+                            ),
+                          ),
+                          if (_metaFilters.genres.contains(genre))
+                            const Icon(Icons.check, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    if (picked == null || !mounted) return;
+    setState(
+      () => _metaFilters = _metaFilters.copyWith(
+        genres: picked.isEmpty ? [] : [picked],
+      ),
+    );
+  }
+
+  /// Places source, genre, and filter actions beneath the compact keyboard.
+  Widget _newSearchControls() {
+    Widget chip(
+      String id,
+      IconData icon,
+      String label,
+      VoidCallback action, {
+      bool selected = false,
+    }) => TvFocusable(
+      key: ValueKey(id),
+      waitForKeyUp: true,
+      requireKeyDown: true,
+      scale: 1,
+      variant: TvFocusVariant.none,
+      borderRadius: 8,
+      onTap: action,
+      builder: (focused) => AnimatedContainer(
+        duration: Duration(
+          milliseconds: MediaQuery.disableAnimationsOf(context) ? 0 : 110,
+        ),
+        curve: Curves.easeOutCubic,
+        height: 24,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        decoration: BoxDecoration(
+          color: focused || selected ? Colors.white : AppColors.surface2,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: focused || selected
+                    ? Colors.black
+                    : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 7),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: focused || selected
+                      ? Colors.black
+                      : AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!_isLibrary) {
+      if (widget.fixedSourceId != null) {
+        return Text(
+          '${context.l10n.searching} ${widget.fixedSourceName ?? widget.fixedSourceId}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        );
+      }
+      return BlocBuilder<SearchBloc, SearchState>(
+        buildWhen: (a, b) => a.currentSourceOnly != b.currentSourceOnly,
+        builder: (context, state) => Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            chip(
+              'tv-search-scope-all',
+              Icons.travel_explore_rounded,
+              context.l10n.allSources,
+              () => context.read<SearchBloc>().add(
+                const SearchScopeChanged(false),
+              ),
+              selected: !state.currentSourceOnly,
+            ),
+            chip(
+              'tv-search-scope-current',
+              Icons.filter_center_focus_rounded,
+              context.l10n.currentSource,
+              () => context.read<SearchBloc>().add(
+                const SearchScopeChanged(true),
+              ),
+              selected: state.currentSourceOnly,
+            ),
+          ],
+        ),
+      );
+    }
+    final count = metaFilterActiveCount(_metaFilters);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Match the three action-key columns, including their horizontal inset.
+        Widget slot(Widget child) => SizedBox(
+          width: constraints.maxWidth / 3,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: child,
+          ),
+        );
+        return Wrap(
+          runSpacing: 6,
+          children: [
+            slot(
+              chip(
+                'tv-search-filters',
+                Icons.tune_rounded,
+                '${context.l10n.filters}${count > 0 ? ' · $count' : ''}',
+                _openMetaFilters,
+              ),
+            ),
+            slot(
+              chip(
+                'tv-search-genres',
+                Icons.grid_view_rounded,
+                context.l10n.genres,
+                _openNewGenres,
+              ),
+            ),
+            if (count > 0)
+              slot(
+                chip(
+                  'tv-search-clear-filters',
+                  Icons.close_rounded,
+                  context.l10n.clear,
+                  () => setState(() => _metaFilters = const MetaFilters()),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _libraryControls() {
+    final filterCount = metaFilterActiveCount(_metaFilters);
+    final showAdult =
+        sl<PlaybackPrefs>().adultMetadata &&
+        (!sl.isRegistered<ViewerProfileStore>() ||
+            sl<ViewerProfileStore>().adultMetadataAllowed);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(48, 0, 48, 20),
+      child: Row(
+        children: [
+          TvFocusable(
+            key: const ValueKey('tv-search-filters'),
+            variant: TvFocusVariant.float,
+            scale: 1.0,
+            borderRadius: 999,
+            waitForKeyUp: true,
+            semanticLabel: context.l10n.filters,
+            onTap: _openMetaFilters,
+            builder: (focused) {
+              final fg = filterCount > 0 || focused
+                  ? AppColors.accent
+                  : AppColors.textSecondary;
+              return Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: focused
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : AppColors.surface2,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.tune_rounded, size: 22, color: fg),
+                    const SizedBox(width: 8),
+                    Text(
+                      context.l10n.filters,
+                      style: TextStyle(
+                        color: fg,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (filterCount > 0) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '$filterCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: _activeFilterChips()),
+          if (showAdult) ...[const SizedBox(width: 12), _tvAdultToggle()],
+        ],
+      ),
+    );
+  }
+
+  /// Removable chips for applied catalogue filters so D-pad can clear one
+  /// without reopening the dialog.
+  Widget _activeFilterChips() {
+    final f = _metaFilters;
+    final chips = <(String, MetaFilters)>[
+      for (final g in f.genres)
+        (g, f.copyWith(genres: [...f.genres]..remove(g))),
+      for (final t in f.tags) (t, f.copyWith(tags: [...f.tags]..remove(t))),
+      if (f.year != null) ('${f.year}', f.copyWith(clearYear: true)),
+      if (f.season != null)
+        (metaSeasonLabel(f.season!), f.copyWith(clearSeason: true)),
+      if (f.format != null)
+        (metaFormatLabel(f.format!), f.copyWith(clearFormat: true)),
+      if (f.status != null)
+        (metaStatusLabel(f.status!), f.copyWith(clearStatus: true)),
+      if (f.minScore != null) ('${f.minScore}+', f.copyWith(clearScore: true)),
+      if (f.sort != MetaSort.popularity)
+        (metaSortLabel(context, f.sort), f.copyWith(sort: MetaSort.popularity)),
+    ];
+    if (chips.isEmpty) return const SizedBox.shrink();
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      clipBehavior: Clip.none,
+      child: Row(
+        children: [
+          for (final (label, without) in chips) ...[
+            TvFocusable(
+              variant: TvFocusVariant.float,
+              scale: 1.0,
+              borderRadius: 20,
+              semanticLabel: label,
+              onTap: () {
+                setState(() => _metaFilters = without);
+                applyMetaFilters(context, without);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: AppColors.accent, width: 2),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      style: AppText.headline.copyWith(
+                        color: AppColors.accent,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.close_rounded,
+                      size: 18,
+                      color: AppColors.accent,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
+          if (chips.length > 1)
+            TvFocusable(
+              key: const ValueKey('tv-search-clear-filters'),
+              variant: TvFocusVariant.pill,
+              scale: 1.0,
+              semanticLabel: context.l10n.clearAll,
+              onTap: () {
+                final cleared = MetaFilters(adult: _metaFilters.adult);
+                setState(() => _metaFilters = cleared);
+                applyMetaFilters(context, cleared);
+              },
+              builder: (focused) => Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 10,
+                ),
+                child: Text(
+                  context.l10n.clearAll,
+                  style: TextStyle(
+                    color: focused ? Colors.black : AppColors.accent,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tvAdultToggle() {
+    final on = _metaFilters.adult;
+    return TvFocusable(
+      key: const ValueKey('tv-search-nsfw'),
+      variant: TvFocusVariant.pill,
+      onTap: () {
+        setState(() => _metaFilters = _metaFilters.copyWith(adult: !on));
+        applyMetaFilters(context, _metaFilters);
+      },
+      builder: (focused) {
+        final active = on || focused;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: on
+                ? AppColors.accent.withValues(alpha: 0.16)
+                : (focused
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : AppColors.surface2),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: on ? AppColors.accent : Colors.transparent,
+              width: 2,
+            ),
+          ),
+          child: Text(
+            'NSFW',
+            style: TextStyle(
+              color: active ? AppColors.accent : AppColors.textSecondary,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _sourcesScopeChips() {
+    return BlocBuilder<SearchBloc, SearchState>(
+      buildWhen: (a, b) => a.currentSourceOnly != b.currentSourceOnly,
+      builder: (context, state) {
+        final current = state.currentSourceOnly;
+        Widget chip({
+          required Key key,
+          required String label,
+          required IconData icon,
+          required bool selected,
+          required bool value,
+        }) {
+          return TvFocusable(
+            key: key,
+            variant: TvFocusVariant.float,
+            scale: 1.0,
+            borderRadius: 999,
+            onTap: () =>
+                context.read<SearchBloc>().add(SearchScopeChanged(value)),
+            builder: (focused) {
+              final bg = selected ? Colors.white : Colors.transparent;
+              final fg = selected
+                  ? Colors.black
+                  : (focused ? AppColors.textPrimary : AppColors.textSecondary);
+              return Container(
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 22,
+                  vertical: 13,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, size: 18, color: fg),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: fg,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        }
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(48, 0, 48, 12),
+          child: Row(
+            children: [
+              chip(
+                key: const ValueKey('tv-search-scope-all'),
+                label: context.l10n.allSources,
+                icon: Icons.travel_explore_rounded,
+                selected: !current,
+                value: false,
+              ),
+              const SizedBox(width: 10),
+              chip(
+                key: const ValueKey('tv-search-scope-current'),
+                label: context.l10n.currentSource,
+                icon: Icons.filter_center_focus_rounded,
+                selected: current,
+                value: true,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _fixedSourceLabel() => Padding(
+    padding: const EdgeInsets.fromLTRB(48, 0, 48, 12),
+    child: Text(
+      '${context.l10n.searching} ${widget.fixedSourceName ?? widget.fixedSourceId}',
+      style: AppText.body.copyWith(color: AppColors.accent),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    if (_newSearch) {
+      Widget keyboard(SearchState? state) => TvSearchInputScreen(
+        key: const ValueKey('tv-new-search-page'),
+        initialQuery: _controller.text,
+        compactStyle: true,
+        inlineSearch: true,
+        controls: _newSearchControls(),
+        requestKey:
+            '${_metaFilters.toJson()}:${widget.fixedSourceId}:${ZModePrefs.streamKind}',
+        recentQueries: widget.history?.recent() ?? const [],
+        loadRecommendations: _loadTypingRecommendations,
+        onQueryChanged: (query) => _controller.text = query,
+        onSearchSubmitted: _recordNewSearch,
+        onRecommendationSelected: _openNewSearchDetail,
+        submittedResults: state == null
+            ? null
+            : [for (final group in state.sortedVisibleGroups) ...group.items],
+        submittedLoading: state?.status == SearchStatus.loading,
+      );
+      if (_isLibrary) return keyboard(null);
+      return BlocBuilder<SearchBloc, SearchState>(
+        builder: (context, state) => keyboard(state),
+      );
+    }
+    final hint = searchHintForScope(context, widget.scope);
+    return BlocConsumer<SearchBloc, SearchState>(
+      listenWhen: (a, b) =>
+          a.status != b.status ||
+          a.query != b.query ||
+          a.suggestions != b.suggestions,
+      listener: (context, state) => _syncShellBackIntercept(state),
+      builder: (context, state) {
+        return PopScope(
+          // Idle Search lets the shell handle Back (Home / exit). An active
+          // query owns Back so the remote does not leave the tab.
+          canPop: !_isActiveSearch(state),
+          onPopInvokedWithResult: (didPop, _) {
+            if (didPop) return;
+            _clearToRoot();
+          },
+          child: Scaffold(
+            backgroundColor: AppColors.bg,
+            body: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Search field ──────────────────────────────────────────────────
+                  // Original Classic field: OK / tap opens the system IME.
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(48, 20, 48, 10),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.search_rounded,
+                          size: 32,
+                          color: AppColors.textSecondary,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TvTextField(
+                            controller: _controller,
+                            autofocus: true,
+                            textInputAction: TextInputAction.search,
+                            onChanged: (text) => context.read<SearchBloc>().add(
+                              SearchQueryChanged(text),
+                            ),
+                            onSubmitted: (text) => context
+                                .read<SearchBloc>()
+                                .add(SearchRunRequested(text)),
+                            style: AppText.title.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w400,
+                            ),
+                            cursorColor: Colors.white,
+                            decoration: InputDecoration(
+                              hintText: hint,
+                              hintStyle: AppText.title.copyWith(
+                                color: AppColors.textTertiary,
+                                fontWeight: FontWeight.w400,
+                              ),
+                              border: UnderlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: AppColors.hairline,
+                                  width: 1,
+                                ),
+                              ),
+                              enabledBorder: UnderlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: AppColors.hairline,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedBorder: const UnderlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.white,
+                                  width: 2,
+                                ),
+                              ),
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Voice search — D-pad RIGHT from the field reaches it. Only
+                        // rendered when the device has a recogniser (see _checkVoice).
+                        if (_voiceAvailable) ...[
+                          const SizedBox(width: 12),
+                          TvFocusable(
+                            variant: TvFocusVariant.float,
+                            scale: 1.08,
+                            onTap: _startVoice,
+                            semanticLabel: context.l10n.voiceSearch,
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface2,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.mic_none_rounded,
+                                size: 26,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (_isLibrary)
+                    _libraryControls()
+                  else if (widget.fixedSourceId != null)
+                    _fixedSourceLabel()
+                  else
+                    _sourcesScopeChips(),
+                  // ── Results / states ──────────────────────────────────────────────
+                  Expanded(
+                    child: BlocBuilder<SearchBloc, SearchState>(
+                      builder: (context, state) {
+                        // Show live suggestions while the user is typing but before
+                        // a full search has run (same logic as the phone).
+                        if (state.status != SearchStatus.success &&
+                            state.suggestions.isNotEmpty) {
+                          return _suggestionList(state.suggestions);
+                        }
+                        switch (state.status) {
+                          case SearchStatus.idle:
+                            return _idleView();
+                          case SearchStatus.loading:
+                            return Padding(
+                              padding: const EdgeInsets.fromLTRB(40, 8, 40, 40),
+                              child: SkeletonGrid(
+                                crossAxisCount: tvPosterGridColumns(context),
+                                childAspectRatio: tvPosterGridAspect(context),
+                              ),
+                            );
+                          case SearchStatus.error:
+                            return EmptyState(
+                              icon: Icons.error_outline,
+                              message: context.l10n.searchFailedTryAgain,
+                            );
+                          case SearchStatus.success:
+                            if (_isLibrary) return _resultsGrid(state);
+                            return state.currentSourceOnly
+                                ? _resultsGrid(state)
+                                : _resultsRows(state);
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── Idle (recent searches + empty prompt) ───────────────────────────────────
+
+  /// Idle body: recent terms with a D-pad-focusable Clear, matching the phone
+  /// landing page. Falls back to the empty prompt when there's nothing stored
+  /// (tests that omit [SearchScreenTv.history] hit this path too).
+  /// Browse by genre, from Search's idle body.
+  ///
+  /// The rail cannot take a seventh item — at 960x540 a seventh pushes
+  /// Settings off the drawer entirely. Search's idle body is the honest home
+  /// for it: browsing by genre IS a search, and this is the screen you are
+  /// already on when you have nothing typed.
+  ///
+  /// Hidden when the catalogue cannot filter, exactly as the phone card is.
+  Widget _genresEntry() {
+    final canFilter =
+        sl.isRegistered<MetadataRepository>() &&
+        sl<MetadataRepository>().supportsFilters;
+    if (!canFilter) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(48, 4, 48, 0),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: TvFocusable(
+          key: const ValueKey('tv-search-genres'),
+          variant: TvFocusVariant.pill,
+          waitForKeyUp: true,
+          semanticLabel: context.l10n.genres,
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const GenresScreenTv()),
+          ),
+          builder: (focused) {
+            final fg = focused ? Colors.black : AppColors.accent;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.local_offer_outlined, size: 20, color: fg),
+                  const SizedBox(width: 10),
+                  Text(
+                    context.l10n.genres,
+                    style: TextStyle(
+                      color: fg,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _idleView() {
+    final history = widget.history;
+    final recent = history?.recent() ?? const <String>[];
+    if (history == null || recent.isEmpty) {
+      return Column(
+        children: [
+          _genresEntry(),
+          Expanded(
+            child: EmptyState(
+              icon: Icons.search_rounded,
+              message: context.l10n.searchForSomethingToWatch,
+            ),
+          ),
+        ],
+      );
+    }
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      children: [
+        // Also above the recents. main only put it on the empty branch, which
+        // made Genres unreachable the moment you had searched once.
+        _genresEntry(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(48, 8, 48, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  context.l10n.recentSearches,
+                  style: AppText.overline,
+                ),
+              ),
+              TvFocusable(
+                key: const ValueKey('tv-search-clear-history'),
+                variant: TvFocusVariant.pill,
+                semanticLabel: context.l10n.clearSearchHistory,
+                onTap: () async {
+                  await history.clear();
+                  if (mounted) setState(() {});
+                },
+                builder: (focused) {
+                  final fg = focused ? Colors.black : AppColors.accent;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                    child: Text(
+                      context.l10n.clear,
+                      style: TextStyle(
+                        color: fg,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+        for (final q in recent)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 2),
+            child: TvListFocusable(
+              // KeyDown would run the search and dispose this row before KeyUp;
+              // Filters (waitForKeyUp) then treats that KeyUp as its own tap.
+              waitForKeyUp: true,
+              onTap: () {
+                _controller.value = TextEditingValue(
+                  text: q,
+                  selection: TextSelection.collapsed(offset: q.length),
+                );
+                context.read<SearchBloc>().add(SearchRunRequested(q));
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 16,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.history_rounded,
+                      size: 22,
+                      color: AppColors.textTertiary,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        q,
+                        style: AppText.headline.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  // ── Results grid ─────────────────────────────────────────────────────────────
+
+  /// Flat D-pad-navigable poster grid of all visible results across all sources.
+  ///
+  /// Source grouping (phone's horizontal rows) doesn't translate to TV D-pad
+  /// navigation; a flat grid lets the user move through all results with a
+  /// single D-pad sweep. The data comes from [SearchState.visibleResults] which
+  /// honours the active sort + content-type / genre / decade filters — identical
+  /// to what the phone's flat-grid path uses.
+  Widget _resultsGrid(SearchState state) {
+    final items = state.visibleResults;
+    if (items.isEmpty) return _noResults(state);
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(40, 8, 40, 40),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: tvPosterGridColumns(context),
+        // Keep the grid geometry aligned with the selected title placement.
+        childAspectRatio: tvPosterGridAspect(context),
+        crossAxisSpacing: 18,
+        mainAxisSpacing: 22,
+      ),
+      itemCount: items.length,
+      itemBuilder: (context, i) {
+        final item = items[i];
+        // First result gets autofocus so D-pad DOWN from the field lands here.
+        return TvPosterTile(
+          autofocus: i == 0,
+          title: item.title,
+          logoItem: item,
+          imageUrl: item.cover,
+          wideImageUrl: item.banner,
+          headers: item.coverHeaders,
+          genres: item.genres,
+          isAdult: item.isAdult,
+          scoreBadge: item.score,
+          tags: _tagsFor(item),
+          qualityBadge: item.quality,
+          dubBadge: item.dubBadge,
+          onTap: () => _openDetail(item),
+        );
+      },
+    );
+  }
+
+  /// Shared "nothing matched" panel — used by both the flat grid (current
+  /// source) and the grouped rows (all sources).
+  Widget _noResults(SearchState state) {
+    final l10n = context.l10n;
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.search_off_rounded,
+            size: 52,
+            color: AppColors.textTertiary,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            l10n.noResultsFor(state.query),
+            textAlign: TextAlign.center,
+            style: AppText.headline,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n.checkTheSpellingOrTryADifferentTitle,
+            textAlign: TextAlign.center,
+            style: AppText.body,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Grouped rows (all-sources) ────────────────────────────────────────────────
+
+  /// CloudStream-style source-grouped results: one horizontal row per source
+  /// (header = source name + count), stacked vertically in arrival order. D-pad
+  /// UP/DOWN moves between sources, LEFT/RIGHT within a source — the same feel as
+  /// the TV Home rows. Only used for the "All sources" scope; a single source
+  /// still renders as the flat [_resultsGrid].
+  Widget _resultsRows(SearchState state) {
+    final groups = state.sortedVisibleGroups;
+    if (groups.isEmpty) return _noResults(state);
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 40),
+      itemCount: groups.length,
+      itemBuilder: (context, gi) {
+        final g = groups[gi];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(48, 18, 48, 10),
+              child: Text(
+                context.l10n.sourceNameItemCount(g.sourceName, g.items.length),
+                style: AppText.headline,
+              ),
+            ),
+            SizedBox(
+              // Poster (130 × 195 at 2:3) + title + focus-scale headroom.
+              height:
+                  (posterLayout(context) == PosterCardLayout.wide
+                      ? 175.0
+                      : 250.0) *
+                  posterCardScale(context),
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                // Don't clip the focused card's scale-up + glow.
+                clipBehavior: Clip.none,
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                itemCount: g.items.length,
+                itemBuilder: (context, i) {
+                  final item = g.items[i];
+                  return Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 16),
+                    child: SizedBox(
+                      width:
+                          (posterLayout(context) == PosterCardLayout.wide
+                              ? 208.0
+                              : 130.0) *
+                          posterCardScale(context),
+                      // First tile of the first row gets autofocus so D-pad DOWN
+                      // from the field/suggestions lands on a result.
+                      child: TvPosterTile(
+                        autofocus: gi == 0 && i == 0,
+                        title: item.title,
+                        logoItem: item,
+                        imageUrl: item.cover,
+                        wideImageUrl: item.banner,
+                        headers: item.coverHeaders,
+                        genres: item.genres,
+                        isAdult: item.isAdult,
+                        scoreBadge: item.score,
+                        tags: _tagsFor(item),
+                        qualityBadge: item.quality,
+                        dubBadge: item.dubBadge,
+                        onTap: () => _openDetail(item),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ── Suggestion list ───────────────────────────────────────────────────────────
+
+  /// D-pad-navigable suggestion list shown while the user is typing.
+  ///
+  /// Each suggestion is wrapped in [TvFocusable] so the user can D-pad down
+  /// from the field and OK to fill + run that query without re-opening the
+  /// keyboard.
+  Widget _suggestionList(List<String> suggestions) {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      itemCount: suggestions.length,
+      itemBuilder: (context, i) {
+        final s = suggestions[i];
+        // The 48px gap lives OUTSIDE TvFocusable and scale is 1.0 — a full-width
+        // row otherwise makes the focus ring overflow off the right edge and
+        // overlap the field above (tester report).
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 2),
+          child: TvListFocusable(
+            waitForKeyUp: true,
+            onTap: () {
+              _controller.value = TextEditingValue(
+                text: s,
+                selection: TextSelection.collapsed(offset: s.length),
+              );
+              context.read<SearchBloc>().add(SearchRunRequested(s));
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.search_rounded,
+                    size: 22,
+                    color: AppColors.textTertiary,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      s,
+                      style: AppText.headline.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
