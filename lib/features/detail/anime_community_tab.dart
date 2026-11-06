@@ -265,7 +265,19 @@ class _EpisodeThreadsSectionState extends State<EpisodeThreadsSection> {
     final parsedNumber = int.tryParse(widget.episodeNumber.trim().replaceFirst(RegExp(r'\.0$'), ''));
     if (parsedNumber == null) return const [];
     final padded = parsedNumber.toString().padLeft(2, '0');
-    final queries = <String>{'Episode $parsedNumber', 'Episode $padded', 'Ep $parsedNumber', 'Ep $padded'};
+    // AniList episode threads use several title conventions: "Episode 1",
+    // "Ep. 01", "01", or "#01". Search both named and number-only forms.
+    final queries = <String>{
+      'Episode $parsedNumber',
+      'Episode $padded',
+      'Ep $parsedNumber',
+      'Ep $padded',
+      'Ep. $parsedNumber',
+      'Ep. $padded',
+      padded,
+      parsedNumber.toString(),
+      '#$padded',
+    };
     final found = <int, Map<String, dynamic>>{};
     for (final query in queries) {
       final rows = await api.fetchThreads(mediaId, search: query);
@@ -274,11 +286,16 @@ class _EpisodeThreadsSectionState extends State<EpisodeThreadsSection> {
         if (id != null) found[id] = row;
       }
     }
-    final pattern = RegExp(
-      r'(^|[^a-z0-9])(?:episode|ep)\s*0*' + parsedNumber.toString() + r'([^0-9]|$)',
-      caseSensitive: false,
-    );
-    return found.values.where((row) => pattern.hasMatch('${row['title'] ?? ''}')).toList();
+    final number = RegExp.escape(parsedNumber.toString());
+    final titlePatterns = [
+      RegExp(r'^\\s*0*' + number + r'\\s*$', caseSensitive: false),
+      RegExp(r'^\\s*#?\\s*0*' + number + r'(?:\\s*[-:|].*)?$', caseSensitive: false),
+      RegExp(r'(^|[^a-z0-9])(?:episode|ep\\.?|e)\\s*#?0*' + number + r'([^0-9]|$)', caseSensitive: false),
+    ];
+    return found.values.where((row) {
+      final title = (row['title'] ?? '').toString().trim();
+      return titlePatterns.any((pattern) => pattern.hasMatch(title));
+    }).toList();
   }
 
   @override
@@ -810,7 +827,9 @@ class _CommentThreadLinePainter extends CustomPainter {
     // Adjacent reply rows meet edge-to-edge; the final row ends at its branch.
     canvas.drawLine(
       Offset(x, 0),
-      Offset(x, isLast ? branchY : size.height),
+      // Slightly overlap the next sibling so fractional layout pixels cannot
+      // leave visible gaps in an otherwise continuous reply rail.
+      Offset(x, isLast ? branchY : size.height + 3),
       paint,
     );
     final branch = Path()
