@@ -2343,11 +2343,20 @@ class _SearchViewState extends State<_SearchView>
     final browsing = state.hasFilteredBrowse;
     // Filter results still render here — those ARE what the filters asked for,
     // not filler. Only the unasked-for picks strip is gone.
-    final trending = browsing
+    final unfilteredTrending = browsing
         ? state.filteredBrowse
         : widget.scope == SearchScope.library
         ? const <MediaItem>[]
         : state.trending;
+    final trending = _hideMyAnime
+        ? unfilteredTrending.where((item) {
+            final byAniList = item.anilistId != null &&
+                _myAniListAnimeIds.contains(item.anilistId);
+            final byMal = item.malId != null &&
+                _myAniListMalIds.contains(item.malId);
+            return !byAniList && !byMal;
+          }).toList(growable: false)
+        : unfilteredTrending;
 
     if (recent.isEmpty && trending.isEmpty) {
       return Center(

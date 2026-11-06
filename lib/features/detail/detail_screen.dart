@@ -1987,8 +1987,9 @@ class _DetailViewState extends State<_DetailView>
     if (sl<AppMode>().isTv) return DetailScreenTv(item: widget.item);
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Stack(
-        children: [
+      body: SafeArea(
+        child: Stack(
+          children: [
           // Adaptive colour: poster-tinted wash behind the scroll view, only
           // while the setting is on. The NestedScrollView's own background is
           // transparent, so the tint shows through the body; the pinned bars
@@ -2095,7 +2096,8 @@ class _DetailViewState extends State<_DetailView>
               },
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

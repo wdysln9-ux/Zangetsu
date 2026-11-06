@@ -51,7 +51,7 @@ class _NavTabsScreenState extends State<NavTabsScreen> {
 
   /// The centre button is drawn from a real [DockTab]'s slot count, so it has
   /// to be mirrored here too: it is always on the bar and never editable.
-  bool get _hasSwitcher => ZModePrefs.enabled;
+  bool get _hasSwitcher => false;
 
   Future<void> _save() => _prefs.setTabs(_shown);
 
@@ -125,7 +125,7 @@ class _NavTabsScreenState extends State<NavTabsScreen> {
     setState(() {
       _shown = List.of(_prefs.tabs);
       _start = _prefs.startTab;
-      _keepDockExpanded = _prefs.keepDockExpanded;
+      _keepDockExpanded = false;
       _style = _prefs.style;
       _glassTint = _prefs.glassTint;
       _glassQuality = _prefs.glassQuality;
@@ -160,79 +160,7 @@ class _NavTabsScreenState extends State<NavTabsScreen> {
         children: [
           _preview(),
           const SizedBox(height: 4),
-          SettingsSectionLabel('Navigation style', first: true),
-          SettingsCard(
-            children: [
-              for (final style in NavBarStyle.values)
-                SettingsTile(
-                  icon: style == NavBarStyle.dock
-                      ? Icons.dock_rounded
-                      : Icons.blur_on_rounded,
-                  title: style == NavBarStyle.dock ? 'Dock' : 'Liquid glass',
-                  trailing: Icon(
-                    _style == style
-                        ? Icons.radio_button_checked_rounded
-                        : Icons.radio_button_unchecked_rounded,
-                    color: _style == style
-                        ? AppColors.accent
-                        : AppColors.textTertiary,
-                  ),
-                  onTap: () => _setStyle(style),
-                ),
-              if (_style == NavBarStyle.liquid) _glassTintControl(),
-            ],
-          ),
-          if (_style == NavBarStyle.liquid) ...[
-            const SettingsSectionLabel('Glass quality'),
-            SettingsCard(
-              children: [
-                for (final quality in [
-                  GlassQuality.premium,
-                  GlassQuality.standard,
-                ])
-                  SettingsTile(
-                    icon: _glassQualityIcon(quality),
-                    title: _glassQualityTitle(quality),
-                    subtitle: _glassQualitySubtitle(quality),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (quality == NavPrefs.defaultGlassQuality) ...[
-                          Text(
-                            'Default',
-                            style: AppText.caption.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        Icon(
-                          _glassQuality == quality
-                              ? Icons.radio_button_checked_rounded
-                              : Icons.radio_button_unchecked_rounded,
-                          color: _glassQuality == quality
-                              ? AppColors.accent
-                              : AppColors.textTertiary,
-                        ),
-                      ],
-                    ),
-                    onTap: () => _setGlassQuality(quality),
-                  ),
-                SettingsTile(
-                  icon: Icons.blur_on_rounded,
-                  title: 'Blur background',
-                  subtitle: 'Softens artwork behind the liquid navbar',
-                  onTap: () => _setGlassBlurEnabled(!_glassBlurEnabled),
-                  trailing: Switch.adaptive(
-                    key: const ValueKey('glass-blur-switch'),
-                    value: _glassBlurEnabled,
-                    activeThumbColor: AppColors.accent,
-                    onChanged: _setGlassBlurEnabled,
-                  ),
-                ),
-              ],
-            ),
-          ],
+          const SizedBox(height: 4),
           SettingsSectionLabel(
             // The cap is visible before you hit it, rather than discovered as
             // a greyed-out button.
@@ -252,32 +180,7 @@ class _NavTabsScreenState extends State<NavTabsScreen> {
               ),
               // Listed but not editable: it explains the sixth icon in the
               // preview, which otherwise looks like the count is wrong.
-              if (_hasSwitcher) _switcherRow(),
-            ],
-          ),
-          SettingsSectionLabel(
-            _style == NavBarStyle.liquid
-                ? 'Navigation behaviour'
-                : l10n.navDockBehavior,
-          ),
-          SettingsCard(
-            children: [
-              SettingsTile(
-                icon: Icons.unfold_more_rounded,
-                title: _style == NavBarStyle.liquid
-                    ? 'Keep navigation expanded'
-                    : l10n.keepDockExpanded,
-                subtitle: _style == NavBarStyle.liquid
-                    ? 'Keep tabs and labels visible while scrolling'
-                    : l10n.keepDockExpandedSubtitle,
-                onTap: () => _setKeepDockExpanded(!_keepDockExpanded),
-                trailing: Switch.adaptive(
-                  key: const ValueKey('keep-dock-expanded-switch'),
-                  value: _keepDockExpanded,
-                  activeThumbColor: AppColors.accent,
-                  onChanged: _setKeepDockExpanded,
-                ),
-              ),
+
             ],
           ),
           SettingsSectionLabel(l10n.navTabsOpensOn),
@@ -325,9 +228,7 @@ class _NavTabsScreenState extends State<NavTabsScreen> {
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
             child: Align(
               alignment: Alignment.bottomCenter,
-              child: _style == NavBarStyle.liquid
-                  ? _liquidPreview()
-                  : _dockPreview(),
+              child: _dockPreview(),
             ),
           ),
         ),
@@ -350,7 +251,7 @@ class _NavTabsScreenState extends State<NavTabsScreen> {
           children: [
             for (final t in _shown.take(_shown.length ~/ 2))
               Expanded(child: _previewItem(t, t == _start)),
-            if (_hasSwitcher) _previewFab(),
+
             for (final t in _shown.skip(_shown.length ~/ 2))
               Expanded(child: _previewItem(t, t == _start)),
           ],

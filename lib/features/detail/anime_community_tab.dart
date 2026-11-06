@@ -334,12 +334,14 @@ class _EpisodeThreadInlineState extends State<_EpisodeThreadInline> {
         'createdAt': thread['createdAt'],
         'likeCount': thread['likeCount'],
         'isLiked': thread['isLiked'],
-        'childComments': snapshot.data ?? const [],
       };
+      final comments = snapshot.data ?? const <Map<String, dynamic>>[];
       return Padding(
         padding: const EdgeInsets.only(bottom: 14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _Comment(data: rootComment, isThread: true),
+          _Comment(data: rootComment, isThread: true, isLast: comments.isEmpty),
+          for (var i = 0; i < comments.length; i++)
+            _Comment(data: comments[i], isLast: i == comments.length - 1),
           if (snapshot.connectionState != ConnectionState.done)
             const Padding(padding: EdgeInsets.only(left: 26, top: 3, bottom: 10), child: LinearProgressIndicator(minHeight: 2)),
           if (snapshot.hasError)

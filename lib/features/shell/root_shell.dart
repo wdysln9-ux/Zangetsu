@@ -393,25 +393,6 @@ class _RootShellState extends State<RootShell>
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (ZModePrefs.enabled && _navPrefs.style == NavBarStyle.dock)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: BlocBuilder<ContentModeCubit, ContentMode>(
-                        bloc: sl<ContentModeCubit>(),
-                        builder: (_, mode) => ModeBar(
-                          open: _modeBarOpen,
-                          current: (mode, ZModePrefs.streamKind),
-                          onPicked: (m, k) async {
-                            setState(() => _modeBarOpen = false);
-                            await ZModePrefs.setStreamKind(k);
-                            await sl<ContentModeCubit>().setMode(m);
-                            if (m != ContentMode.anime) {
-                              sl<HomeCubit>().load(reset: true);
-                            }
-                          },
-                        ),
-                      ),
-                    ),
                   // Collapse the SLOT as well as sliding the dock out of it.
                   // The dock is this Scaffold's bottomNavigationBar and the
                   // shell sets extendBody, so its height lands in the body's
@@ -467,21 +448,7 @@ class _RootShellState extends State<RootShell>
                               tabs: tabs,
                               active: _tab,
                               onSelected: _onTabSelected,
-                              centre: ZModePrefs.enabled
-                                  ? BlocBuilder<ContentModeCubit, ContentMode>(
-                                      bloc: sl<ContentModeCubit>(),
-                                      builder: (_, mode) => ModeFab(
-                                        open: _modeBarOpen,
-                                        icon: iconForMode(
-                                          mode,
-                                          ZModePrefs.streamKind,
-                                        ),
-                                        onTap: () => setState(
-                                          () => _modeBarOpen = !_modeBarOpen,
-                                        ),
-                                      ),
-                                    )
-                                  : null,
+                              centre: null,
                             );
                           },
                         ),
