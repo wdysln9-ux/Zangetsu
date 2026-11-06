@@ -4098,8 +4098,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
               onPointerUp: _onPointerUp,
               onPointerCancel: _onPointerUp,
               child: _showEpisodeDetails
-                  ? Column(
-                      children: [
+                  ? SafeArea(
+                      top: true,
+                      bottom: true,
+                      child: Column(
+                        children: [
                         AspectRatio(
                           aspectRatio: 16 / 9,
                           child: playerStack,
@@ -4125,7 +4128,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           ),
                         ),
                         Expanded(child: _buildEpisodeDetailsPanel()),
-                      ],
+                        ],
+                      ),
                     )
                   : playerStack,
             );
