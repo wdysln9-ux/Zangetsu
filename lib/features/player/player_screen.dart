@@ -1907,6 +1907,60 @@ class _PlayerScreenState extends State<PlayerScreen> {
     });
   }
 
+  void _openEpisodeComments() {
+    final episode = _c.currentEpisode;
+    final number = episode.number;
+    if (!widget.episodeDetailMode || widget.showTitle == null || number == null) {
+      return;
+    }
+    final episodeNumber = number == number.truncateToDouble()
+        ? number.toInt().toString()
+        : number.toString();
+    _bumpControls();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0E0F11),
+      useSafeArea: true,
+      builder: (sheetContext) => FractionallySizedBox(
+        heightFactor: 0.88,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 14, 10, 10),
+              child: Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Komentar utas episode',
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Tutup',
+                    onPressed: () => Navigator.of(sheetContext).pop(),
+                    icon: const Icon(Icons.close_rounded, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: Color(0xFF292A2D)),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 28),
+                child: EpisodeThreadsSection(
+                  showTitle: widget.showTitle!,
+                  malId: widget.malId,
+                  episodeNumber: episodeNumber,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showEpisodeSummary() {
     final episode = _c.currentEpisode;
     final title = (episode.metaTitle?.trim().isNotEmpty ?? false)
@@ -3892,6 +3946,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           onMegaSkip: _megaSkip,
                           onChat: (_room.room != null)
                               ? () => setState(() => _chatOpen = !_chatOpen)
+                              : null,
+                          onEpisodeComments: widget.episodeDetailMode
+                              ? _openEpisodeComments
                               : null,
                           onInfo: _infoFields.isEmpty
                               ? null

@@ -33,6 +33,7 @@ class _ControlsOverlay extends StatelessWidget {
     required this.onMegaSkip,
     this.onPip,
     this.onChat,
+    this.onEpisodeComments,
     this.onInfo,
     this.infoOpen = false,
     this.showQuality = false,
@@ -81,6 +82,7 @@ class _ControlsOverlay extends StatelessWidget {
   final VoidCallback onMegaSkip;
   final VoidCallback? onPip; // null = PiP unsupported (hide the button)
   final VoidCallback? onChat; // in-room chat toggle (null = no active room)
+  final VoidCallback? onEpisodeComments; // AniList episode thread discussions
   final VoidCallback? onInfo; // toggle the info panel (null = no fields picked)
   final bool infoOpen; // whether the info panel is currently shown
   final bool
@@ -332,6 +334,9 @@ class _ControlsOverlay extends StatelessWidget {
         return (Icons.video_library_outlined, 'Episodes', onEpisodes!);
       case 'summary':
         return (Icons.subject_rounded, 'Episode summary', onEpisodeSummary);
+      case 'comments':
+        if (!episodeDetailMode || onEpisodeComments == null) return null;
+        return (Icons.forum_outlined, 'Episode comments', onEpisodeComments!);
       case 'fit':
         return (_fitIcon(zoomLabel), 'Aspect ratio · $zoomLabel', onZoom);
       case 'rotate':
