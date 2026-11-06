@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../core/anilist/anilist_service.dart';
 import '../../core/di/injector.dart';
@@ -339,9 +340,9 @@ class _EpisodeThreadInlineState extends State<_EpisodeThreadInline> {
       return Padding(
         padding: const EdgeInsets.only(bottom: 14),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _Comment(data: rootComment, isThread: true, isLast: comments.isEmpty),
+          _Comment(data: rootComment, depth: 0, isThread: true, isLast: true),
           for (var i = 0; i < comments.length; i++)
-            _Comment(data: comments[i], isLast: i == comments.length - 1),
+            _Comment(data: comments[i], depth: 0, isLast: i == comments.length - 1),
           if (snapshot.connectionState != ConnectionState.done)
             const Padding(padding: EdgeInsets.only(left: 26, top: 3, bottom: 10), child: LinearProgressIndicator(minHeight: 2)),
           if (snapshot.hasError)
@@ -385,6 +386,15 @@ class _ThreadPageState extends State<_ThreadPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF0E0F11),
       appBar: AppBar(
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: Color(0xFF18191B),
+          statusBarIconBrightness: Brightness.light,
+          systemNavigationBarColor: Color(0xFF0E0F11),
+          systemNavigationBarIconBrightness: Brightness.light,
+          systemNavigationBarDividerColor: Color(0xFF0E0F11),
+          systemStatusBarContrastEnforced: true,
+          systemNavigationBarContrastEnforced: true,
+        ),
         backgroundColor: const Color(0xFF18191B),
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -410,9 +420,12 @@ class _ThreadPageState extends State<_ThreadPage> {
           const SizedBox(width: 4),
         ],
       ),
-      body: id == null
-        ? const Center(child: Text('Utas tidak tersedia.'))
-        : FutureBuilder<Map<String, dynamic>?>(
+      body: SafeArea(
+        top: false,
+        bottom: true,
+        child: id == null
+          ? const Center(child: Text('Utas tidak tersedia.'))
+          : FutureBuilder<Map<String, dynamic>?>(
           future: threadFuture,
           builder: (context, snapshot) {
             final post = snapshot.data ?? widget.data;
@@ -505,6 +518,7 @@ class _ThreadPageState extends State<_ThreadPage> {
             ]);
           },
         ),
+      ),
     );
   }
 }
@@ -792,19 +806,18 @@ class _CommentThreadLinePainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
     const x = 7.0;
     const branchY = 16.0;
-    final path = Path()
-      ..moveTo(x, 0)
-      ..lineTo(x, branchY - 4)
+    // Keep the rail as one uninterrupted stroke through each sibling row.
+    // Adjacent reply rows meet edge-to-edge; the final row ends at its branch.
+    canvas.drawLine(
+      Offset(x, 0),
+      Offset(x, isLast ? branchY : size.height),
+      paint,
+    );
+    final branch = Path()
+      ..moveTo(x, branchY - 4)
       ..quadraticBezierTo(x, branchY, x + 4, branchY)
       ..lineTo(size.width, branchY);
-    // Non-last replies keep the rail running to the very bottom edge.
-    // Nested comments have no bottom gap, so the next reply's rail joins it.
-    if (!isLast) {
-      path
-        ..moveTo(x, branchY)
-        ..lineTo(x, size.height);
-    }
-    canvas.drawPath(path, paint);
+    canvas.drawPath(branch, paint);
   }
 
   @override

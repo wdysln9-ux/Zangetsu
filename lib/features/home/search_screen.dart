@@ -292,6 +292,7 @@ class _SearchViewState extends State<_SearchView>
   bool _loadingMyAnime = false;
   Set<int> _myAniListAnimeIds = {};
   Set<int> _myAniListMalIds = {};
+  Set<String> _myAniListAnimeTitles = {};
 
   /// Owns the ecosystem [TabBar]'s controller — see [_ecoTabControllerFor].
   TabController? _ecoTabController;
@@ -516,6 +517,12 @@ class _SearchViewState extends State<_SearchView>
           for (final e in anime)
             if (e.item.malId != null) e.item.malId!,
         };
+        _myAniListAnimeTitles = {
+          for (final e in anime) ...[
+            _normalizeMyAnimeTitle(e.item.title),
+            _normalizeMyAnimeTitle(e.item.englishTitle),
+          ],
+        }..removeWhere((title) => title.isEmpty);
         _hideMyAnime = true;
         _loadingMyAnime = false;
       });
@@ -526,6 +533,20 @@ class _SearchViewState extends State<_SearchView>
         const SnackBar(content: Text('Daftar AniList gagal dimuat. Coba lagi.')),
       );
     }
+  }
+
+  String _normalizeMyAnimeTitle(String? value) => (value ?? '')
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+      .trim();
+
+  bool _isInMyAnime(MediaItem item) {
+    if (item.anilistId != null && _myAniListAnimeIds.contains(item.anilistId)) return true;
+    if (item.malId != null && _myAniListMalIds.contains(item.malId)) return true;
+    final title = _normalizeMyAnimeTitle(item.title);
+    final english = _normalizeMyAnimeTitle(item.englishTitle);
+    return (title.isNotEmpty && _myAniListAnimeTitles.contains(title)) ||
+        (english.isNotEmpty && _myAniListAnimeTitles.contains(english));
   }
 
   Widget _hideMyAnimeToggle() {
@@ -1734,13 +1755,7 @@ class _SearchViewState extends State<_SearchView>
     final state = _hideMyAnime
         ? rawState.copyWith(
             groups: rawState.groups.map((group) => group.withItems(
-              group.items.where((item) {
-                final byAniList = item.anilistId != null &&
-                    _myAniListAnimeIds.contains(item.anilistId);
-                final byMal = item.malId != null &&
-                    _myAniListMalIds.contains(item.malId);
-                return !byAniList && !byMal;
-              }).toList(growable: false),
+              group.items.where((item) => !_isInMyAnime(item)).toList(growable: false),
             )).toList(growable: false),
           )
         : rawState;
@@ -2349,13 +2364,7 @@ class _SearchViewState extends State<_SearchView>
         ? const <MediaItem>[]
         : state.trending;
     final trending = _hideMyAnime
-        ? unfilteredTrending.where((item) {
-            final byAniList = item.anilistId != null &&
-                _myAniListAnimeIds.contains(item.anilistId);
-            final byMal = item.malId != null &&
-                _myAniListMalIds.contains(item.malId);
-            return !byAniList && !byMal;
-          }).toList(growable: false)
+        ? unfilteredTrending.where((item) => !_isInMyAnime(item)).toList(growable: false)
         : unfilteredTrending;
 
     if (recent.isEmpty && trending.isEmpty) {
