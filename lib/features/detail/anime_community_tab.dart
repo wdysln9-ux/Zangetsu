@@ -798,16 +798,26 @@ class _Comment extends StatelessWidget {
                 if (children.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(left: 14),
-                    child: Column(
-                      children: [
-                        for (var i = 0; i < children.length; i++)
-                          _Comment(
-                            data: children[i],
-                            depth: depth + 1,
-                            rawMode: rawMode,
-                            isLast: i == children.length - 1,
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Stack(
+                        children: [
+                          const Positioned.fill(
+                            child: CustomPaint(painter: _CommentThreadRailPainter()),
                           ),
-                      ],
+                          Column(
+                            children: [
+                              for (var i = 0; i < children.length; i++)
+                                _Comment(
+                                  data: children[i],
+                                  depth: depth + 1,
+                                  rawMode: rawMode,
+                                  isLast: i == children.length - 1,
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
               ],
@@ -822,6 +832,24 @@ class _Comment extends StatelessWidget {
 
 /// Draws a continuous vertical rail and a short branch into each reply,
 /// matching the familiar threaded-comment layout.
+class _CommentThreadRailPainter extends CustomPainter {
+  const _CommentThreadRailPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF555860)
+      ..strokeWidth = 1.4
+      ..strokeCap = StrokeCap.round;
+    // The reply row has a 3 px left inset and its branch starts at x=7.
+    // Draw one parent-level trunk at x=10 so every branch meets it exactly.
+    canvas.drawLine(const Offset(10, 0), Offset(10, size.height), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CommentThreadRailPainter oldDelegate) => false;
+}
+
 class _CommentThreadLinePainter extends CustomPainter {
   const _CommentThreadLinePainter({required this.isLast});
   final bool isLast;
@@ -835,15 +863,8 @@ class _CommentThreadLinePainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
     const x = 7.0;
     const branchY = 16.0;
-    // Keep the rail as one uninterrupted stroke through each sibling row.
-    // Adjacent reply rows meet edge-to-edge; the final row ends at its branch.
-    canvas.drawLine(
-      Offset(x, 0),
-      // Slightly overlap the next sibling so fractional layout pixels cannot
-      // leave visible gaps in an otherwise continuous reply rail.
-      Offset(x, isLast ? branchY : size.height + 3),
-      paint,
-    );
+    // Each reply paints only its horizontal elbow. The parent paints the
+    // vertical trunk once across the complete sibling list.
     final branch = Path()
       ..moveTo(x, branchY - 4)
       ..quadraticBezierTo(x, branchY, x + 4, branchY)
@@ -852,8 +873,7 @@ class _CommentThreadLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _CommentThreadLinePainter oldDelegate) =>
-      oldDelegate.isLast != isLast;
+  bool shouldRepaint(covariant _CommentThreadLinePainter oldDelegate) => false;
 }
 
 class _CurrentProfileAvatar extends StatelessWidget {
