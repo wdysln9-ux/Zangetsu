@@ -797,7 +797,11 @@ class _CommentThreadLinePainter extends CustomPainter {
       ..lineTo(size.width, branchY);
     // Non-last replies keep the rail running to the very bottom edge.
     // Nested comments have no bottom gap, so the next reply's rail joins it.
-    if (!isLast) path.lineTo(x, size.height);
+    if (!isLast) {
+      path
+        ..moveTo(x, branchY)
+        ..lineTo(x, size.height);
+    }
     canvas.drawPath(path, paint);
   }
 
