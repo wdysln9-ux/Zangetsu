@@ -162,3 +162,12 @@ class SearchRetryRequested extends SearchEvent {
   @override
   List<Object?> get props => [sourceId];
 }
+
+/// Clears temporary search filters whenever the Search destination is opened.
+/// The content mode and current-source-only preference are intentionally kept.
+class SearchFiltersReset extends SearchEvent {
+  const SearchFiltersReset();
+
+  @override
+  List<Object?> get props => [];
+}

@@ -38,6 +38,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
          ).copyWith(currentSourceOnly: fixedSourceId == null ? null : true),
        ) {
     on<SearchStarted>(_onStarted);
+    on<SearchFiltersReset>(_onFiltersReset);
     on<SearchQueryChanged>(_onQueryChanged);
     on<SearchSuggestionsUpdated>(_onSuggestionsUpdated);
     on<SearchSortChanged>(_onSortChanged);
@@ -147,33 +148,45 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
 
   /// Seeds the bloc with the user's remembered filter/sort choices so they
   /// persist across screen opens.
-  static SearchState _restoredState(SearchPrefs prefs) {
-    final content = SearchContentFilter.values.firstWhere(
-      (f) => f.name == prefs.contentFilterName,
-      orElse: () => SearchContentFilter.all,
+  /// Search filters are temporary: every fresh Search screen starts clean.
+  /// Only the search scope preference survives between visits.
+  static SearchState _restoredState(SearchPrefs prefs) =>
+      SearchState(currentSourceOnly: prefs.currentSourceOnly);
+
+  void _onFiltersReset(
+    SearchFiltersReset event,
+    Emitter<SearchState> emit,
+  ) {
+    emit(
+      state.copyWith(
+        groups: const [],
+        status: SearchStatus.idle,
+        sourceFilter: kAllSources,
+        ecosystem: SearchEcosystem.all,
+        sort: SearchSort.bestMatch,
+        contentFilter: SearchContentFilter.all,
+        audioFilter: SearchAudioFilter.any,
+        clearGenreFilter: true,
+        statusFilter: SearchStatusFilter.any,
+        aniFiltersBySource: const {},
+        mihonFiltersBySource: const {},
+        respondedSources: const {},
+        failedSources: const {},
+        queriedSources: const {},
+        filteredBrowse: const [],
+        filteredBrowseSourceId: '',
+        filteredBrowsePage: 1,
+        filteredBrowseLoadingMore: false,
+        filteredBrowseLoading: false,
+        filteredBrowseAtEnd: false,
+        clearError: true,
+      ),
     );
-    final sort = SearchSort.values.firstWhere(
-      (s) => s.name == prefs.sortName,
-      orElse: () => SearchSort.bestMatch,
-    );
-    // Same fallback pattern migrates an old 'rating' sort name (the enum
-    // value no longer exists) straight to bestMatch — nothing else needed.
-    final audio = SearchAudioFilter.values.firstWhere(
-      (f) => f.name == prefs.audioFilterName,
-      orElse: () => SearchAudioFilter.any,
-    );
-    final statusFilter = SearchStatusFilter.values.firstWhere(
-      (f) => f.name == prefs.statusFilterName,
-      orElse: () => SearchStatusFilter.any,
-    );
-    return SearchState(
-      contentFilter: content,
-      sort: sort,
-      audioFilter: audio,
-      genreFilter: prefs.genre,
-      statusFilter: statusFilter,
-      currentSourceOnly: prefs.currentSourceOnly,
-    );
+    _prefs.setContentFilterName(SearchContentFilter.all.name);
+    _prefs.setAudioFilterName(SearchAudioFilter.any.name);
+    _prefs.setGenre(null);
+    _prefs.setStatusFilterName(SearchStatusFilter.any.name);
+    _prefs.setSortName(SearchSort.bestMatch.name);
   }
 
   /// Debounce for the LIGHTWEIGHT autocomplete only — never the heavy search.

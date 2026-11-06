@@ -343,6 +343,34 @@ class _SearchViewState extends State<_SearchView>
   /// ready. Defers a frame so it runs after the IndexedStack reveals the tab.
   void _onFocusSignal() {
     if (!mounted) return;
+    // The Search tab stays alive in the navigation IndexedStack. Reset its
+    // temporary filters each time the user opens it again, while keeping the
+    // catalogue's default Trending sort and any intentional deep-link filters.
+    if (widget.initialFilters == null) {
+      context.read<SearchBloc>().add(const SearchFiltersReset());
+      if (widget.scope == SearchScope.library) {
+        final privacyAllowsAdult =
+            sl.isRegistered<PlaybackPrefs>() &&
+            sl<PlaybackPrefs>().adultMetadata &&
+            (!sl.isRegistered<ViewerProfileStore>() ||
+                sl<ViewerProfileStore>().adultMetadataAllowed);
+        setState(() {
+          _metaFilters = initialSearchFilters(
+            null,
+            privacyAllowsAdult,
+            trendingByDefault:
+                browseKindFor(
+                  sl<ContentModeCubit>().state,
+                  ZModePrefs.streamKind,
+                ) == ZKind.anime,
+          );
+          _hideMyAnime = false;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _applyMetaFilters(browseDefaults: true);
+        });
+      }
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focusNode.requestFocus();
     });
