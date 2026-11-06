@@ -81,11 +81,6 @@ class _RootShellState extends State<RootShell>
   /// the leftmost tab, so an untouched install still opens on Home.
   late DockTab _tab = _navPrefs.startTab;
 
-  /// Whether the floating mode bar (Anime / Movie/TV / Manga / Novel) is
-  /// showing above the dock. Z Mode only — the centre button that toggles it
-  /// doesn't exist otherwise.
-  bool _modeBarOpen = false;
-
   /// Falls back to an unregistered instance rather than throwing.
   ///
   /// Production always registers it; widget tests build this shell with only
@@ -95,9 +90,6 @@ class _RootShellState extends State<RootShell>
   late final NavPrefs _navPrefs = sl.isRegistered<NavPrefs>()
       ? sl<NavPrefs>()
       : NavPrefs();
-
-  /// Cached for the scroll callback: don't read local storage during scrolling.
-  late bool _keepDockExpanded = _navPrefs.keepDockExpanded;
 
   /// Double-back-to-exit: timestamp of the last root Back press. A second Back
   /// within 2s exits the app; the first just shows the "press back again" toast.
@@ -122,7 +114,6 @@ class _RootShellState extends State<RootShell>
     );
     _switch = CurvedAnimation(parent: _switchCtrl, curve: Curves.easeOutCubic);
     _navPrefs.addListener(_onTabsChanged);
-    ZModePrefs.revision.addListener(_onZMode);
     if (sl.isRegistered<ViewerProfileStore>()) {
       sl<ViewerProfileStore>().active.addListener(_onProfileChanged);
       sl<ViewerProfileStore>().contextRevision.addListener(
@@ -174,30 +165,10 @@ class _RootShellState extends State<RootShell>
     }
   }
 
-  /// The toggle changed: close the mode bar and, as a safety net, bounce off
-  /// any tab that somehow stopped being visible.
-  void _onZMode() {
-    if (!mounted) return;
-    // TV returns [RootShellTv] from [build], but this State is still the
-    // parent. setState here rebuilds every tab (two 10-foot Homes + Search +
-    // Schedule) and freezes the UI for seconds even on a HomeCubit cache hit.
-    if (sl.isRegistered<AppMode>() && sl<AppMode>().isTv) return;
-    setState(() {
-      _modeBarOpen = false;
-      final visible = _visibleTabs();
-      if (!visible.contains(_tab)) _tab = visible.first;
-    });
-  }
-
   /// The dock was edited in Settings. If the tab we're on just got hidden,
   /// land somewhere that still exists instead of showing a page with no item.
   void _onTabsChanged() {
     if (!mounted) return;
-    final keepDockExpanded = _navPrefs.keepDockExpanded;
-    if (keepDockExpanded != _keepDockExpanded) {
-      _keepDockExpanded = keepDockExpanded;
-      DockScrollCollapse.reset();
-    }
     final visible = _visibleTabs();
     setState(() {
       if (!visible.contains(_tab)) _tab = visible.first;
@@ -212,7 +183,6 @@ class _RootShellState extends State<RootShell>
   @override
   void dispose() {
     _navPrefs.removeListener(_onTabsChanged);
-    ZModePrefs.revision.removeListener(_onZMode);
     if (sl.isRegistered<ViewerProfileStore>()) {
       sl<ViewerProfileStore>().active.removeListener(_onProfileChanged);
       sl<ViewerProfileStore>().contextRevision.removeListener(
@@ -346,7 +316,7 @@ class _RootShellState extends State<RootShell>
             // false throughout — it reads the scroll, never eats it.
             onNotification: (notification) => DockScrollCollapse.onNotification(
               notification,
-              enabled: !_keepDockExpanded,
+              enabled: true,
             ),
             child: Builder(
               builder: (context) {
