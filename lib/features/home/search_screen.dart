@@ -326,6 +326,28 @@ class _SearchViewState extends State<_SearchView>
     super.initState();
     _controller = TextEditingController(text: widget.initialQuery ?? '');
     widget.focusSignal?.addListener(_onFocusSignal);
+
+    // Phone Search is opened as a pushed route from Home (it has no
+    // focusSignal). Reset at route creation, not only when a TV tab receives
+    // a focus signal, so every fresh visit starts with clean temporary filters.
+    // Keep deliberate genre/tag deep links intact.
+    if (widget.initialFilters == null) {
+      context.read<SearchBloc>().add(const SearchFiltersReset());
+      _hideMyAnime = false;
+      _metaFilters = initialSearchFilters(
+        null,
+        sl.isRegistered<PlaybackPrefs>() &&
+            sl<PlaybackPrefs>().adultMetadata &&
+            (!sl.isRegistered<ViewerProfileStore>() ||
+                sl<ViewerProfileStore>().adultMetadataAllowed),
+        trendingByDefault:
+            browseKindFor(
+              sl<ContentModeCubit>().state,
+              ZModePrefs.streamKind,
+            ) == ZKind.anime,
+      );
+    }
+
     // Arrived from a genre or tag chip: run that filtered browse straight
     // away, not a frame later. context.read is safe here, it subscribes to
     // nothing.
