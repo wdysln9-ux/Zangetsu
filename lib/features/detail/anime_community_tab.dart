@@ -791,11 +791,13 @@ class _Comment extends StatelessWidget {
                 if (children.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(left: 14),
-                    child: Stack(
-                      children: [
-                        const Positioned.fill(
-                          child: CustomPaint(painter: _CommentThreadRailPainter()),
-                        ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: Stack(
+                        children: [
+                          const Positioned.fill(
+                            child: CustomPaint(painter: _CommentThreadRailPainter()),
+                          ),
                         Column(
                           children: [
                             for (var i = 0; i < children.length; i++)
@@ -806,8 +808,9 @@ class _Comment extends StatelessWidget {
                                 isLast: i == children.length - 1,
                               ),
                           ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
               ],
