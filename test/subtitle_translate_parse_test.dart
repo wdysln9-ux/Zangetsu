@@ -11,12 +11,30 @@ import 'package:watch_app/core/playback/subtitle_translate_service.dart';
 void main() {
   const parse = SubtitleTranslateService.parseTranslatedBody;
 
-  test('Indonesian subtitle style uses aku/kamu and natural possessives', () {
+  test('Indonesian subtitles use natural everyday wording without gw/lo', () {
     expect(
       SubtitleTranslateService.naturalizeIndonesian(
-        'Saya tidak tahu apakah Anda akan membantu saya.',
+        'Apakah Anda tidak tahu bagaimana cara melakukannya?',
       ),
-      'Aku tidak tahu apakah kamu akan membantu aku.',
+      'Apa kamu nggak tahu gimana cara melakukannya?',
+    );
+    expect(
+      SubtitleTranslateService.naturalizeIndonesian(
+        'Saya tidak bisa pergi, tetapi saya ingin mencoba.',
+      ),
+      'Aku nggak bisa pergi, tapi aku pengen mencoba.',
+    );
+    expect(
+      SubtitleTranslateService.naturalizeIndonesian(
+        'Jika engkau sedang di sini, tunggu saja.',
+      ),
+      'Kalau kamu lagi di sini, tunggu aja.',
+    );
+    expect(
+      SubtitleTranslateService.naturalizeIndonesian(
+        'Terima kasih, saya sangat senang.',
+      ),
+      'Makasih, aku senang banget.',
     );
     expect(
       SubtitleTranslateService.naturalizeIndonesian(
@@ -30,24 +48,13 @@ void main() {
       ),
       'This is not Indonesian.',
     );
-    expect(
-      SubtitleTranslateService.naturalizeIndonesian(
-        'Saya tidak tahu bagaimana cara melakukannya, tetapi saya ingin mencoba.',
-      ),
-      'Aku nggak tahu gimana cara melakukannya, tapi aku pengen mencoba.',
-    );
-    expect(
-      SubtitleTranslateService.naturalizeIndonesian(
-        'Jika Anda sedang di sini, tunggu saja.',
-      ),
-      'Kalau kamu lagi di sini, tunggu aja.',
-    );
-    expect(
-      SubtitleTranslateService.naturalizeIndonesian(
-        'Engkau terlihat seperti orang yang berbeda.',
-      ),
-      'Kamu terlihat kayak orang yang berbeda.',
-    );
+    final natural = SubtitleTranslateService.naturalizeIndonesian(
+      'Saya tidak tahu apa yang harus saya lakukan.',
+    ).toLowerCase();
+    expect(natural, isNot(contains('gw')));
+    expect(natural, isNot(contains('gue')));
+    expect(natural, isNot(contains('lo')));
+    expect(natural, isNot(contains('lu')));
   });
 
   test('reads the translated text out of a real response', () {

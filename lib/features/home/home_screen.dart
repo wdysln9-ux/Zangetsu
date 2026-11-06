@@ -446,12 +446,12 @@ class _HomeViewState extends State<_HomeView>
     sl<TitleLogoService>().prefetch(items);
   }
 
-  void _openDetail(MediaItem item) {
+  void _openDetail(MediaItem item, {bool autoScrollToResume = false, String? targetEpisodeId}) {
     // Only rebuild Home if this visit actually changed My List — Continue
     // Watching/Reading rows already listen to their Hive boxes, so a blanket
     // setState made every back-press rebuild the whole page for nothing.
     final listRev = _myList.revision.value;
-    Navigator.push(context, DetailScreen.route(item)).then((_) {
+    Navigator.push(context, DetailScreen.route(item, autoScrollToResume: autoScrollToResume, targetEpisodeId: targetEpisodeId)).then((_) {
       if (mounted && _myList.revision.value != listRev) setState(() {});
     });
   }
@@ -684,6 +684,21 @@ class _HomeViewState extends State<_HomeView>
       ),
     );
     if (mounted) setState(() {});
+  }
+
+  /// Open the anime detail page when a Continue Watching card is tapped.
+  /// Resuming playback remains available from the detail page's Play action.
+  void _openContinueShowDetail(HistoryEntry e) {
+    final item = MediaItem(
+      id: e.showId,
+      title: e.showTitle,
+      cover: e.cover,
+      coverHeaders: e.coverHeaders,
+      url: e.showUrl,
+      type: ProviderType.anime,
+      sourceId: e.sourceId,
+    );
+    _openDetail(item, autoScrollToResume: true, targetEpisodeId: e.episodeId);
   }
 
   /// Resume from Continue Watching. Navigates to the player INSTANTLY; the
@@ -1040,9 +1055,13 @@ class _HomeViewState extends State<_HomeView>
   /// already guaranteed non-empty by [SourceRepository.home].
   Widget _sectionRow(HomeSection section, {bool sourceCatalogue = false}) {
     final items = section.items;
+    final rawTitle = section.title.trim();
+    final displayTitle = rawTitle.toLowerCase() == 'baru dirilis'
+        ? 'Anime baru'
+        : section.title;
     return _animated(
       ContentRow(
-        title: section.title,
+        title: displayTitle,
         itemWidth: posterRowWidth(context),
         itemHeight: posterRowHeight(context),
         itemCount: items.length,
@@ -1115,7 +1134,7 @@ class _HomeViewState extends State<_HomeView>
   /// Hive/mode behaviour is identical wherever the user drags it.
   Widget _homeRowSliver(HomeRow row) => switch (row) {
     LocalContinueHomeRow() => ContinueSection(
-      onResume: _resume,
+      onResume: _openContinueShowDetail,
       onLongPress: _showContinueInfo,
       onSeeAll: _openHistory,
       onResumeReading: _resumeReading,
@@ -2077,7 +2096,7 @@ class _HomeViewState extends State<_HomeView>
                           ...rows.map(_homeRowSliver)
                       else ...[
                         ContinueSection(
-                          onResume: _resume,
+                          onResume: _openContinueShowDetail,
                           onLongPress: _showContinueInfo,
                           onSeeAll: _openHistory,
                           onResumeReading: _resumeReading,

@@ -216,16 +216,17 @@ class _SeekRowState extends State<_SeekRow> {
                                   bufferedColor: Colors.white.withValues(
                                     alpha: 0.55,
                                   ),
-                                  marks: [
+                                  skipRanges: [
                                     if (totalMs > 0 &&
                                         sl<PlaybackPrefs>().skipIntro)
                                       for (final iv
-                                          in widget.controller.currentSkips) ...[
-                                        (iv.start.inMilliseconds / totalMs)
-                                            .clamp(0.0, 1.0),
-                                        (iv.end.inMilliseconds / totalMs)
-                                            .clamp(0.0, 1.0),
-                                      ],
+                                          in widget.controller.currentSkips)
+                                        [
+                                          (iv.start.inMilliseconds / totalMs)
+                                              .clamp(0.0, 1.0),
+                                          (iv.end.inMilliseconds / totalMs)
+                                              .clamp(0.0, 1.0),
+                                        ],
                                   ],
                                 ),
                                 thumbColor: Colors.white,
@@ -337,16 +338,16 @@ class _BufferedSliderTrackShape extends SliderTrackShape
   _BufferedSliderTrackShape({
     required this.buffered,
     required this.bufferedColor,
-    this.marks = const [],
+    this.skipRanges = const [],
   });
 
   /// Buffered fraction in [0, 1].
   final double buffered;
   final Color bufferedColor;
 
-  /// Chapter/skip marker fractions in [0, 1] (AniSkip OP/ED boundaries),
-  /// drawn as small notches poking above/below the track.
-  final List<double> marks;
+  /// AniSkip opening/ending intervals as normalized [start, end] fractions.
+  /// These sections are highlighted yellow directly on the progress track.
+  final List<List<double>> skipRanges;
 
   @override
   void paint(
@@ -400,19 +401,23 @@ class _BufferedSliderTrackShape extends SliderTrackShape
       Paint()..color = sliderTheme.activeTrackColor ?? AppColors.accent,
     );
 
-    // 4. Chapter / skip markers (AniSkip OP/ED boundaries) — small notches
-    // that overhang the track so they read as markers, not part of the fill.
-    if (marks.isNotEmpty) {
-      final markPaint = Paint()..color = Colors.white.withValues(alpha: 0.95);
-      final h = rect.height + 4;
-      for (final m in marks) {
-        final x = rect.left + rect.width * m.clamp(0.0, 1.0);
+    // 4. AniSkip OP/ED intervals are highlighted yellow on the progress bar.
+    // Draw these over the played/buffered layers so the skip window stays visible.
+    if (skipRanges.isNotEmpty) {
+      final skipPaint = Paint()..color = const Color(0xFFFFC928);
+      for (final range in skipRanges) {
+        if (range.length < 2) continue;
+        final start = range[0].clamp(0.0, 1.0);
+        final end = range[1].clamp(start, 1.0);
+        final left = rect.left + rect.width * start;
+        final right = rect.left + rect.width * end;
+        if (right <= left) continue;
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromCenter(center: Offset(x, rect.center.dy), width: 3, height: h),
-            const Radius.circular(1.5),
+            Rect.fromLTRB(left, rect.top, right, rect.bottom),
+            radius,
           ),
-          markPaint,
+          skipPaint,
         );
       }
     }

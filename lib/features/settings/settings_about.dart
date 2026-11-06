@@ -17,18 +17,7 @@ class _AboutSettingsScreenState extends State<AboutSettingsScreen> {
   static const String _websiteUrl = 'https://zangetsu.online';
   static const String _telegramUrl = 'https://t.me/+9mQlsdvDlo83Mjk1';
   static const String _discordUrl = kDiscordInviteUrl;
-  static const String _githubUrl = 'https://github.com/Spyou/Zangetsu';
-
-  final UpdateService _updateService = UpdateService();
-  bool _betaUpdates = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _updateService.betaOptIn().then((v) {
-      if (mounted) setState(() => _betaUpdates = v);
-    });
-  }
+  static const String _githubUrl = 'https://github.com/wdysln9-ux/Zangetsu';
 
   Future<void> _open(String url) async {
     final uri = Uri.parse(url);
@@ -110,27 +99,6 @@ class _AboutSettingsScreenState extends State<AboutSettingsScreen> {
                   );
                   maybeShowUpdateDialog(context, manual: true);
                 },
-              ),
-              SettingsTile(
-                icon: Icons.science_outlined,
-                title: context.l10n.betaUpdates,
-                subtitle: context.l10n.betaUpdatesSubtitle,
-                subtitleMaxLines: null,
-                trailing: Switch.adaptive(
-                  value: _betaUpdates,
-                  activeThumbColor: AppColors.accent,
-                  onChanged: (v) async {
-                    // Turning it on: confirm first so it's never a silent opt-in.
-                    if (v && !await confirmJoinBeta(context)) return;
-                    await _updateService.setBetaOptIn(v);
-                    if (!mounted) return;
-                    setState(() => _betaUpdates = v);
-                    // Then check right away so a waiting beta shows up.
-                    if (v && context.mounted) {
-                      maybeShowUpdateDialog(context, manual: true);
-                    }
-                  },
-                ),
               ),
               SettingsTile(
                 icon: Icons.favorite_border_rounded,

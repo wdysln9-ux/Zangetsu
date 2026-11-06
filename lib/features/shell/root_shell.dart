@@ -81,11 +81,6 @@ class _RootShellState extends State<RootShell>
   /// the leftmost tab, so an untouched install still opens on Home.
   late DockTab _tab = _navPrefs.startTab;
 
-  /// Whether the floating mode bar (Anime / Movie/TV / Manga / Novel) is
-  /// showing above the dock. Z Mode only — the centre button that toggles it
-  /// doesn't exist otherwise.
-  bool _modeBarOpen = false;
-
   /// Falls back to an unregistered instance rather than throwing.
   ///
   /// Production always registers it; widget tests build this shell with only
@@ -95,9 +90,6 @@ class _RootShellState extends State<RootShell>
   late final NavPrefs _navPrefs = sl.isRegistered<NavPrefs>()
       ? sl<NavPrefs>()
       : NavPrefs();
-
-  /// Cached for the scroll callback: don't read local storage during scrolling.
-  late bool _keepDockExpanded = _navPrefs.keepDockExpanded;
 
   /// Double-back-to-exit: timestamp of the last root Back press. A second Back
   /// within 2s exits the app; the first just shows the "press back again" toast.
@@ -122,7 +114,6 @@ class _RootShellState extends State<RootShell>
     );
     _switch = CurvedAnimation(parent: _switchCtrl, curve: Curves.easeOutCubic);
     _navPrefs.addListener(_onTabsChanged);
-    ZModePrefs.revision.addListener(_onZMode);
     if (sl.isRegistered<ViewerProfileStore>()) {
       sl<ViewerProfileStore>().active.addListener(_onProfileChanged);
       sl<ViewerProfileStore>().contextRevision.addListener(
@@ -174,30 +165,10 @@ class _RootShellState extends State<RootShell>
     }
   }
 
-  /// The toggle changed: close the mode bar and, as a safety net, bounce off
-  /// any tab that somehow stopped being visible.
-  void _onZMode() {
-    if (!mounted) return;
-    // TV returns [RootShellTv] from [build], but this State is still the
-    // parent. setState here rebuilds every tab (two 10-foot Homes + Search +
-    // Schedule) and freezes the UI for seconds even on a HomeCubit cache hit.
-    if (sl.isRegistered<AppMode>() && sl<AppMode>().isTv) return;
-    setState(() {
-      _modeBarOpen = false;
-      final visible = _visibleTabs();
-      if (!visible.contains(_tab)) _tab = visible.first;
-    });
-  }
-
   /// The dock was edited in Settings. If the tab we're on just got hidden,
   /// land somewhere that still exists instead of showing a page with no item.
   void _onTabsChanged() {
     if (!mounted) return;
-    final keepDockExpanded = _navPrefs.keepDockExpanded;
-    if (keepDockExpanded != _keepDockExpanded) {
-      _keepDockExpanded = keepDockExpanded;
-      DockScrollCollapse.reset();
-    }
     final visible = _visibleTabs();
     setState(() {
       if (!visible.contains(_tab)) _tab = visible.first;
@@ -212,7 +183,6 @@ class _RootShellState extends State<RootShell>
   @override
   void dispose() {
     _navPrefs.removeListener(_onTabsChanged);
-    ZModePrefs.revision.removeListener(_onZMode);
     if (sl.isRegistered<ViewerProfileStore>()) {
       sl<ViewerProfileStore>().active.removeListener(_onProfileChanged);
       sl<ViewerProfileStore>().contextRevision.removeListener(
@@ -346,7 +316,7 @@ class _RootShellState extends State<RootShell>
             // false throughout — it reads the scroll, never eats it.
             onNotification: (notification) => DockScrollCollapse.onNotification(
               notification,
-              enabled: !_keepDockExpanded,
+              enabled: true,
             ),
             child: Builder(
               builder: (context) {
@@ -393,25 +363,6 @@ class _RootShellState extends State<RootShell>
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (ZModePrefs.enabled && _navPrefs.style == NavBarStyle.dock)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: BlocBuilder<ContentModeCubit, ContentMode>(
-                        bloc: sl<ContentModeCubit>(),
-                        builder: (_, mode) => ModeBar(
-                          open: _modeBarOpen,
-                          current: (mode, ZModePrefs.streamKind),
-                          onPicked: (m, k) async {
-                            setState(() => _modeBarOpen = false);
-                            await ZModePrefs.setStreamKind(k);
-                            await sl<ContentModeCubit>().setMode(m);
-                            if (m != ContentMode.anime) {
-                              sl<HomeCubit>().load(reset: true);
-                            }
-                          },
-                        ),
-                      ),
-                    ),
                   // Collapse the SLOT as well as sliding the dock out of it.
                   // The dock is this Scaffold's bottomNavigationBar and the
                   // shell sets extendBody, so its height lands in the body's
@@ -467,21 +418,7 @@ class _RootShellState extends State<RootShell>
                               tabs: tabs,
                               active: _tab,
                               onSelected: _onTabSelected,
-                              centre: ZModePrefs.enabled
-                                  ? BlocBuilder<ContentModeCubit, ContentMode>(
-                                      bloc: sl<ContentModeCubit>(),
-                                      builder: (_, mode) => ModeFab(
-                                        open: _modeBarOpen,
-                                        icon: iconForMode(
-                                          mode,
-                                          ZModePrefs.streamKind,
-                                        ),
-                                        onTap: () => setState(
-                                          () => _modeBarOpen = !_modeBarOpen,
-                                        ),
-                                      ),
-                                    )
-                                  : null,
+                              centre: null,
                             );
                           },
                         ),
@@ -496,252 +433,6 @@ class _RootShellState extends State<RootShell>
       ),
     );
   }
-}
-
-/// Liquid-glass navigation tabs with a Cue mode menu on the right.
-class _LiquidNavDock extends StatelessWidget {
-  const _LiquidNavDock({
-    required this.tabs,
-    required this.active,
-    required this.collapsed,
-    required this.glassTint,
-    required this.glassQuality,
-    required this.glassBlurEnabled,
-    required this.onSelected,
-    required this.modesEnabled,
-    required this.onModeSelected,
-  });
-
-  final List<DockTab> tabs;
-  final DockTab active;
-  final bool collapsed;
-  final double glassTint;
-  final GlassQuality glassQuality;
-  final bool glassBlurEnabled;
-  final ValueChanged<DockTab> onSelected;
-  final bool modesEnabled;
-  final void Function(ContentMode, StreamKind) onModeSelected;
-
-  Widget _icon(DockTab tab, {bool selected = false}) {
-    final color = selected ? AppColors.accent : AppColors.textPrimary;
-    if (tab == DockTab.profile) {
-      final profile = sl.isRegistered<ViewerProfileStore>()
-          ? sl<ViewerProfileStore>().activeProfile
-          : null;
-      if (profile != null) {
-        return ClipOval(
-          child: ProfileAvatarFace(
-            profile: profile,
-            photoUrl: profilePhotoForFace(
-              profile: profile,
-              accountPhotoUrl: sl.isRegistered<AuthCubit>()
-                  ? sl<AuthCubit>().state.avatarUrl
-                  : null,
-            ),
-            iconSize: 18,
-            photoDiameter: 26,
-          ),
-        );
-      }
-      return Icon(Icons.person_outline_rounded, color: color);
-    }
-    final glyph = dockGlyphFor(tab);
-    if (glyph != null) {
-      return DockIcon(glyph, color: color, filled: selected, size: 23);
-    }
-    final icons = _iconFor(tab)!;
-    return Icon(selected ? icons.$2 : icons.$1, color: color);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
-    final glass = liquidNavGlassSettings(
-      glassTint,
-      extraBlur: glassBlurEnabled,
-    );
-    final menuGlass = glass.copyWith(
-      glassColor: AppColors.settingsCard.withValues(alpha: 0.84),
-      blur: 8,
-    );
-    final glassTabs = [
-      for (final tab in tabs)
-        GlassTab(
-          icon: _icon(tab),
-          activeIcon: _icon(tab, selected: true),
-          label: tab.localizedLabel(context),
-          semanticLabel: tab.localizedLabel(context),
-        ),
-    ];
-    return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: 96 + bottomInset),
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: Padding(
-          padding: EdgeInsets.only(
-            left: 12,
-            right: 12,
-            bottom: bottomInset + 12,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: _LiquidGlassTabBar(
-                  tabs: glassTabs,
-                  selectedIndex: tabs.indexOf(active).clamp(0, tabs.length - 1),
-                  collapsed: collapsed,
-                  alignment: modesEnabled
-                      ? Alignment.centerRight
-                      : Alignment.center,
-                  quality: glassQuality,
-                  settings: glass,
-                  onTabSelected: (index) => onSelected(tabs[index]),
-                ),
-              ),
-              if (modesEnabled) ...[
-                const SizedBox(width: 8),
-                SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: GlassMenu(
-                    menuAlignment: GlassMenuAlignment.bottomRight,
-                    autoAdjustToScreen: true,
-                    menuPadding: const EdgeInsets.all(12),
-                    menuWidth: 224,
-                    menuBorderRadius: 28,
-                    itemBorderRadius: 20,
-                    quality: glassQuality,
-                    settings: menuGlass,
-                    selectionColor: AppColors.accent.withValues(alpha: 0.14),
-                    enableInteractionGlow: false,
-                    semanticLabel: 'Change content mode',
-                    triggerBuilder: (context, toggleMenu) => GlassButton(
-                      icon: const Icon(Icons.menu_rounded),
-                      label: 'Change content mode',
-                      onTap: toggleMenu,
-                      width: 56,
-                      height: 56,
-                      quality: glassQuality,
-                      settings: glass,
-                      isStationary: true,
-                    ),
-                    items: [
-                      for (final choice in modeChoices)
-                        if (ZModePrefs.enabled ||
-                            choice.mode != ContentMode.anime ||
-                            choice.kind == StreamKind.anime)
-                          GlassMenuItem(
-                            title: choice.label(context),
-                            icon: Icon(choice.icon),
-                            trailing:
-                                choice.mode == sl<ContentModeCubit>().state &&
-                                    (choice.mode != ContentMode.anime ||
-                                        choice.kind == ZModePrefs.streamKind)
-                                ? Icon(
-                                    Icons.check_rounded,
-                                    color: AppColors.accent,
-                                  )
-                                : null,
-                            isSelected:
-                                choice.mode == sl<ContentModeCubit>().state &&
-                                (choice.mode != ContentMode.anime ||
-                                    choice.kind == ZModePrefs.streamKind),
-                            iconColor: AppColors.textPrimary,
-                            titleStyle: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            height: 48,
-                            onTap: () =>
-                                onModeSelected(choice.mode, choice.kind),
-                          ),
-                    ],
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LiquidGlassTabBar extends StatelessWidget {
-  const _LiquidGlassTabBar({
-    required this.tabs,
-    required this.selectedIndex,
-    required this.collapsed,
-    required this.alignment,
-    required this.quality,
-    required this.settings,
-    required this.onTabSelected,
-  });
-
-  final List<GlassTab> tabs;
-  final int selectedIndex;
-  final bool collapsed;
-  final Alignment alignment;
-  final GlassQuality quality;
-  final LiquidGlassSettings settings;
-  final ValueChanged<int> onTabSelected;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final compactWidth = math.min(
-        constraints.maxWidth,
-        tabs.length * 52.0 + 8,
-      );
-      return TweenAnimationBuilder<double>(
-        tween: Tween(end: collapsed ? 1 : 0),
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        builder: (context, progress, _) {
-          return Align(
-            alignment: alignment,
-            child: SizedBox(
-              width:
-                  constraints.maxWidth +
-                  (compactWidth - constraints.maxWidth) * progress,
-              child: GlassTabBar.bottom(
-                tabs: tabs,
-                selectedIndex: selectedIndex,
-                onTabSelected: onTabSelected,
-                horizontalPadding: 4,
-                verticalPadding: 12 - 8 * progress,
-                barHeight: 60 - 10 * progress,
-                barBorderRadius: 30,
-                tabPadding: const EdgeInsets.symmetric(horizontal: 2),
-                iconSize: 22,
-                labelFontSize: math.max(0.01, 10 * (1 - progress)),
-                iconLabelSpacing: 4 * (1 - progress),
-                quality: quality,
-                backgroundQuality: progress == 0 || progress == 1
-                    ? quality
-                    : GlassQuality.minimal,
-                settings: settings,
-                indicatorColor: AppColors.accent.withValues(alpha: 0.14),
-                selectedIconColor: AppColors.accent,
-                unselectedIconColor: AppColors.textPrimary,
-                selectedLabelColor: AppColors.textPrimary.withValues(
-                  alpha: 1 - progress,
-                ),
-                unselectedLabelColor: AppColors.textSecondary.withValues(
-                  alpha: 1 - progress,
-                ),
-                indicatorExpansion: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 8,
-                ),
-                magnification: 1.08,
-              ),
-            ),
-          );
-        },
-      );
-    },
-  );
 }
 
 /// Full-width, edge-attached bottom navigation in the classic streaming-app style.

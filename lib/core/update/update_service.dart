@@ -3,6 +3,7 @@ import 'package:watch_app/core/hive/safe_box.dart';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:hive/hive.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -40,11 +41,11 @@ class UpdateInfo {
   final bool isPrerelease;
 }
 
-/// In-app updater: checks the public GitHub Releases of the app repo, compares
-/// the latest tag to the running build, downloads the matching APK and hands it
-/// to the Android package installer. The repo is public, so no token is needed.
+/// In-app updater: checks the public GitHub Releases of this fork, compares
+/// the newest successful build tag to the running build, downloads the matching
+/// ARM64 APK and hands it to the Android package installer.
 class UpdateService {
-  static const String _repo = 'Spyou/Zangetsu';
+  static const String _repo = 'wdysln9-ux/Zangetsu';
   static const String _latestUrl =
       'https://api.github.com/repos/$_repo/releases/latest';
   static const String _releasesUrl =
@@ -54,6 +55,8 @@ class UpdateService {
   static const String _betaKey = 'betaOptIn';
 
   final Dio _dio = Dio();
+  static const MethodChannel _downloadsChannel =
+      MethodChannel('zangetsu/update_downloads');
 
   /// Query GitHub for the latest release. Returns an [UpdateInfo] when it is
   /// newer than the installed version (and, when [respectSkip] is true, not the
@@ -61,9 +64,10 @@ class UpdateService {
   /// callers must treat null as "nothing to do" (never throws).
   Future<UpdateInfo?> checkForUpdate({bool respectSkip = false}) async {
     try {
-      final beta = await betaOptIn();
-      final release =
-          beta ? await _newestBetaRelease() : await _latestStableRelease();
+      // This fork publishes each successful development build as a GitHub
+      // pre-release. Always inspect that feed so every published commit can
+      // be offered without requiring a separate beta opt-in.
+      final release = await _newestBetaRelease();
       if (release == null) return null;
 
       final rawTag = ((release['tag_name'] as String?) ?? '').trim();
@@ -105,9 +109,8 @@ class UpdateService {
     return res.data;
   }
 
-  /// Newest release **including pre-releases** — the toggle-on behaviour.
-  /// Scans the recent releases list and returns the highest version by
-  /// [compareVersions]; skips drafts.
+  /// Newest published fork build, including pre-releases. Scans recent releases
+  /// and returns the highest version by [compareVersions]; skips drafts.
   Future<Map<String, dynamic>?> _newestBetaRelease() async {
     final res = await _dio.get<List<dynamic>>(
       _releasesUrl,
@@ -176,6 +179,26 @@ class UpdateService {
       }
     }
     return file;
+  }
+
+  /// Save a second copy in the public Android Downloads folder. Android 10+
+  /// uses MediaStore, so no broad storage permission is needed.
+  Future<void> saveApkToDownloads(
+    File apk, {
+    required String fileName,
+  }) async {
+    if (!Platform.isAndroid) return;
+    final android = await DeviceInfoPlugin().androidInfo;
+    if (android.version.sdkInt <= 28) {
+      final status = await Permission.storage.request();
+      if (!status.isGranted) {
+        throw Exception('Storage permission denied');
+      }
+    }
+    await _downloadsChannel.invokeMethod<String>(
+      'saveApkToDownloads',
+      {'sourcePath': apk.path, 'fileName': fileName},
+    );
   }
 
   /// Hand the APK to the system installer. Requests the "install unknown apps"

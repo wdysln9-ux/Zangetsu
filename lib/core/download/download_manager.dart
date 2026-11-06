@@ -15,6 +15,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../logging/app_logger.dart';
 import '../models/episode.dart';
 import '../models/video_source.dart';
+import '../playback/remote_file_size.dart';
 import '../platform/apple_tv.dart';
 import '../repository/catalogue_repository.dart';
 import '../torrent/torrent_download_service.dart';
@@ -694,6 +695,7 @@ class DownloadManager extends ChangeNotifier {
       await _startTorrentDownload(rec, source);
       return;
     }
+
     final filename =
         '${_safe(rec.showTitle)}_E${rec.episodeNumber?.toInt() ?? ''}'
         '_${_safe(rec.quality)}${_ext(source.url)}';
@@ -750,8 +752,17 @@ class DownloadManager extends ChangeNotifier {
     _put(rec.copyWith(status: DownloadStatus.queued, progress: 0));
     notifyListeners();
     _mp4Queue.add(task);
+    unawaited(_lookupAndStoreSize(rec.id, source));
   }
 
+  Future<void> _lookupAndStoreSize(String id, VideoSource source) async {
+    final size = await RemoteFileSize.lookup(source.url, headers: source.headers);
+    if (size == null || size <= 0) return;
+    final latest = _records[id];
+    if (latest == null || latest.bytesTotal > 0) return;
+    _put(latest.copyWith(bytesTotal: size));
+    notifyListeners();
+  }
   /// Hand an HLS source to the foreground-service isolate so it downloads in
   /// true background. We resolve the path here (UI isolate owns path_provider),
   /// start the service, and dispatch the job; progress/done/failed come back via

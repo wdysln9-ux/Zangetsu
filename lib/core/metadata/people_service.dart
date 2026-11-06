@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../models/person.dart';
+import '../anilist/anilist_title.dart';
 
 /// Loads person pages — anime characters + voice actors/staff from AniList,
 /// movie/TV people from TMDB. Read-only, best-effort: any miss/failure returns
@@ -52,27 +53,37 @@ class PeopleService {
   }
 
   Future<PersonProfile?> _character(int id) async {
-    const q =
+    // Keep the profile request independent from the appearances/voice-actor
+    // connection. If that larger connection fails, the character page itself
+    // must still load with the data returned by this small core query.
+    const profileQuery =
         'query(\$id:Int){ Character(id:\$id){ '
-        'name{ full native } image{ large } description(asHtml:false) '
-        // No type filter: a manga character's appearances ARE manga, and
-        // pinning this to ANIME left every reading character empty.
-        'media(sort:[POPULARITY_DESC],perPage:25){ edges{ characterRole '
-        'node{ idMal type title{ romaji english } coverImage{ large } } '
-        'voiceActors(language:JAPANESE){ id name{ full } image{ large } } } } } }';
-    final d = await _gql(q, {'id': id});
-    final c = d?['Character'];
+        'name{ full native alternative } image{ large } '
+        'description(asHtml:false) age gender dateOfBirth{ year month day } '
+        'bloodType favourites } }';
+    final profileData = await _gql(profileQuery, {'id': id});
+    final c = profileData?['Character'];
     if (c is! Map) return null;
 
     final works = <PersonWork>[];
     final vaById = <int, PersonRef>{};
-    final edges = (c['media'] is Map) ? c['media']['edges'] : null;
+    const appearancesQuery =
+        'query(\$id:Int){ Character(id:\$id){ '
+        'media(sort:[POPULARITY_DESC],perPage:25){ edges{ characterRole '
+        'node{ idMal type title{ romaji english } coverImage{ large } } '
+        'voiceActors(language:JAPANESE){ id name{ full } image{ large } } } } } }';
+    final appearancesData = await _gql(appearancesQuery, {'id': id});
+    final appearanceCharacter = appearancesData?['Character'];
+    final edges = appearanceCharacter is Map &&
+            appearanceCharacter['media'] is Map
+        ? appearanceCharacter['media']['edges']
+        : null;
     if (edges is List) {
       for (final e in edges) {
         if (e is! Map) continue;
         final node = e['node'];
         final title = _aniTitle(node);
-        if (title != null) {
+        if (title != null && node is Map) {
           works.add(
             PersonWork(
               title: title,
@@ -96,6 +107,18 @@ class PeopleService {
     return PersonProfile(
       name: _aniName(c) ?? 'Character',
       nativeName: _aniNative(c),
+      alternateNames: _aniAlternatives(c),
+      age: (c['age'] as String?)?.trim().isNotEmpty == true
+          ? (c['age'] as String).trim()
+          : null,
+      gender: (c['gender'] as String?)?.trim().isNotEmpty == true
+          ? (c['gender'] as String).trim()
+          : null,
+      birthday: _aniBirthday(c['dateOfBirth']),
+      bloodType: (c['bloodType'] as String?)?.trim().isNotEmpty == true
+          ? (c['bloodType'] as String).trim()
+          : null,
+      favourites: (c['favourites'] as num?)?.toInt(),
       photo: _aniImage(c, 'image'),
       description: _plain(c['description'] as String?),
       subtitle: 'Character',
@@ -202,16 +225,40 @@ class PeopleService {
 
   String? _aniName(Map m) =>
       (m['name'] is Map) ? m['name']['full'] as String? : null;
+  List<String> _aniAlternatives(Map m) {
+    final n = m['name'];
+    final values = n is Map ? n['alternative'] : null;
+    if (values is! List) return const [];
+    return values
+        .whereType<String>()
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
+  }
+
+  String? _aniBirthday(dynamic value) {
+    if (value is! Map) return null;
+    final day = (value['day'] as num?)?.toInt();
+    final month = (value['month'] as num?)?.toInt();
+    final year = (value['year'] as num?)?.toInt();
+    if (day == null || month == null || day < 1 || month < 1 || month > 12) {
+      return null;
+    }
+    const months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
+    return '$day ${months[month - 1]}${year != null && year > 0 ? ' $year' : ''}';
+  }
+
   String? _aniNative(Map m) {
     final n = (m['name'] is Map) ? m['name']['native'] as String? : null;
     return (n != null && n.isNotEmpty) ? n : null;
   }
 
   String? _aniTitle(dynamic node) {
-    if (node is! Map || node['title'] is! Map) return null;
-    final t = node['title'] as Map;
-    final title = (t['english'] ?? t['romaji']) as String?;
-    return (title != null && title.isNotEmpty) ? title : null;
+    if (node is! Map) return null;
+    return aniListTitle(node['title'], titleLanguagePref);
   }
 
   String? _aniRomaji(dynamic node) {
@@ -276,6 +323,122 @@ class PeopleService {
     );
   }
 
+  /// Search MAL by the AniList character name, choose the closest result,
+  /// then load every picture exposed by that character's Pictures page.
+  Future<List<String>> loadCharacterGallery(String characterName) async {
+    // Jikan applies a strict request limit. Retry a rate-limited search once
+    // before giving up, then open the matched character's dedicated Pictures
+    // endpoint (not just the single search-result portrait).
+    Future<Response<dynamic>?> request(String url, {Map<String, dynamic>? query}) async {
+      for (var attempt = 0; attempt < 3; attempt++) {
+        try {
+          final response = await _dio.get<dynamic>(
+            url,
+            queryParameters: query,
+            options: Options(
+              validateStatus: (status) => status != null && status < 500,
+            ),
+          );
+          if (response.statusCode == 429 && attempt < 2) {
+            await Future<void>.delayed(Duration(milliseconds: 1100 * (attempt + 1)));
+            continue;
+          }
+          if (response.statusCode != null &&
+              response.statusCode! >= 200 &&
+              response.statusCode! < 300) {
+            return response;
+          }
+          return null;
+        } catch (_) {
+          if (attempt == 2) return null;
+          await Future<void>.delayed(Duration(milliseconds: 700 * (attempt + 1)));
+        }
+      }
+      return null;
+    }
+
+    try {
+      final search = await request(
+        'https://api.jikan.moe/v4/characters',
+        query: {'q': characterName, 'limit': 25},
+      );
+      final data = search?.data is Map ? search!.data['data'] : null;
+      if (data is! List || data.isEmpty) return const [];
+
+      String normalize(String value) => value
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9\\s]'), ' ')
+          .replaceAll(RegExp(r'\\s+'), ' ')
+          .trim();
+
+      final target = normalize(characterName);
+      final targetTokens = target.split(' ').where((e) => e.length > 1).toSet();
+      Map? best;
+      var bestScore = 0.0;
+      for (final raw in data) {
+        if (raw is! Map) continue;
+        final names = <String>[
+          if (raw['name'] is String) raw['name'] as String,
+          if (raw['name_kanji'] is String) raw['name_kanji'] as String,
+          if (raw['nicknames'] is List)
+            ...(raw['nicknames'] as List).whereType<String>(),
+        ];
+        var score = 0.0;
+        for (final candidate in names) {
+          final normalized = normalize(candidate);
+          if (normalized.isEmpty) continue;
+          if (normalized == target) {
+            score = 1.0;
+            break;
+          }
+          if (normalized.contains(target) || target.contains(normalized)) {
+            score = score < 0.88 ? 0.88 : score;
+          }
+          final tokens =
+              normalized.split(' ').where((e) => e.length > 1).toSet();
+          if (targetTokens.isNotEmpty && tokens.isNotEmpty) {
+            final overlap = targetTokens.intersection(tokens).length /
+                targetTokens.union(tokens).length;
+            if (overlap > score) score = overlap;
+          }
+        }
+        if (score > bestScore) {
+          bestScore = score;
+          best = raw;
+        }
+      }
+
+      // Never show an unrelated character's pictures for a weak name match.
+      if (best == null || bestScore < 0.25) return const [];
+      final malId = (best['mal_id'] as num?)?.toInt();
+      if (malId == null) return const [];
+
+      final picturesResponse = await request(
+        'https://api.jikan.moe/v4/characters/$malId/pictures',
+      );
+      final pictures = picturesResponse?.data is Map
+          ? picturesResponse!.data['data']
+          : null;
+      if (pictures is! List) return const [];
+
+      final urls = <String>[];
+      for (final item in pictures) {
+        if (item is! Map) continue;
+        final webp = item['webp'];
+        final jpg = item['jpg'];
+        final webpUrl = webp is Map ? webp['image_url'] : null;
+        final jpgUrl = jpg is Map ? jpg['image_url'] : null;
+        final url = webpUrl is String && webpUrl.isNotEmpty
+            ? webpUrl
+            : (jpgUrl is String && jpgUrl.isNotEmpty ? jpgUrl : null);
+        if (url != null && !urls.contains(url)) urls.add(url);
+      }
+      return urls;
+    } catch (_) {
+      return const [];
+    }
+  }
+
   Future<Map<String, dynamic>?> _get(String url) async {
     try {
       final res = await _dio.get<dynamic>(
@@ -317,7 +480,6 @@ class PeopleService {
         .replaceAll(RegExp(r'<br\s*/?>', caseSensitive: false), '\n')
         .replaceAll(RegExp(r'<[^>]+>'), '')
         .replaceAll(RegExp(r'~!|!~'), '') // AniList spoiler markers
-        .replaceAll('__', '')
         .replaceAll(RegExp(r'\n{3,}'), '\n\n')
         .trim();
     return out.isEmpty ? null : out;

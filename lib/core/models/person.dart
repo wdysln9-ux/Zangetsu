@@ -34,8 +34,15 @@ class PersonProfile extends Equatable {
     required this.name,
     this.nativeName,
     this.photo,
+    this.malId,
     this.description,
     this.subtitle,
+    this.alternateNames = const [],
+    this.age,
+    this.gender,
+    this.birthday,
+    this.bloodType,
+    this.favourites,
     this.works = const [],
     this.related = const [],
   });
@@ -43,6 +50,7 @@ class PersonProfile extends Equatable {
   final String name;
   final String? nativeName;
   final String? photo;
+  final int? malId;
 
   /// Bio / description. May carry light HTML/markdown from AniList — the page
   /// strips tags and renders it as plain text.
@@ -50,6 +58,16 @@ class PersonProfile extends Equatable {
 
   /// Small line under the name, e.g. "Voice Actor" / "Acting".
   final String? subtitle;
+
+  /// Non-spoiler alternate names supplied by AniList (characters only).
+  final List<String> alternateNames;
+
+  /// Structured character facts supplied by AniList.
+  final String? age;
+  final String? gender;
+  final String? birthday;
+  final String? bloodType;
+  final int? favourites;
 
   /// Media this person appears in / worked on.
   final List<PersonWork> works;
@@ -62,8 +80,15 @@ class PersonProfile extends Equatable {
     name,
     nativeName,
     photo,
+    malId,
     description,
     subtitle,
+    alternateNames,
+    age,
+    gender,
+    birthday,
+    bloodType,
+    favourites,
     works,
     related,
   ];

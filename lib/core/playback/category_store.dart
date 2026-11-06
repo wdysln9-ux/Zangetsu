@@ -311,7 +311,7 @@ class CategoryStore {
     await _writeAll([
       for (final c in cats)
         if (c.id == id)
-          ListCategory(id: c.id, name: trimmed, position: c.position)
+          ListCategory(id: c.id, name: trimmed, position: c.position, kind: c.kind)
         else
           c,
     ], profileId);
@@ -331,16 +331,16 @@ class CategoryStore {
   /// deleting a category loses the label, never anything from the list.
   Future<void> delete(String id) async {
     final profileId = _profileId;
-    await _writeAll(
-      _allFor(profileId).where((c) => c.id != id).toList(),
-      profileId,
-    );
+    final allCats = _allFor(profileId);
+    final removed = <String>{id};
+    await _writeAll(allCats.where((c) => !removed.contains(c.id)).toList(), profileId);
     for (final key in _box.keys.toList()) {
       if (!profileOwnsKey(key, profileId) || key == _categoriesKey(profileId)) {
         continue;
       }
       final ids = _idsFor(key);
-      if (!ids.remove(id)) continue;
+      if (!ids.any(removed.contains)) continue;
+      ids.removeAll(removed);
       if (ids.isEmpty) {
         await _box.delete(key);
       } else {
@@ -364,13 +364,13 @@ class CategoryStore {
     for (final id in orderedIds) {
       final c = byId.remove(id);
       if (c != null) {
-        out.add(ListCategory(id: c.id, name: c.name, position: i++));
+        out.add(ListCategory(id: c.id, name: c.name, position: i++, kind: c.kind));
       }
     }
     // Anything not named keeps its relative order at the end, so a stale list
     // can never silently drop a category.
     for (final c in byId.values) {
-      out.add(ListCategory(id: c.id, name: c.name, position: i++));
+      out.add(ListCategory(id: c.id, name: c.name, position: i++, kind: c.kind));
     }
     await _writeAll(out, profileId);
     for (final c in out) {
@@ -485,6 +485,11 @@ class CategoryStore {
       );
     }
 
+    cats.sort((a, b) {
+      final p = a.position.compareTo(b.position);
+      return p != 0 ? p : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+
     // Rebuild assignments from scratch, keyed the same way the local box is.
     final byKey = <String, Set<String>>{};
     final knownIds = {for (final c in cats) c.id};
@@ -565,7 +570,9 @@ class CategoryStore {
     final local = _allFor(profileId);
     if (local.length != cats.length) return false;
     for (var i = 0; i < local.length; i++) {
-      if (local[i].id != cats[i].id || local[i].name != cats[i].name) {
+      if (local[i].id != cats[i].id ||
+          local[i].name != cats[i].name ||
+          local[i].position != cats[i].position) {
         return false;
       }
     }

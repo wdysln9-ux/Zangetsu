@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:dio/dio.dart';
 
 /// Translates plain text with Google's keyless translation endpoint.
@@ -46,6 +48,51 @@ class PlainTextTranslationService {
       throw const FormatException('Invalid translation response body');
     }
     return translated;
+  }
+
+  /// Translates only when Google's auto-detection identifies the source as
+  /// [expectedSourceLanguage]. Returns null for every other/unknown language.
+  Future<String?> translateIfSourceLanguage(
+    String text, {
+    required String sourceLanguage,
+    required String targetLanguage,
+    required String expectedSourceLanguage,
+  }) async {
+    final response = await _dio.get<String>(
+      _endpoint,
+      queryParameters: {
+        'client': 'dict-chrome-ex',
+        'sl': sourceLanguage,
+        'tl': targetLanguage,
+        'dt': 't',
+        'q': text,
+      },
+      options: Options(
+        responseType: ResponseType.plain,
+        connectTimeout: _timeout,
+        receiveTimeout: _timeout,
+      ),
+    );
+    if (detectedSourceLanguage(response.data)?.toLowerCase() !=
+        expectedSourceLanguage.toLowerCase()) {
+      return null;
+    }
+    return parseTranslatedBody(response.data);
+  }
+
+  /// Google's detected source language code in the translate response.
+  @visibleForTesting
+  static String? detectedSourceLanguage(String? body) {
+    final raw = body?.trim();
+    if (raw == null || raw.isEmpty || raw.startsWith('<')) return null;
+    try {
+      final data = jsonDecode(raw);
+      if (data is! List || data.length < 3) return null;
+      final language = data[2];
+      return language is String && language.isNotEmpty ? language : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Extracts translated segments, joining them in endpoint order.

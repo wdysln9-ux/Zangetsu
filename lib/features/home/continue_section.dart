@@ -130,25 +130,26 @@ class ContinueWatchingRow extends StatelessWidget {
     }
     return SliverToBoxAdapter(
       child: ContentRow(
-        title: 'Continue Watching',
-        // Compact 16:9 landscape card — same design, just smaller/tighter.
-        itemWidth: 190,
-        itemHeight: 107,
+        title: 'Lanjut Tonton',
+        // 91% of the original 190 × 124 landscape card.
+        itemWidth: 173,
+        itemHeight: 113,
         onSeeAll: onSeeAll,
         itemCount: history.length,
         itemBuilder: (c, i) {
           final e = history[i];
           return ContinueCard(
             title: e.showTitle,
-            // Prefer the landscape episode thumbnail; fall back to the
-            // portrait cover (older entries / sources without them).
-            imageUrl: e.thumbnail ?? e.cover,
+            // Use only the thumbnail for the episode currently being
+            // watched. Do not substitute the anime's portrait poster.
+            imageUrl: e.thumbnail,
             headers: e.coverHeaders,
             progress: e.progress,
-            cellWidth: 190,
+            cellWidth: 173,
             subtitle: e.episodeNumber != null
                 ? 'Episode ${e.episodeNumber!.toInt()}'
                 : null,
+            recentlyWatched: _recentLabel(e.updatedAt),
             onTap: () => onResume(e),
             onLongPress: () => onLongPress(e),
           );
@@ -156,6 +157,14 @@ class ContinueWatchingRow extends StatelessWidget {
       ),
     );
   }
+}
+
+String _recentLabel(int timestamp) {
+  final elapsed = DateTime.now().difference(DateTime.fromMillisecondsSinceEpoch(timestamp));
+  if (elapsed.inMinutes < 1) return 'Baru saja';
+  if (elapsed.inHours < 1) return '${elapsed.inMinutes} menit lalu';
+  if (elapsed.inDays < 1) return '${elapsed.inHours} jam lalu';
+  return '${elapsed.inDays} hari lalu';
 }
 
 /// Continue Reading row content, given an already-resolved [history] list —

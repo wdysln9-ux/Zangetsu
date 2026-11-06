@@ -53,7 +53,7 @@ class NavPrefs extends ChangeNotifier {
   /// the tabs as the dock's centre button and is not a [DockTab] — so the
   /// bar always renders one more icon than there are tabs.
   static const int minTabs = 3;
-  static const int maxTabs = 4;
+  static const int maxTabs = 5;
 
   /// What the dock shipped with, and what a corrupt or empty value falls back
   /// to. Search lives in the Home header and Schedule on the Home card row,
@@ -63,8 +63,9 @@ class NavPrefs extends ChangeNotifier {
   /// tab, so these four names fill all five icon slots.
   static const List<DockTab> defaultTabs = [
     DockTab.home,
-    DockTab.myList,
     DockTab.sources,
+    DockTab.history,
+    DockTab.myList,
     DockTab.profile,
   ];
 
@@ -132,7 +133,7 @@ class NavPrefs extends ChangeNotifier {
       NavBarStyle.values
           .where((value) => value.name == _box?.get(_styleKey))
           .firstOrNull ??
-      NavBarStyle.liquid;
+      NavBarStyle.dock;
 
   Future<void> setStyle(NavBarStyle value) async {
     await _box?.put(_styleKey, value.name);
@@ -188,7 +189,7 @@ class NavPrefs extends ChangeNotifier {
       listEquals(tabs, defaultTabs) &&
       startTab == defaultTabs.first &&
       !keepDockExpanded &&
-      style == NavBarStyle.liquid &&
+      style == NavBarStyle.dock &&
       glassTint == defaultGlassTint &&
       glassQuality == defaultGlassQuality &&
       glassBlurEnabled;

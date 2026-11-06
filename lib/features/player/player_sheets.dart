@@ -656,6 +656,10 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
 
   /// Fonts currently downloading — their row shows a spinner.
   final Set<String> _downloading = {};
+  bool _typographyExpanded = true;
+  bool _colorsExpanded = true;
+  bool _miscExpanded = true;
+  String _selectedColor = 'text';
 
   @override
   void initState() {
@@ -753,6 +757,39 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
     widget.onInteract();
   }
 
+  Future<void> _resetTypography() => _apply(() async {
+    await _prefs.setSubtitleFont('');
+    await _prefs.setSubtitleFontWeight(500);
+    await _prefs.setSubtitleItalic(false);
+    await _prefs.setSubtitleJustification('center');
+    await _prefs.setSubtitleOutlineType('soft');
+    await _prefs.setSubtitleOutlineWidth(2.0);
+    await _prefs.setSubtitleShadowAngle(90.0);
+    await _prefs.setSubtitleShadowDistance(1.0);
+    await _prefs.setSubtitleShadowBlur(0.0);
+    await _prefs.setSubtitleScale(1.0);
+  });
+
+  Future<void> _resetSelectedColor() => _apply(() async {
+    switch (_selectedColor) {
+      case 'outline':
+        await _prefs.setSubtitleOutlineColorHex('#000000FF');
+        break;
+      case 'shadow':
+        await _prefs.setSubtitleShadowColorHex('#000000FF');
+        break;
+      default:
+        await _prefs.setSubtitleColorHex('#FFFFFFFF');
+    }
+  });
+
+  Future<void> _resetMiscellaneous() => _apply(() async {
+    await _prefs.setStyledSubtitles(false);
+    await _prefs.setSubtitleBgOpacity(0.0);
+    await _prefs.setSubtitlePosition(95);
+    await _prefs.setSubtitleScale(1.0);
+  });
+
   /// Reset every subtitle-style pref to its default value.
   Future<void> _resetToDefault() => _apply(() async {
     await _prefs.setSubtitleFont('');
@@ -761,235 +798,469 @@ class _SubtitleStyleSheetState extends State<_SubtitleStyleSheet> {
     await _prefs.setSubtitleOutlineType('soft');
     await _prefs.setSubtitleOutlineColorHex('#000000FF');
     await _prefs.setSubtitleOutlineWidth(2.0);
+    await _prefs.setSubtitleFontWeight(500);
+    await _prefs.setSubtitleItalic(false);
+    await _prefs.setSubtitleJustification('center');
+    await _prefs.setSubtitleShadowAngle(90.0);
+    await _prefs.setSubtitleShadowDistance(1.0);
+    await _prefs.setSubtitleShadowBlur(0.0);
+    await _prefs.setSubtitleShadowColorHex('#000000FF');
     await _prefs.setSubtitleBgOpacity(0.0);
     await _prefs.setSubtitlePosition(95);
     await _prefs.setSubtitleScale(1.0);
+    await _prefs.setStyledSubtitles(false);
   });
 
   @override
   Widget build(BuildContext context) {
     final h = MediaQuery.of(context).size.height;
+    final portrait = MediaQuery.of(context).orientation == Orientation.portrait;
     final font = _prefs.subtitleFont;
-    final colorHex = _prefs.subtitleColorHex.toUpperCase();
     final size = _prefs.subtitleScale;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 10),
-            width: 36,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.surface2,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-            child: Text(context.l10n.subtitleStyle, style: AppText.headline),
-          ),
-          // Live WYSIWYG preview — built with the SAME buildSubtitleTextStyle as
-          // the real overlay, so what you see here is what renders on the video.
-          Container(
-            margin: const EdgeInsets.fromLTRB(12, 6, 12, 4),
-            height: 92,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF33405E), Color(0xFF0E121B)],
+
+    Widget card({
+      required String title,
+      required IconData icon,
+      required bool expanded,
+      required VoidCallback onToggle,
+      required List<Widget> children,
+    }) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+        decoration: BoxDecoration(
+          color: AppColors.surface2,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.hairline),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: onToggle,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                child: Row(
+                  children: [
+                    Icon(icon, color: AppColors.textPrimary, size: 23),
+                    const SizedBox(width: 14),
+                    Expanded(child: Text(title, style: AppText.title)),
+                    AnimatedRotation(
+                      turns: expanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 180),
+                      child: Icon(Icons.keyboard_arrow_down_rounded,
+                          color: AppColors.textSecondary, size: 25),
+                    ),
+                  ],
+                ),
               ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                context.l10n.theQuickBrownFox,
-                textAlign: TextAlign.center,
-                style: buildSubtitleTextStyle(_prefs, fontSize: 22.0 * size),
-              ),
-            ),
-          ),
-          Flexible(
-            child: ListView(
-              shrinkWrap: true,
+            if (expanded) ...children,
+            if (expanded) const SizedBox(height: 10),
+          ],
+        ),
+      );
+    }
+
+    Widget page(Widget child) => ListView(
+      padding: const EdgeInsets.fromLTRB(5, 5, 5, 16),
+      children: [child],
+    );
+
+    final typographyCard = card(
+      title: 'Tipografi',
+      icon: Icons.text_fields_rounded,
+      expanded: _typographyExpanded,
+      onToggle: () => setState(() => _typographyExpanded = !_typographyExpanded),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _SheetSectionHeader(context.l10n.font),
-                ConstrainedBox(
-                  constraints: BoxConstraints(maxHeight: h * 0.28),
-                  child: ListView(
-                    shrinkWrap: true,
-                    padding: EdgeInsets.zero,
-                    children: [
-                      for (final f in kBundledSubtitleFonts)
-                        _SheetRow(
-                          label: f.isEmpty ? context.l10n.defaultLabel : f,
-                          subtitle: _downloading.contains(f)
-                              ? context.l10n.downloading
-                              : ((_fontAvailable[f] ?? true)
-                                    ? null
-                                    : context.l10n.tapToDownloadFont),
-                          loading: _downloading.contains(f),
-                          active: font == f,
-                          onTap: () => _pickFont(f),
-                        ),
-                      // The user's own fonts. Always local, so they skip the
-                      // download/availability dance entirely.
-                      for (final f in _customFonts.keys)
-                        _SheetRow(
-                          label: f,
-                          active: font == f,
-                          onTap: () => _pickFont(f),
-                          onRemove: () => _removeCustomFont(f),
-                        ),
-                      _SheetRow(
-                        label: context.l10n.addFont,
-                        icon: Icons.upload_file,
-                        active: false,
-                        onTap: _addCustomFont,
-                      ),
-                    ],
+              IconButton.filledTonal(
+                tooltip: 'Tebal',
+                onPressed: () => _apply(() => _prefs.setSubtitleFontWeight(
+                  _prefs.subtitleFontWeight >= 600 ? 400 : 700,
+                )),
+                style: IconButton.styleFrom(
+                  foregroundColor: _prefs.subtitleFontWeight >= 600
+                      ? AppColors.accent : AppColors.textSecondary,
+                  backgroundColor: _prefs.subtitleFontWeight >= 600
+                      ? AppColors.accent.withValues(alpha: 0.16) : AppColors.surface,
+                ),
+                icon: const Icon(Icons.format_bold_rounded, size: 25),
+              ),
+              IconButton.filledTonal(
+                tooltip: 'Miring',
+                onPressed: () => _apply(() => _prefs.setSubtitleItalic(!_prefs.subtitleItalic)),
+                style: IconButton.styleFrom(
+                  foregroundColor: _prefs.subtitleItalic
+                      ? AppColors.accent : AppColors.textSecondary,
+                  backgroundColor: _prefs.subtitleItalic
+                      ? AppColors.accent.withValues(alpha: 0.16) : AppColors.surface,
+                ),
+                icon: const Icon(Icons.format_italic_rounded, size: 25),
+              ),
+              const SizedBox(width: 4),
+              for (final align in ['left', 'center', 'right'])
+                IconButton.filledTonal(
+                  tooltip: align == 'left' ? 'Rata kiri' : align == 'right' ? 'Rata kanan' : 'Rata tengah',
+                  onPressed: () => _apply(() => _prefs.setSubtitleJustification(align)),
+                  style: IconButton.styleFrom(
+                    foregroundColor: _prefs.subtitleJustification == align
+                        ? AppColors.accent : AppColors.textSecondary,
+                    backgroundColor: _prefs.subtitleJustification == align
+                        ? AppColors.accent.withValues(alpha: 0.16) : AppColors.surface,
+                  ),
+                  icon: Icon(
+                    align == 'left' ? Icons.format_align_left_rounded
+                      : align == 'right' ? Icons.format_align_right_rounded
+                      : Icons.format_align_center_rounded,
+                    size: 23,
                   ),
                 ),
-                _SheetSectionHeader(context.l10n.textColour),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      for (final hex in _colorHexes)
-                        _ColorSwatch(
-                          color: _colorFromHex(hex),
-                          label: _subtitleColourLabel(context.l10n, hex),
-                          active: colorHex == hex,
-                          onTap: () =>
-                              _apply(() => _prefs.setSubtitleColorHex(hex)),
-                        ),
-                    ],
-                  ),
-                ),
-                _SheetSectionHeader(context.l10n.textOpacity),
-                _SliderRow(
-                  value: _prefs.subtitleTextOpacity,
-                  min: 0.1,
-                  max: 1,
-                  divisions: 9,
-                  label: '${(_prefs.subtitleTextOpacity * 100).round()}%',
-                  onChanged: (v) =>
-                      _apply(() => _prefs.setSubtitleTextOpacity(v)),
-                ),
-                _SheetSectionHeader(context.l10n.outlineStyle),
-                // Subtitles that carry their own styling (.ass signs, karaoke)
-                // keep it while styled subtitles are on — that is the whole
-                // point of that switch — so say so here rather than let this
-                // sheet look broken for those tracks.
-                if (_prefs.styledSubtitles)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 6),
-                    child: Text(
-                      context.l10n.ownStylingKept,
-                      style: AppText.caption.copyWith(
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                  ),
-                for (final (id, _) in kSubtitleOutlineTypes)
-                  _SheetRow(
-                    label: _subtitleOutlineLabel(context.l10n, id),
-                    active: _prefs.subtitleOutlineType == id,
-                    onTap: () =>
-                        _apply(() => _prefs.setSubtitleOutlineType(id)),
-                  ),
-                _SheetSectionHeader(context.l10n.outlineColour),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      for (final hex in _colorHexes)
-                        _ColorSwatch(
-                          color: _colorFromHex(hex),
-                          label: _subtitleColourLabel(context.l10n, hex),
-                          active:
-                              _prefs.subtitleOutlineColorHex.toUpperCase() ==
-                              hex,
-                          onTap: () => _apply(
-                            () => _prefs.setSubtitleOutlineColorHex(hex),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                _SheetSectionHeader(context.l10n.outlineWidth),
-                _SliderRow(
-                  value: _prefs.subtitleOutlineWidth,
-                  min: 0,
-                  max: 8,
-                  divisions: 16,
-                  label: _prefs.subtitleOutlineWidth.toStringAsFixed(1),
-                  onChanged: (v) =>
-                      _apply(() => _prefs.setSubtitleOutlineWidth(v)),
-                ),
-                _SheetSectionHeader(context.l10n.background),
-                _SliderRow(
-                  value: _prefs.subtitleBgOpacity,
-                  min: 0,
-                  max: 1,
-                  divisions: 10,
-                  label: '${(_prefs.subtitleBgOpacity * 100).round()}%',
-                  onChanged: (v) =>
-                      _apply(() => _prefs.setSubtitleBgOpacity(v)),
-                ),
-                _SheetSectionHeader(context.l10n.positionLabel),
-                _SliderRow(
-                  value: _prefs.subtitlePosition.toDouble(),
-                  min: 0,
-                  max: 100,
-                  divisions: 20,
-                  label: _prefs.subtitlePosition >= 50
-                      ? context.l10n.positionBottom
-                      : context.l10n.positionTop,
-                  onChanged: (v) =>
-                      _apply(() => _prefs.setSubtitlePosition(v.round())),
-                ),
-                _SheetSectionHeader(context.l10n.subtitleSize),
-                _SliderRow(
-                  value: size.clamp(0.6, 2.0),
-                  min: 0.6,
-                  max: 2.0,
-                  divisions: 14,
-                  label: '${(size * 100).round()}%',
-                  onChanged: (v) => _apply(() => _prefs.setSubtitleScale(v)),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                  child: OutlinedButton.icon(
-                    onPressed: _resetToDefault,
-                    icon: const Icon(Icons.restart_alt_rounded, size: 19),
-                    label: Text(context.l10n.resetToDefault),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.textPrimary,
-                      side: BorderSide(color: AppColors.hairline),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
-                ),
+              const SizedBox(width: 4),
+              TextButton.icon(
+                onPressed: _resetTypography,
+                icon: const Icon(Icons.format_clear_rounded, size: 19),
+                label: const Text('Reset'),
+              ),
               ],
             ),
           ),
-        ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text(context.l10n.font,
+              style: AppText.caption.copyWith(color: AppColors.textSecondary)),
+        ),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: h * (portrait ? 0.22 : 0.18)),
+          child: ListView(
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            children: [
+              for (final f in kBundledSubtitleFonts)
+                _SheetRow(
+                  label: f.isEmpty ? context.l10n.defaultLabel : f,
+                  subtitle: _downloading.contains(f)
+                      ? context.l10n.downloading
+                      : ((_fontAvailable[f] ?? true) ? null : context.l10n.tapToDownloadFont),
+                  loading: _downloading.contains(f),
+                  active: font == f,
+                  onTap: () => _pickFont(f),
+                ),
+              for (final f in _customFonts.keys)
+                _SheetRow(
+                  label: f,
+                  active: font == f,
+                  onTap: () => _pickFont(f),
+                  onRemove: () => _removeCustomFont(f),
+                ),
+              _SheetRow(
+                label: context.l10n.addFont,
+                icon: Icons.upload_file,
+                active: false,
+                onTap: _addCustomFont,
+              ),
+            ],
+          ),
+        ),
+        _SheetSectionHeader('Ukuran font'),
+        _SliderRow(
+          value: size.clamp(0.6, 2.0),
+          min: 0.6,
+          max: 2.0,
+          divisions: 14,
+          label: '${(size * 100).round()}%',
+          onChanged: (v) => _apply(() => _prefs.setSubtitleScale(v)),
+        ),
+        _SheetSectionHeader(context.l10n.outlineStyle),
+        for (final (id, _) in kSubtitleOutlineTypes)
+          _SheetRow(
+            label: _subtitleOutlineLabel(context.l10n, id),
+            active: _prefs.subtitleOutlineType == id,
+            onTap: () => _apply(() => _prefs.setSubtitleOutlineType(id)),
+          ),
+        _SheetSectionHeader(context.l10n.outlineWidth),
+        _SliderRow(
+          value: _prefs.subtitleOutlineWidth,
+          min: 0,
+          max: 8,
+          divisions: 16,
+          label: _prefs.subtitleOutlineWidth.toStringAsFixed(1),
+          onChanged: (v) => _apply(() => _prefs.setSubtitleOutlineWidth(v)),
+        ),
+        _SheetSectionHeader('Ketebalan font'),
+        _SliderRow(
+          value: _prefs.subtitleFontWeight.toDouble(),
+          min: 100,
+          max: 900,
+          divisions: 8,
+          label: _prefs.subtitleFontWeight.toString(),
+          onChanged: (v) => _apply(() => _prefs.setSubtitleFontWeight(v.round())),
+        ),
+        _SheetSectionHeader('Jarak bayangan'),
+        _SliderRow(
+          value: _prefs.subtitleShadowDistance,
+          min: 0,
+          max: 20,
+          divisions: 40,
+          label: '${_prefs.subtitleShadowDistance.toStringAsFixed(1)} px',
+          onChanged: (v) => _apply(() => _prefs.setSubtitleShadowDistance(v)),
+        ),
+        _SheetSectionHeader('Ukuran bayangan'),
+        _SliderRow(
+          value: _prefs.subtitleShadowBlur,
+          min: 0,
+          max: 20,
+          divisions: 40,
+          label: '${_prefs.subtitleShadowBlur.toStringAsFixed(1)} px',
+          onChanged: (v) => _apply(() => _prefs.setSubtitleShadowBlur(v)),
+        ),
+      ],
+    );
+
+    String selectedHex() => switch (_selectedColor) {
+      'outline' => _prefs.subtitleOutlineColorHex,
+      'shadow' => _prefs.subtitleShadowColorHex,
+      _ => _prefs.subtitleColorHex,
+    };
+    Future<void> setColorChannel(int channel, double value) async {
+      final raw = selectedHex().replaceFirst('#', '').toUpperCase();
+      final normalized = raw.length == 8 ? raw : raw.length == 6 ? '${raw}FF' : 'FFFFFFFF';
+      final parts = [
+        int.parse(normalized.substring(0, 2), radix: 16),
+        int.parse(normalized.substring(2, 4), radix: 16),
+        int.parse(normalized.substring(4, 6), radix: 16),
+        int.parse(normalized.substring(6, 8), radix: 16),
+      ];
+      parts[channel] = value.round().clamp(0, 255).toInt();
+      final hex = '#${parts.map((v) => v.toRadixString(16).padLeft(2, '0').toUpperCase()).join()}';
+      await _apply(() async {
+        switch (_selectedColor) {
+          case 'outline':
+            await _prefs.setSubtitleOutlineColorHex(hex);
+            break;
+          case 'shadow':
+            await _prefs.setSubtitleShadowColorHex(hex);
+            break;
+          default:
+            await _prefs.setSubtitleColorHex(hex);
+        }
+      });
+    }
+
+    final rawCurrentHex = selectedHex().replaceFirst('#', '').toUpperCase();
+    final currentHex = rawCurrentHex.length == 8 ? rawCurrentHex : rawCurrentHex.length == 6 ? '${rawCurrentHex}FF' : 'FFFFFFFF';
+    final colorChannels = [
+      int.parse(currentHex.substring(0, 2), radix: 16),
+      int.parse(currentHex.substring(2, 4), radix: 16),
+      int.parse(currentHex.substring(4, 6), radix: 16),
+      int.parse(currentHex.substring(6, 8), radix: 16),
+    ];
+    final colorsCard = card(
+      title: 'Warna',
+      icon: Icons.palette_outlined,
+      expanded: _colorsExpanded,
+      onToggle: () => setState(() => _colorsExpanded = !_colorsExpanded),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 0, 10, 4),
+          child: Row(
+            children: [
+              for (final item in [
+                ('text', Icons.format_color_text_rounded, 'Teks'),
+                ('outline', Icons.border_color_rounded, 'Outline'),
+                ('shadow', Icons.format_color_fill_rounded, 'Bayangan'),
+              ])
+                IconButton.filledTonal(
+                  tooltip: item.$3,
+                  onPressed: () => setState(() => _selectedColor = item.$1),
+                  style: IconButton.styleFrom(
+                    foregroundColor: _selectedColor == item.$1
+                        ? AppColors.accent : AppColors.textSecondary,
+                    backgroundColor: _selectedColor == item.$1
+                        ? AppColors.accent.withValues(alpha: 0.16) : AppColors.surface,
+                  ),
+                  icon: Icon(item.$2, size: 23),
+                ),
+              const SizedBox(width: 8),
+              Expanded(child: Text(
+                _selectedColor == 'outline' ? 'Outline'
+                  : _selectedColor == 'shadow' ? 'Bayangan' : 'Teks',
+                style: AppText.body,
+              )),
+              TextButton.icon(
+                onPressed: _resetSelectedColor,
+                icon: const Icon(Icons.format_color_reset_rounded, size: 19),
+                label: const Text('Reset'),
+              ),
+            ],
+          ),
+        ),
+        for (final item in [
+          ('Merah', 0, Color(0xFFFF3B30)),
+          ('Hijau', 1, Color(0xFF34C759)),
+          ('Biru', 2, Color(0xFF3478F6)),
+          ('Alpha', 3, Colors.white),
+        ])
+          _SliderRow(
+            value: colorChannels[item.$2].toDouble(),
+            min: 0,
+            max: 255,
+            divisions: 255,
+            label: colorChannels[item.$2].toString(),
+            activeColor: item.$3,
+            onChanged: (v) => setColorChannel(item.$2, v),
+          ),
+      ],
+    );
+
+    final miscellaneousCard = card(
+      title: 'Lainnya',
+      icon: Icons.tune_rounded,
+      expanded: _miscExpanded,
+      onToggle: () => setState(() => _miscExpanded = !_miscExpanded),
+      children: [
+        SwitchListTile.adaptive(
+          value: _prefs.styledSubtitles,
+          activeColor: AppColors.accent,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+          title: const Text('Pertahankan gaya ASS/SSA'),
+          subtitle: const Text('Gunakan format dan gaya asli subtitle ASS/SSA'),
+          onChanged: (v) => _apply(() => _prefs.setStyledSubtitles(v)),
+        ),
+        _SheetSectionHeader('Posisi subtitle'),
+        _SliderRow(
+          value: _prefs.subtitlePosition.toDouble(),
+          min: 0,
+          max: 100,
+          divisions: 100,
+          label: _prefs.subtitlePosition.toString(),
+          onChanged: (v) => _apply(() => _prefs.setSubtitlePosition(v.round())),
+        ),
+        _SheetSectionHeader('Transparansi latar'),
+        _SliderRow(
+          value: _prefs.subtitleBgOpacity,
+          min: 0,
+          max: 1,
+          divisions: 20,
+          label: '${(_prefs.subtitleBgOpacity * 100).round()}%',
+          onChanged: (v) => _apply(() => _prefs.setSubtitleBgOpacity(v)),
+        ),
+        _SheetSectionHeader('Sudut bayangan'),
+        _SliderRow(
+          value: _prefs.subtitleShadowAngle,
+          min: 0,
+          max: 360,
+          divisions: 36,
+          label: '${_prefs.subtitleShadowAngle.round()}°',
+          onChanged: (v) => _apply(() => _prefs.setSubtitleShadowAngle(v)),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton.icon(
+              onPressed: _resetMiscellaneous,
+              icon: const Icon(Icons.edit_off_rounded, size: 19),
+              label: const Text('Reset'),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+          child: OutlinedButton.icon(
+            onPressed: _resetToDefault,
+            icon: const Icon(Icons.restart_alt_rounded, size: 19),
+            label: Text(context.l10n.resetToDefault),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.textPrimary,
+              side: BorderSide(color: AppColors.hairline),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    return FractionallySizedBox(
+      heightFactor: 0.94,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 0, 8, 10),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.surface2,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 8, 4),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(context.l10n.subtitleStyle, style: AppText.headline)),
+                    IconButton(
+                      tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.fromLTRB(8, 4, 8, 10),
+                height: 76,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFF33405E), Color(0xFF0E121B)],
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    context.l10n.theQuickBrownFox,
+                    textAlign: TextAlign.center,
+                    style: buildSubtitleTextStyle(_prefs, fontSize: 22.0 * size),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: portrait
+                    ? PageView(
+                        children: [
+                          page(typographyCard),
+                          page(colorsCard),
+                          page(miscellaneousCard),
+                        ],
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        children: [typographyCard, colorsCard, miscellaneousCard],
+                      ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
   static Color _colorFromHex(String hex) {
-    // Stored as #RRGGBBAA → Flutter wants 0xAARRGGBB.
     final h = hex.replaceFirst('#', '');
     if (h.length != 8) return Colors.white;
     final rgb = h.substring(0, 6);
@@ -1064,7 +1335,9 @@ class _SliderRow extends StatelessWidget {
     required this.divisions,
     required this.label,
     required this.onChanged,
+    this.activeColor,
   });
+  final Color? activeColor;
   final double value;
   final double min;
   final double max;
@@ -1095,8 +1368,8 @@ class _SliderRow extends StatelessWidget {
           Expanded(
             child: SliderTheme(
               data: SliderTheme.of(context).copyWith(
-                activeTrackColor: AppColors.accent,
-                thumbColor: AppColors.accent,
+                activeTrackColor: activeColor ?? AppColors.accent,
+                thumbColor: activeColor ?? AppColors.accent,
                 inactiveTrackColor: AppColors.surface2,
               ),
               child: Slider(
@@ -1606,6 +1879,7 @@ class _SheetRow extends StatelessWidget {
     required this.onTap,
     this.icon,
     this.subtitle,
+    this.subtitleWidget,
     this.toggleValue,
     this.loading = false,
     this.onRemove,
@@ -1621,6 +1895,7 @@ class _SheetRow extends StatelessWidget {
   /// Optional secondary line under the label — explains what a setting does
   /// (e.g. for jargon like "Audio normalization") so it's self-describing.
   final String? subtitle;
+  final Widget? subtitleWidget;
 
   /// When non-null, the row is a toggle: renders a trailing Switch reflecting
   /// this value (instead of the icon/check), and stays plain (no accent tint).
@@ -1670,13 +1945,11 @@ class _SheetRow extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (subtitle != null) ...[
+                      if (subtitle != null || subtitleWidget != null) ...[
                         const SizedBox(height: 2),
-                        Text(
+                        subtitleWidget ?? Text(
                           subtitle!,
-                          style: AppText.caption.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: AppText.caption.copyWith(color: AppColors.textSecondary),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -2065,4 +2338,33 @@ bool _titlesSaySomething(Iterable<String?> titles) {
   if (named.isEmpty) return false;
   if (named.every((t) => !t.contains(' ') && t.contains('.'))) return false;
   return named.length < 2 || named.toSet().length > 1;
+}
+
+/// Displays the exact size advertised by a direct-file server, when available.
+class _RemoteFileSizeLabel extends StatefulWidget {
+  const _RemoteFileSizeLabel({required this.url, this.headers});
+  final String url;
+  final Map<String, String>? headers;
+  @override
+  State<_RemoteFileSizeLabel> createState() => _RemoteFileSizeLabelState();
+}
+
+class _RemoteFileSizeLabelState extends State<_RemoteFileSizeLabel> {
+  late Future<int?> _size;
+  @override
+  void initState() {
+    super.initState();
+    _size = RemoteFileSize.lookup(widget.url, headers: widget.headers);
+  }
+  @override
+  Widget build(BuildContext context) => FutureBuilder<int?>(
+    future: _size,
+    builder: (context, snapshot) {
+      final size = snapshot.data;
+      final label = snapshot.connectionState != ConnectionState.done
+          ? 'Memeriksa ukuran…'
+          : size == null ? 'Ukuran tidak diketahui' : RemoteFileSize.format(size);
+      return Text(label, style: AppText.caption.copyWith(color: AppColors.textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis);
+    },
+  );
 }

@@ -119,6 +119,7 @@ class _UpdateDialog extends StatefulWidget {
 class _UpdateDialogState extends State<_UpdateDialog> {
   double? _progress; // null until the download starts
   bool _busy = false; // downloading or installing
+  bool _savedToDownloads = false;
   String? _error;
 
   Future<void> _startUpdate() async {
@@ -126,6 +127,7 @@ class _UpdateDialogState extends State<_UpdateDialog> {
       _busy = true;
       _progress = 0;
       _error = null;
+      _savedToDownloads = false;
     });
     try {
       final file = await widget.service.downloadApk(
@@ -137,6 +139,20 @@ class _UpdateDialogState extends State<_UpdateDialog> {
       );
       if (!mounted) return;
       setState(() => _progress = 1);
+      try {
+        await widget.service.saveApkToDownloads(
+          file,
+          fileName: 'Zangetsu-v${widget.info.version}.apk',
+        );
+        if (mounted) setState(() => _savedToDownloads = true);
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _busy = false;
+          _error = 'APK terunduh, tetapi gagal disimpan ke folder Download.';
+        });
+        return;
+      }
       final ok = await widget.service.installApk(file);
       if (!mounted) return;
       if (ok) {
@@ -221,6 +237,13 @@ class _UpdateDialogState extends State<_UpdateDialog> {
                     ? context.l10n.startingInstaller
                     : context.l10n.downloadingPercent((_progress! * 100).round()),
                 style: AppText.caption,
+              ),
+              const SizedBox(height: 8),
+            ],
+            if (_savedToDownloads) ...[
+              Text(
+                'APK juga tersimpan di folder Download.',
+                style: AppText.caption.copyWith(color: AppColors.accent),
               ),
               const SizedBox(height: 8),
             ],

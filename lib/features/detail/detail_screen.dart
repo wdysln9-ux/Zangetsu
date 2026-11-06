@@ -15,6 +15,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/zmode/season_chain.dart';
 import '../../core/zmode/metadata_provider_prefs.dart';
 import '../../core/ui/auto_translated_text.dart';
+import '../../core/ui/anilist_markdown.dart';
 import '../../core/ui/poster_card.dart';
 import '../../core/ui/poster_palette.dart';
 import '../../core/ui/mobile_hero_art.dart';
@@ -123,6 +124,7 @@ import '../reader/manga_reader_screen.dart';
 import '../reader/novel_reader_screen.dart';
 import '../trailer/trailer_screen.dart';
 import 'cubit/detail_cubit.dart';
+import 'anime_community_tab.dart';
 import 'wrong_title_sheet.dart';
 import '../../l10n/l10n.dart';
 
@@ -354,21 +356,23 @@ class _DetailCloudflareBlockedState extends State<_DetailCloudflareBlocked> {
 }
 
 class DetailScreen extends StatelessWidget {
-  const DetailScreen({super.key, required this.item, this.prefer});
+  const DetailScreen({super.key, required this.item, this.prefer, this.autoScrollToResume = false, this.targetEpisodeId});
   final MediaItem item;
 
   /// Read this title from a specific metadata catalogue. Set when it was
   /// opened from a tracker that has one, so an AniList library entry shows
   /// AniList's page even when MyAnimeList is the app-wide choice.
   final PreferredProvider? prefer;
+  final bool autoScrollToResume;
+  final String? targetEpisodeId;
 
   /// Opening transition: the page fades in while sliding up and scaling from
   /// 0.96 — a smooth "rise" into the detail rather than the platform push.
-  static Route<void> route(MediaItem item, {PreferredProvider? prefer}) =>
+  static Route<void> route(MediaItem item, {PreferredProvider? prefer, bool autoScrollToResume = false, String? targetEpisodeId}) =>
       PageRouteBuilder<void>(
         transitionDuration: const Duration(milliseconds: 340),
         reverseTransitionDuration: const Duration(milliseconds: 260),
-        pageBuilder: (_, _, _) => DetailScreen(item: item, prefer: prefer),
+        pageBuilder: (_, _, _) => DetailScreen(item: item, prefer: prefer, autoScrollToResume: autoScrollToResume, targetEpisodeId: targetEpisodeId),
         transitionsBuilder: (_, animation, _, child) {
           final curved = CurvedAnimation(
             parent: animation,
@@ -408,7 +412,7 @@ class DetailScreen extends StatelessWidget {
         // label agree instead of one naming AniList over MAL's data.
         prefer: prefer ?? _preferFromName(item.savedFrom),
       )..load(),
-      child: _DetailView(item: item, prefer: prefer),
+      child: _DetailView(item: item, prefer: prefer, autoScrollToResume: autoScrollToResume, targetEpisodeId: targetEpisodeId),
     );
   }
 }
@@ -422,11 +426,13 @@ class DetailScreen extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _DetailView extends StatefulWidget {
-  const _DetailView({required this.item, this.prefer});
+  const _DetailView({required this.item, this.prefer, this.autoScrollToResume = false, this.targetEpisodeId});
   final MediaItem item;
 
   /// The catalogue this title was opened from, so the name matches the data.
   final PreferredProvider? prefer;
+  final bool autoScrollToResume;
+  final String? targetEpisodeId;
 
   @override
   State<_DetailView> createState() => _DetailViewState();
@@ -472,7 +478,7 @@ class _DetailViewState extends State<_DetailView>
     ..addListener(_onScroll);
 
   late final TabController _tabController = TabController(
-    length: 4,
+    length: (widget.item.type == ProviderType.novel || widget.item.type == ProviderType.manga) ? 4 : 6,
     vsync: this,
   );
 
@@ -1981,8 +1987,9 @@ class _DetailViewState extends State<_DetailView>
     if (sl<AppMode>().isTv) return DetailScreenTv(item: widget.item);
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Stack(
-        children: [
+      body: SafeArea(
+        child: Stack(
+          children: [
           // Adaptive colour: poster-tinted wash behind the scroll view, only
           // while the setting is on. The NestedScrollView's own background is
           // transparent, so the tint shows through the body; the pinned bars
@@ -2089,7 +2096,8 @@ class _DetailViewState extends State<_DetailView>
               },
             ),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2250,6 +2258,14 @@ class _DetailViewState extends State<_DetailView>
       );
     }
     if (statusStr.isNotEmpty) metaParts.add(statusStr);
+    final rawFormat = detail.format?.trim();
+    final formatStr = switch (rawFormat?.toLowerCase()) {
+      'tv' => 'TV',
+      'ona' => 'ONA',
+      'ova' => 'OVA',
+      _ => rawFormat,
+    };
+    if (formatStr != null && formatStr.isNotEmpty) metaParts.add(formatStr);
     final metaLine = metaParts.join('  ·  ');
 
     // ── Download button label: "Download S{season}:E{n}" when we can derive
@@ -2261,21 +2277,8 @@ class _DetailViewState extends State<_DetailView>
       currentSeason,
     );
 
-    // ── Starring / Creators (Genres fallback) muted lines ───────────────────
-    // Prefer enriched cast (AniList/TMDB) when available, else the provider's.
-    final castNames = state.cast.isNotEmpty
-        ? state.cast.map((c) => c.name).toList()
-        : detail.cast;
-    final starring = castNames.isNotEmpty ? castNames.take(3).join(', ') : null;
-    final starringMore = castNames.length > 3;
-    final creators = detail.studios.isNotEmpty
-        ? detail.studios.join(', ')
-        : null;
-    // For anime (or anything without cast) surface Genres instead of an empty
-    // Starring line — never show an empty label.
-    final genresLine = (starring == null && detail.genres.isNotEmpty)
-        ? detail.genres.take(4).join(', ')
-        : null;
+    // Keep a compact Genres fallback on the main page; cast and creator
+    // information remain available in their dedicated tabs.
 
     // Friendly provider name + its origin repo, so the user can tell which repo
     // a source came from. JS providers live in the registry; CloudStream sources
@@ -2362,6 +2365,20 @@ class _DetailViewState extends State<_DetailView>
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (detail.englishTitle != null &&
+                      detail.englishTitle!.trim().isNotEmpty &&
+                      detail.englishTitle!.trim() != detail.title.trim()) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      detail.englishTitle!.trim(),
+                      style: AppText.body.copyWith(
+                        fontSize: 14,
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                   if (metaLine.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Row(
@@ -2470,33 +2487,40 @@ class _DetailViewState extends State<_DetailView>
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
               child: _Description(
                 text: cleanSynopsis(detail.description) ?? '',
-                // "Read more" reveals the Details tab (full synopsis) rather
-                // than expanding inline; the header stays clamped to 3 lines.
-                onReadMore: () => _revealTab(3),
               ),
             ),
           ),
 
-        // ── 5. Starring / Creators / Genres muted lines ─────────────────────
-        if (starring != null || creators != null || genresLine != null)
+        // ── 5. Interactive genres and studio ──────────────────────────────
+        if (detail.genres.isNotEmpty || detail.studios.isNotEmpty)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (starring != null)
-                    _CreditLine(
-                      label: context.l10n.starring,
-                      value: starring,
-                      more: starringMore,
-                      // Tapping the line (or its "… more") reveals the Cast tab.
-                      onMore: starringMore ? () => _revealTab(1) : null,
+                  if (detail.genres.isNotEmpty)
+                    _InteractiveCreditLine(
+                      label: context.l10n.genres,
+                      values: detail.genres.take(4).toList(),
+                      onTap: (genre) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => SearchScreen(
+                              initialFilters: MetaFilters(genres: [genre]),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  if (genresLine != null)
-                    _CreditLine(label: context.l10n.genres, value: genresLine),
-                  if (creators != null)
-                    _CreditLine(label: context.l10n.creators, value: creators),
+                  if (detail.studios.isNotEmpty)
+                    _InteractiveCreditLine(
+                      label: 'Studio',
+                      values: detail.studios.take(3).toList(),
+                      onTap: (studio) => Navigator.of(context).push(
+                        StudioPage.route(studio),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -2515,6 +2539,7 @@ class _DetailViewState extends State<_DetailView>
                 _IconAction(
                   icon: _inMyList ? Icons.check_rounded : Icons.add_rounded,
                   active: _inMyList,
+                  filledActive: true,
                   // Reading-aware: a manga on your list is "Reading", not
                   // "Watching". Display only — the stored status is still
                   // WatchStatus.watching, so My List and the trackers are
@@ -2633,8 +2658,10 @@ class _DetailViewState extends State<_DetailView>
                 Tab(
                   text: isReading ? context.l10n.characters : context.l10n.cast,
                 ),
-                Tab(text: context.l10n.relations),
+                const Tab(text: 'Terkait'),
                 Tab(text: context.l10n.details),
+                if (!isReading) const Tab(text: 'Ulasan'),
+                if (!isReading) const Tab(text: 'Utas'),
               ],
             ),
             tint: ThemeController.adaptiveColour ? _tint : null,
@@ -2666,6 +2693,8 @@ class _DetailViewState extends State<_DetailView>
             showUrl: item.url,
             resumeIndex: _resumeIndex,
             hasAnyMark: hasAnyMark,
+            autoScrollToResume: widget.autoScrollToResume,
+            targetEpisodeId: widget.targetEpisodeId,
             trackerProgress: _trackerProgress,
             nextAiringEpisode: _nextAiringEpisode,
             nextAiringAt: _nextAiringAt,
@@ -2723,6 +2752,18 @@ class _DetailViewState extends State<_DetailView>
             year: detail.year,
             description: cleanSynopsis(detail.description),
             detail: detail,
+          ),
+          if (!isReading) AnimeCommunityTab(
+            title: detail.title,
+            anilistId: item.anilistId,
+            malId: detail.malId ?? item.malId,
+            reviews: true,
+          ),
+          if (!isReading) AnimeCommunityTab(
+            title: detail.title,
+            anilistId: item.anilistId,
+            malId: detail.malId ?? item.malId,
+            reviews: false,
           ),
         ],
       ),

@@ -1,5 +1,6 @@
 name: Build Android APK
 # Feature branches run the same arm64 release build for validation.
+# Build trigger refreshed for the latest episode detail layout changes.
 
 on:
   push:
@@ -10,13 +11,14 @@ on:
       - feat/portrait-episode-details
       - fix/preserve-latest-features-ui
       - fix/episode-detail-resume-ui-bugs
+      - fix/episode-cards-border-autoscroll
     paths-ignore:
       - "preview/**"
       - ".github/workflows/preview-pages.yml"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: android-apk-${{ github.ref }}
@@ -62,12 +64,36 @@ jobs:
           fi
 
       - name: Build arm64 release APK
-        run: flutter build apk --release --target-platform android-arm64
+        env:
+          BUILD_NAME: 2.5.${{ github.run_number }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          flutter build apk --release --target-platform android-arm64 \
+            --build-name="$BUILD_NAME" \
+            --build-number="$((30000 + BUILD_NUMBER))"
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      # Give the APK a versioned filename. GitHub Release stores this as a
+      # raw .apk asset; Actions artifacts are ZIP-wrapped, so do not upload it
+      # through upload-artifact.
+      - name: Name versioned APK
+        env:
+          APK_NAME: Zangetsu-v2.5.${{ github.run_number }}-arm64-v8a.apk
+        run: |
+          mv build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/$APK_NAME"
+          echo "APK_PATH=build/app/outputs/flutter-apk/$APK_NAME" >> "$GITHUB_ENV"
+
+      # Publish the raw APK as a versioned release asset for direct download
+      # and the in-app updater. Keep the stable package ID and signing key.
+      - name: Publish in-app update release
+        uses: softprops/action-gh-release@v2
         with:
-          name: zangetsu-android-arm64-release
-          path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
-          retention-days: 14
+          tag_name: v2.5.${{ github.run_number }}
+          name: Zangetsu 2.5.${{ github.run_number }}
+          body: |
+            Automatic ARM64 build from commit ${{ github.sha }}.
+
+            This pre-release was published after the Android APK build completed successfully.
+          prerelease: true
+          make_latest: false
+          files: ${{ env.APK_PATH }}
+          fail_on_unmatched_files: true

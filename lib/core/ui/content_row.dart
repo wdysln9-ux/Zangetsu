@@ -103,7 +103,7 @@ class _Header extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsetsDirectional.only(start: 8),
                     child: Text(
-                      'See All',
+                      'Lihat Semua',
                       style: AppText.caption.copyWith(color: AppColors.accent),
                     ),
                   ),

@@ -24,6 +24,8 @@ class _EpisodesTab extends StatefulWidget {
     required this.showUrl,
     required this.resumeIndex,
     required this.hasAnyMark,
+    this.autoScrollToResume = false,
+    this.targetEpisodeId,
     this.trackerProgress,
     this.nextAiringEpisode,
     this.nextAiringAt,
@@ -70,6 +72,8 @@ class _EpisodesTab extends StatefulWidget {
   final String showUrl;
   final int Function(List<Episode>) resumeIndex;
   final bool hasAnyMark;
+  final bool autoScrollToResume;
+  final String? targetEpisodeId;
 
   /// The connected tracker's watched-episode count, or null. Episodes at or
   /// below it render as watched (grey-out), merged with local playback marks.
@@ -120,16 +124,78 @@ class _EpisodesTabState extends State<_EpisodesTab> {
   String? _scanlator;
   int _rangeIndex = 0;
   String? _highlightEpId; // outlines a grid tile right after a jump
+  final GlobalKey _resumeEpisodeKey = GlobalKey();
+  bool _autoScrollAttempted = false;
 
   @override
   void initState() {
     super.initState();
     _rangeIndex = _initialRange();
+    _highlightEpId = widget.targetEpisodeId;
+    if (widget.autoScrollToResume) _scheduleResumeAutoScroll();
+  }
+
+  void _scheduleResumeAutoScroll() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || _autoScrollAttempted) return;
+
+      final episodes = _displayEps;
+      final targetId = widget.targetEpisodeId ??
+          widget.eps[widget.resumeIndex(widget.eps)].id;
+      final targetIndex = episodes.indexWhere((ep) => ep.id == targetId);
+      if (targetIndex < 0) return;
+
+      final slice = episodeRangeSlice(
+        _rangeIndex,
+        episodes.length,
+        reversed: _reverseList,
+      );
+      final indexInRange = targetIndex - slice.start;
+      if (indexInRange < 0 || targetIndex >= slice.end) return;
+
+      // Lazy slivers only create the target widget once the scroll position
+      // approaches it. Seek in small stages so the page has time to build and
+      // load each batch instead of overshooting and snapping back to the top.
+      final controller = PrimaryScrollController.maybeOf(context);
+      if (controller == null || !controller.hasClients) return;
+
+      for (var attempt = 0; attempt < 24 && mounted; attempt++) {
+        final target = _resumeEpisodeKey.currentContext;
+        if (target != null) {
+          _autoScrollAttempted = true;
+          await Scrollable.ensureVisible(
+            target,
+            alignment: 0.18,
+            duration: const Duration(milliseconds: 900),
+            curve: Curves.easeInOutCubic,
+          );
+          return;
+        }
+
+        if (!controller.hasClients) return;
+        final position = controller.position;
+        if (position.pixels >= position.maxScrollExtent) return;
+
+        final step = _grid ? 300.0 : 420.0;
+        final nextOffset = (position.pixels + step)
+            .clamp(0.0, position.maxScrollExtent)
+            .toDouble();
+        await controller.animateTo(
+          nextOffset,
+          duration: const Duration(milliseconds: 420),
+          curve: Curves.easeOutCubic,
+        );
+        if (!mounted) return;
+        await WidgetsBinding.instance.endOfFrame;
+        await Future<void>.delayed(const Duration(milliseconds: 120));
+      }
+    });
   }
 
   @override
   void didUpdateWidget(covariant _EpisodesTab old) {
     super.didUpdateWidget(old);
+    if (widget.autoScrollToResume && old.loading && !widget.loading) _scheduleResumeAutoScroll();
     // Season switched (or the episode set changed) → reset to the resume chunk.
     if (old.currentSeason != widget.currentSeason ||
         old.seasonEps.length != widget.seasonEps.length) {
@@ -142,7 +208,12 @@ class _EpisodesTabState extends State<_EpisodesTab> {
   /// off instead of always at episode 1.
   int _initialRange() {
     if (!widget.hasAnyMark || widget.seasonEps.isEmpty) return 0;
-    final resumeEp = widget.eps[widget.resumeIndex(widget.eps)];
+    final targetIndex = widget.targetEpisodeId == null
+        ? -1
+        : widget.eps.indexWhere((e) => e.id == widget.targetEpisodeId);
+    final resumeEp = targetIndex >= 0
+        ? widget.eps[targetIndex]
+        : widget.eps[widget.resumeIndex(widget.eps)];
     // Against the filtered display order so reversed lists open at the range
     // containing the saved resume episode.
     final local = _displayEps.indexOf(resumeEp);
@@ -647,6 +718,7 @@ class _EpisodesTabState extends State<_EpisodesTab> {
           );
         }
         return RepaintBoundary(
+          key: widget.autoScrollToResume && ep.id == (widget.targetEpisodeId ?? widget.eps[widget.resumeIndex(widget.eps)].id) ? _resumeEpisodeKey : null,
           child: _EpisodeRow(
             ep: ep,
             epNum: epNum,
@@ -695,7 +767,9 @@ class _EpisodesTabState extends State<_EpisodesTab> {
               ? total - offset - i
               : offset + i + 1;
           final epNum = ep.number?.toInt() ?? fallbackNumber;
-          return _EpisodeGridTile(
+          return RepaintBoundary(
+            key: widget.autoScrollToResume && ep.id == (widget.targetEpisodeId ?? widget.eps[widget.resumeIndex(widget.eps)].id) ? _resumeEpisodeKey : null,
+            child: _EpisodeGridTile(
             number: epNum,
             isWatched: st.watched,
             isInProgress: st.inProgress,
@@ -708,6 +782,7 @@ class _EpisodesTabState extends State<_EpisodesTab> {
             onLongPress: widget.onEpisodeMenu == null
                 ? null
                 : () => widget.onEpisodeMenu!(fullIndex),
+            ),
           );
         },
       ),
@@ -1487,23 +1562,21 @@ class _EpisodeRow extends StatelessWidget {
         ? ep.thumbnail!
         : coverUrl;
 
-    // Air date stays as a small line next to the title; the episode synopsis
-    // (AniZip/TMDB, ~3 lines) spans full width below the row — under the image
-    // too, CloudStream-style.
-    final desc = (ep.description != null && ep.description!.trim().isNotEmpty)
-        ? ep.description!.trim()
-        : null;
-    // Runtime · air date. The rating now rides as a chip on the thumbnail
-    // (always fully visible) instead of getting clipped on this cramped line.
+    // Runtime and air date are localized for the episode tab only.
+    String formatEpisodeDate(String raw) {
+      final parsed = DateTime.tryParse(raw.trim());
+      if (parsed == null) return raw.trim();
+      final day = parsed.day.toString().padLeft(2, '0');
+      final month = parsed.month.toString().padLeft(2, '0');
+      return '$day-$month-${parsed.year}';
+    }
+
     final metaLine = unavailable
-        // Already worded by the catalogue layer — "Airs 12 Sep" when the
-        // tracker knows it isn't out, else the one source we actually asked.
-        // Anything stronger would be a claim nobody verified (see
-        // Episode.unavailable).
         ? ep.unavailable!
         : [
-            if (ep.runtimeMinutes != null) '${ep.runtimeMinutes} min',
-            if (ep.date != null && ep.date!.trim().isNotEmpty) ep.date!.trim(),
+            if (ep.runtimeMinutes != null) '${ep.runtimeMinutes} menit',
+            if (ep.date != null && ep.date!.trim().isNotEmpty)
+              formatEpisodeDate(ep.date!),
           ].join('  ·  ');
 
     // Prefer the real AniZip/TMDB title when the source only gave a generic
@@ -1532,7 +1605,7 @@ class _EpisodeRow extends StatelessWidget {
               children: [
                 // Rounded 16:9 thumbnail with a centered play-circle.
                 SizedBox(
-                  width: 116,
+                  width: 89,
                   child: AspectRatio(
                     aspectRatio: 16 / 9,
                     child: ClipRRect(
@@ -1644,7 +1717,7 @@ class _EpisodeRow extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 11),
                 // Title + date/duration under + badges.
                 Expanded(
                   child: Column(
@@ -1702,20 +1775,6 @@ class _EpisodeRow extends StatelessWidget {
                 ],
               ],
             ),
-            // Full-width synopsis under the whole row (under the image too).
-            if (desc != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                desc,
-                style: AppText.caption.copyWith(
-                  color: AppColors.textSecondary,
-                  fontStyle: FontStyle.italic,
-                  height: 1.4,
-                ),
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
           ],
         ),
       ),

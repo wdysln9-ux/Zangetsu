@@ -8,6 +8,18 @@ import 'anilist_title.dart';
 import '../models/person.dart';
 import '../tracker/tracker.dart' show MediaKind;
 
+/// Convert AniList enum labels such as MAIN to readable title case.
+String? _titleCase(String? value) {
+  if (value == null || value.trim().isEmpty) return value;
+  return value
+      .toLowerCase()
+      .split(RegExp(r'[\s_]+'))
+      .map((word) => word.isEmpty
+          ? word
+          : '${word[0].toUpperCase()}${word.substring(1)}')
+      .join(' ');
+}
+
 /// AniList's `type:` enum value for [kind].
 String _anilistType(MediaKind kind) =>
     kind == MediaKind.manga ? 'MANGA' : 'ANIME';
@@ -560,7 +572,7 @@ class AniListApi {
         cast.add(
           CastMember(
             name: name,
-            role: va,
+            role: _titleCase(e['role'] as String?),
             photo: img,
             person: charId == null
                 ? null
@@ -650,6 +662,126 @@ class AniListApi {
     return t.isEmpty ? 'Related' : t[0].toUpperCase() + t.substring(1);
   }
 
+  /// Resolve the AniList media id for community pages.
+  Future<int?> communityMediaId({int? anilistId, int? malId, required String title}) async {
+    if (anilistId != null && anilistId > 0) return anilistId;
+    if (malId != null && malId > 0) {
+      final d = await _gql('query(\$idMal:Int){ Media(idMal:\$idMal,type:ANIME){ id } }', {'idMal': malId});
+      final id = ((d?['Media'] as Map?)?['id'] as num?)?.toInt();
+      if (id != null) return id;
+    }
+    final cleaned = _cleanSearchTitle(title);
+    for (final q in [title, if (cleaned.isNotEmpty && cleaned != title) cleaned]) {
+      final d = await _gql('query(\$search:String){ Media(search:\$search,type:ANIME){ id } }', {'search': q});
+      final id = ((d?['Media'] as Map?)?['id'] as num?)?.toInt();
+      if (id != null) return id;
+    }
+    return null;
+  }
+
+  Future<String?> fetchMediaBannerImage(int mediaId) async {
+    final d = await _gql(
+      'query(\$id:Int){ Media(id:\$id,type:ANIME){ bannerImage } }',
+      {'id': mediaId},
+    );
+    final media = d?['Media'] as Map?;
+    final banner = media?['bannerImage']?.toString();
+    return banner == null || banner.isEmpty ? null : banner;
+  }
+
+  Future<List<Map<String, dynamic>>> fetchReviews(int mediaId, {int page = 1}) async {
+    final d = await _gql(
+      'query(\$id:Int,\$page:Int){ Page(page:\$page,perPage:20){ '
+      'reviews(mediaId:\$id,sort:[RATING_DESC]){ id summary body score rating ratingAmount userRating media{ bannerImage } '
+      'createdAt user{id name avatar{large}} } } }',
+      {'id': mediaId, 'page': page},
+    );
+    final rows = (d?['Page'] as Map?)?['reviews'];
+    if (rows is! List) return const [];
+    return [for (final row in rows) if (row is Map) Map<String, dynamic>.from(row)];
+  }
+
+  Future<List<Map<String, dynamic>>> fetchThreads(int mediaId, {int page = 1, String search = ''}) async {
+    final hasSearch = search.trim().isNotEmpty;
+    final searchDeclaration = hasSearch ? ',\$search:String' : '';
+    final searchArgument = hasSearch ? ',search:\$search' : '';
+    final query = 'query(\$id:Int,\$page:Int$searchDeclaration){ Page(page:\$page,perPage:50){ '
+        'threads(mediaCategoryId:\$id$searchArgument,sort:[REPLIED_AT_DESC]){ id title body viewCount likeCount isLiked replyCount '
+        'createdAt updatedAt user{id name avatar{large}} } } }';
+    final variables = <String, dynamic>{'id': mediaId, 'page': page};
+    if (hasSearch) variables['search'] = search;
+    final d = await _gql(query, variables);
+    final rows = (d?['Page'] as Map?)?['threads'];
+    if (rows is! List) return const [];
+    return [for (final row in rows) if (row is Map) Map<String, dynamic>.from(row)];
+  }
+
+  Future<Map<String, dynamic>?> fetchThread(int threadId) async {
+    final d = await _gql(
+      'query(\$id:Int){ Thread(id:\$id){ id title body viewCount likeCount replyCount '
+      'createdAt updatedAt isLiked user{id name avatar{large}} } }',
+      {'id': threadId},
+    );
+    final thread = d?['Thread'];
+    return thread is Map ? Map<String, dynamic>.from(thread) : null;
+  }
+
+  /// Thread comments are a Page-level query in AniList. They must be fetched
+  /// separately from Thread; requesting them as a Thread field silently
+  /// invalidates the whole GraphQL selection.
+  Future<List<Map<String, dynamic>>> fetchThreadComments(
+    int threadId, {int page = 1, String sort = 'ID_DESC'}
+  ) async {
+    // Fetch every page of top-level comments. Replies are included in the
+    // childComments JSON field and are expanded by the thread UI.
+    const perPage = 50;
+    final safeSort = sort == 'ID' ? 'ID' : 'ID_DESC';
+    final all = <Map<String, dynamic>>[];
+    final seenIds = <int>{};
+    var currentPage = page;
+    for (var attempt = 0; attempt < 100; attempt++, currentPage++) {
+      final d = await _gql(
+        'query(\$id:Int,\$page:Int,\$perPage:Int){ Page(page:\$page,perPage:\$perPage){ '
+        'pageInfo{hasNextPage} '
+        'threadComments(threadId:\$id,sort:[$safeSort]){ id comment likeCount isLiked createdAt '
+        'user{id name avatar{large}} childComments } } }',
+        {'id': threadId, 'page': currentPage, 'perPage': perPage},
+      );
+      final pageData = d?['Page'] as Map?;
+      final rows = pageData?['threadComments'];
+      if (rows is! List || rows.isEmpty) break;
+      for (final row in rows) {
+        if (row is! Map) continue;
+        final comment = Map<String, dynamic>.from(row);
+        final id = (comment['id'] as num?)?.toInt();
+        if (id == null || seenIds.add(id)) all.add(comment);
+      }
+      final pageInfo = pageData?['pageInfo'] as Map?;
+      final hasNext = pageInfo?['hasNextPage'];
+      if (hasNext == false || (hasNext == null && rows.length < perPage)) break;
+    }
+    return all;
+  }
+
+  Future<bool> toggleThreadLike(int threadId) async {
+    final d = await _gql(
+      'mutation(\$id:Int){ ToggleLike(id:\$id,type:THREAD){ id } }',
+      {'id': threadId},
+      auth: true,
+    );
+    return d?['ToggleLike'] != null;
+  }
+
+  /// Toggle a love on an AniList thread comment. Requires a linked AniList account.
+  Future<bool> toggleThreadCommentLike(int commentId) async {
+    final d = await _gql(
+      'mutation(\$id:Int){ ToggleLike(id:\$id,type:THREAD_COMMENT){ id } }',
+      {'id': commentId},
+      auth: true,
+    );
+    return d?['ToggleLike'] != null;
+  }
+
   /// Push progress/status for [mediaId]. Returns true on success.
   Future<bool> saveProgress({
     required int mediaId,
@@ -698,6 +830,29 @@ class AniListApi {
       auth: true,
     );
     return (r?['DeleteMediaListEntry'] as Map?)?['deleted'] == true;
+  }
+
+  /// AniList's total popularity for an anime, resolved by MAL id.
+  /// Read-only and works without an authenticated AniList account.
+  Future<int?> popularityByMalId(int malId) async {
+    final d = await _gql(
+      'query(\$idMal:Int){ Media(idMal:\$idMal,type:ANIME){ popularity } }',
+      {'idMal': malId},
+    );
+    final value = (d?['Media'] as Map?)?['popularity'];
+    return (value as num?)?.toInt();
+  }
+
+  /// AniList popularity fallback when a MAL id is unavailable.
+  Future<int?> popularityBySearch(String title) async {
+    final query = title.trim();
+    if (query.isEmpty) return null;
+    final d = await _gql(
+      'query(\$search:String){ Media(search:\$search,type:ANIME){ popularity } }',
+      {'search': query},
+    );
+    final value = (d?['Media'] as Map?)?['popularity'];
+    return (value as num?)?.toInt();
   }
 
   /// The user's list entry for [mediaId] plus the media's episode/chapter +

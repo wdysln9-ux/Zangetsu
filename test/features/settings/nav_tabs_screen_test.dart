@@ -86,24 +86,17 @@ void main() {
     expect(onBarSearchRow(), findsNothing);
   });
 
-  testWidgets('Keep dock expanded is off by default and can be enabled', (
+  testWidgets('only the dock preview and tab ordering controls remain', (
     tester,
   ) async {
     await tester.pumpWidget(const MaterialApp(home: NavTabsScreen()));
     await tester.pumpAndSettle();
 
-    final toggle = find.byKey(const ValueKey('keep-dock-expanded-switch'));
-    await tester.scrollUntilVisible(
-      toggle,
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    expect(toggle, findsOneWidget);
-    expect(tester.widget<Switch>(toggle).value, isFalse);
-
-    await tester.tap(find.text('Keep navigation expanded'));
-    await tester.pump();
-
-    expect(tester.widget<Switch>(toggle).value, isTrue);
+    expect(find.text('Navigation style'), findsNothing);
+    expect(find.text('Navigation behaviour'), findsNothing);
+    expect(find.text('Keep navigation expanded'), findsNothing);
+    expect(find.text('Change content mode'), findsNothing);
+    expect(find.byKey(const ValueKey('keep-dock-expanded-switch')), findsNothing);
+    expect(find.text('Dock'), findsOneWidget);
   });
 }

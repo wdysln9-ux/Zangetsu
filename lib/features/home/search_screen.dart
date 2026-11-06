@@ -10,6 +10,7 @@ import '../../core/zmode/zmode_module.dart';
 import '../../core/zmode/zmode_ids.dart';
 import '../../core/zmode/metadata_filters.dart';
 import '../../core/app_mode.dart';
+import '../../core/anilist/anilist_service.dart';
 import '../../core/di/injector.dart';
 import '../../core/mode/content_mode.dart';
 import '../../core/mode/content_mode_cubit.dart';
@@ -73,8 +74,21 @@ import '../search/bloc/search_state.dart';
 /// filters, not the screen's defaults.
 MetaFilters initialSearchFilters(
   MetaFilters? provided,
-  bool privacyAllowsAdult,
-) => provided ?? MetaFilters(adult: privacyAllowsAdult);
+  bool privacyAllowsAdult, {
+  bool trendingByDefault = false,
+}) {
+  final defaults = MetaFilters(
+    adult: privacyAllowsAdult,
+    sort: trendingByDefault ? MetaSort.trending : MetaSort.popularity,
+  );
+  if (provided == null) return defaults;
+  // Genre/tag entry points may provide filters created elsewhere. Keep their
+  // selections, but use Trending when they still carry the old default sort.
+  if (trendingByDefault && provided.sort == MetaSort.popularity) {
+    return provided.copyWith(sort: MetaSort.trending);
+  }
+  return provided;
+}
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({
@@ -274,6 +288,11 @@ class _SearchViewState extends State<_SearchView>
   final _myList = sl<MyListStore>();
   final _history = sl<SearchHistory>();
   final _searchPrefs = sl<SearchPrefs>();
+  bool _hideMyAnime = false;
+  bool _loadingMyAnime = false;
+  Set<int> _myAniListAnimeIds = {};
+  Set<int> _myAniListMalIds = {};
+  Set<String> _myAniListAnimeTitles = {};
 
   /// Owns the ecosystem [TabBar]'s controller — see [_ecoTabControllerFor].
   TabController? _ecoTabController;
@@ -312,6 +331,11 @@ class _SearchViewState extends State<_SearchView>
     // nothing.
     if (!(widget.initialFilters ?? const MetaFilters()).isEmpty) {
       _applyMetaFilters();
+    } else if (widget.scope == SearchScope.library &&
+        _metaFilters.sort == MetaSort.trending) {
+      // Seed the default Trending sort before the first query, so both a
+      // typed search and an empty genre browse use the same ordering.
+      _applyMetaFilters(browseDefaults: true);
     }
   }
 
@@ -319,6 +343,34 @@ class _SearchViewState extends State<_SearchView>
   /// ready. Defers a frame so it runs after the IndexedStack reveals the tab.
   void _onFocusSignal() {
     if (!mounted) return;
+    // The Search tab stays alive in the navigation IndexedStack. Reset its
+    // temporary filters each time the user opens it again, while keeping the
+    // catalogue's default Trending sort and any intentional deep-link filters.
+    if (widget.initialFilters == null) {
+      context.read<SearchBloc>().add(const SearchFiltersReset());
+      if (widget.scope == SearchScope.library) {
+        final privacyAllowsAdult =
+            sl.isRegistered<PlaybackPrefs>() &&
+            sl<PlaybackPrefs>().adultMetadata &&
+            (!sl.isRegistered<ViewerProfileStore>() ||
+                sl<ViewerProfileStore>().adultMetadataAllowed);
+        setState(() {
+          _metaFilters = initialSearchFilters(
+            null,
+            privacyAllowsAdult,
+            trendingByDefault:
+                browseKindFor(
+                  sl<ContentModeCubit>().state,
+                  ZModePrefs.streamKind,
+                ) == ZKind.anime,
+          );
+          _hideMyAnime = false;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _applyMetaFilters(browseDefaults: true);
+        });
+      }
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _focusNode.requestFocus();
     });
@@ -442,6 +494,11 @@ class _SearchViewState extends State<_SearchView>
         sl<PlaybackPrefs>().adultMetadata &&
         (!sl.isRegistered<ViewerProfileStore>() ||
             sl<ViewerProfileStore>().adultMetadataAllowed),
+    trendingByDefault:
+        browseKindFor(
+          sl<ContentModeCubit>().state,
+          ZModePrefs.streamKind,
+        ) == ZKind.anime,
   );
 
   /// What this search will actually look through.
@@ -460,6 +517,100 @@ class _SearchViewState extends State<_SearchView>
       ZKind.manga => context.l10n.searchManga,
       ZKind.novel => context.l10n.searchNovels,
     };
+  }
+
+  Future<void> _toggleHideMyAnime() async {
+    if (_hideMyAnime) {
+      setState(() => _hideMyAnime = false);
+      return;
+    }
+    final aniList = sl<AniListService>();
+    if (!aniList.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hubungkan akun AniList untuk memakai Hide My Anime.')),
+      );
+      return;
+    }
+    setState(() => _loadingMyAnime = true);
+    try {
+      final entries = await aniList.fetchList();
+      if (!mounted) return;
+      final anime = entries.where((e) => e.item.type == ProviderType.anime);
+      setState(() {
+        _myAniListAnimeIds = {
+          for (final e in anime)
+            if (e.item.anilistId != null) e.item.anilistId!,
+        };
+        _myAniListMalIds = {
+          for (final e in anime)
+            if (e.item.malId != null) e.item.malId!,
+        };
+        _myAniListAnimeTitles = {
+          for (final e in anime) ...[
+            _normalizeMyAnimeTitle(e.item.title),
+            _normalizeMyAnimeTitle(e.item.englishTitle),
+          ],
+        }..removeWhere((title) => title.isEmpty);
+        _hideMyAnime = true;
+        _loadingMyAnime = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingMyAnime = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Daftar AniList gagal dimuat. Coba lagi.')),
+      );
+    }
+  }
+
+  String _normalizeMyAnimeTitle(String? value) => (value ?? '')
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), ' ')
+      .trim();
+
+  bool _isInMyAnime(MediaItem item) {
+    if (item.anilistId != null && _myAniListAnimeIds.contains(item.anilistId)) return true;
+    if (item.malId != null && _myAniListMalIds.contains(item.malId)) return true;
+    final title = _normalizeMyAnimeTitle(item.title);
+    final english = _normalizeMyAnimeTitle(item.englishTitle);
+    return (title.isNotEmpty && _myAniListAnimeTitles.contains(title)) ||
+        (english.isNotEmpty && _myAniListAnimeTitles.contains(english));
+  }
+
+  Widget _hideMyAnimeToggle() {
+    final active = _hideMyAnime;
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 8),
+      child: GestureDetector(
+        onTap: _loadingMyAnime ? null : _toggleHideMyAnime,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+          decoration: BoxDecoration(
+            color: active ? AppColors.accent.withValues(alpha: 0.16) : AppColors.surface,
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(color: active ? AppColors.accent : AppColors.hairline),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_loadingMyAnime)
+                const SizedBox(width: 11, height: 11, child: CircularProgressIndicator(strokeWidth: 1.5))
+              else
+                Icon(Icons.visibility_off_outlined, size: 13, color: active ? AppColors.accent : AppColors.textSecondary),
+              const SizedBox(width: 5),
+              Text(
+                'Hide My Anime',
+                style: AppText.caption.copyWith(
+                  fontSize: 10.5,
+                  color: active ? AppColors.accent : AppColors.textSecondary,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// The 18+ toggle. Visible only once Settings → Privacy allows it, and the
@@ -550,7 +701,15 @@ class _SearchViewState extends State<_SearchView>
       return;
     }
     FocusScope.of(context).unfocus();
-    final picked = await showMetaFilterSheet(context, kind, _metaFilters);
+    final picked = await showMetaFilterSheet(
+      context,
+      kind,
+      _metaFilters,
+      hideMyAnime: _hideMyAnime,
+      onHideMyAnimeChanged: (value) {
+        if (value != _hideMyAnime) _toggleHideMyAnime();
+      },
+    );
     if (picked == null || !mounted) return;
     setState(() => _metaFilters = picked);
     _applyMetaFilters(browseDefaults: true);
@@ -1177,8 +1336,14 @@ class _SearchViewState extends State<_SearchView>
             Center(
               child: GestureDetector(
                 onTap: () {
-                  setState(() => _metaFilters = const MetaFilters());
-                  _applyMetaFilters();
+                  setState(
+                    () => _metaFilters = MetaFilters(
+                      sort: _metaFilters.sort == MetaSort.trending
+                          ? MetaSort.trending
+                          : MetaSort.popularity,
+                    ),
+                  );
+                  _applyMetaFilters(browseDefaults: true);
                 },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -1611,10 +1776,17 @@ class _SearchViewState extends State<_SearchView>
 
   // ── Results body (grouped per source, layout-aware) ─────────────────────────
   Widget _resultsBody(
-    SearchState state,
+    SearchState rawState,
     double cellW,
     List<({String id, String name})> modeSources,
   ) {
+    final state = _hideMyAnime
+        ? rawState.copyWith(
+            groups: rawState.groups.map((group) => group.withItems(
+              group.items.where((item) => !_isInMyAnime(item)).toList(growable: false),
+            )).toList(growable: false),
+          )
+        : rawState;
     final groups = state.sortedVisibleGroups;
 
     // Sources still loading: those switched on for search that haven't
@@ -2214,11 +2386,14 @@ class _SearchViewState extends State<_SearchView>
     final browsing = state.hasFilteredBrowse;
     // Filter results still render here — those ARE what the filters asked for,
     // not filler. Only the unasked-for picks strip is gone.
-    final trending = browsing
+    final unfilteredTrending = browsing
         ? state.filteredBrowse
         : widget.scope == SearchScope.library
         ? const <MediaItem>[]
         : state.trending;
+    final trending = _hideMyAnime
+        ? unfilteredTrending.where((item) => !_isInMyAnime(item)).toList(growable: false)
+        : unfilteredTrending;
 
     if (recent.isEmpty && trending.isEmpty) {
       return Center(

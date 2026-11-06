@@ -61,7 +61,7 @@ class _SkipButtonState extends State<_SkipButton>
                   widget.label,
                   style: AppText.body.copyWith(
                     color: Colors.white,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w800,
                     letterSpacing: 0.3,
                   ),
                 ),
