@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import '../../core/di/injector.dart';
 import '../../core/theme/app_colors.dart';
@@ -230,7 +232,7 @@ class _NavTabsScreenState extends State<NavTabsScreen> {
         ),
         const SizedBox(height: 2),
         Text(
-          t.localizedLabel(context),
+          t.label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
@@ -265,7 +267,7 @@ class _NavTabsScreenState extends State<NavTabsScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                t.localizedLabel(context),
+                t.label,
                 style: AppText.body.copyWith(
                   color: chosen
                       ? AppColors.textPrimary
@@ -325,7 +327,7 @@ class _NavTabsScreenState extends State<NavTabsScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              t.localizedLabel(context),
+              t.label,
               style: AppText.body.copyWith(color: tint, fontSize: 14.5),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
