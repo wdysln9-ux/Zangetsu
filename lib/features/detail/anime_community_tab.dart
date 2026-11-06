@@ -705,7 +705,7 @@ class _Comment extends StatelessWidget {
             if (children.isNotEmpty)
               Positioned.fill(
                 child: CustomPaint(
-                  painter: _CommentThreadRailPainter(x: 15 + (17 * depth)),
+                  painter: _CommentThreadRailPainter(x: 15.0 + (17.0 * depth)),
                 ),
               ),
             Row(
@@ -806,7 +806,7 @@ class _Comment extends StatelessWidget {
                 if (children.isNotEmpty)
                   Padding(
                     // Align the next level's elbow with this comment's avatar.
-                    padding: EdgeInsets.only(left: 11 + (17 * depth)),
+                    padding: EdgeInsets.only(left: 11.0 + (17.0 * depth)),
                     child: Column(
                       children: [
                         for (var i = 0; i < children.length; i++)
