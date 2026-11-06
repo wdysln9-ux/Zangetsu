@@ -383,33 +383,42 @@ class _MarkdownInlineImage extends StatelessWidget {
   final double? width;
 
   @override
-  Widget build(BuildContext context) {
-    final available = MediaQuery.sizeOf(context).width - 48;
-    final displayWidth = (width == null ? available * .48 : available * (width! > 1 ? width! / available : width!))
-        .clamp(80.0, available * .5);
-    return GestureDetector(
-      onTap: () => showDialog<void>(
-        context: context,
-        barrierColor: Colors.black.withValues(alpha: .1),
-        builder: (_) => _MarkdownImageViewer(url: url),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: CachedNetworkImage(
-          imageUrl: url,
-          httpHeaders: {
-            'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36',
-            'Referer': 'https://anilist.co/',
-          },
-          width: displayWidth,
-          fit: BoxFit.contain,
-          fadeInDuration: Duration.zero,
-          placeholder: (_, __) => SizedBox(width: displayWidth, height: displayWidth * .56),
-          errorWidget: (_, __, ___) => SizedBox(width: displayWidth, height: displayWidth * .56, child: const Icon(Icons.broken_image_outlined)),
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final available = (constraints.maxWidth.isFinite
+          ? constraints.maxWidth
+          : MediaQuery.sizeOf(context).width - 48).clamp(1.0, 1200.0);
+      final requested = width == null
+          ? available * .48
+          : (width! > 1 ? width! : available * width!);
+      final displayWidth = requested.clamp(1.0, available).toDouble();
+      return GestureDetector(
+        onTap: () => showDialog<void>(
+          context: context,
+          barrierColor: Colors.black.withValues(alpha: .1),
+          builder: (_) => _MarkdownImageViewer(url: url),
         ),
-      ),
-    );
-  }
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            width: displayWidth,
+            child: CachedNetworkImage(
+              imageUrl: url,
+              httpHeaders: {
+                'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 Chrome/131.0.0.0 Mobile Safari/537.36',
+                'Referer': 'https://anilist.co/',
+              },
+              width: displayWidth,
+              fit: BoxFit.contain,
+              fadeInDuration: Duration.zero,
+              placeholder: (_, __) => SizedBox(width: displayWidth, height: displayWidth * .56),
+              errorWidget: (_, __, ___) => SizedBox(width: displayWidth, height: displayWidth * .56, child: const Icon(Icons.broken_image_outlined)),
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }
 
 /// AniList bio variant that keeps the existing best-effort Indonesian

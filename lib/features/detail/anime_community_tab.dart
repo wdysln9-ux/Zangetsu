@@ -647,7 +647,7 @@ class _Comment extends StatelessWidget {
     final id = (data['id'] as num?)?.toInt();
 
     return Padding(
-      padding: EdgeInsets.only(left: depth == 0 ? 0 : 3, bottom: 2),
+      padding: EdgeInsets.only(left: depth == 0 ? 0 : 3, bottom: depth == 0 ? 2 : 0),
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -710,8 +710,13 @@ class _Comment extends StatelessWidget {
                                     height: 1.5,
                                   ),
                                 )
-                              : _TranslatedMarkdown(
-                                  text: '${data['comment'] ?? ''}',
+                              : ClipRect(
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(maxWidth: double.infinity),
+                                    child: _TranslatedMarkdown(
+                                      text: '${data['comment'] ?? ''}',
+                                    ),
+                                  ),
                                 ),
                           const SizedBox(height: 7),
                           Row(
@@ -790,7 +795,9 @@ class _CommentThreadLinePainter extends CustomPainter {
       ..lineTo(x, branchY - 4)
       ..quadraticBezierTo(x, branchY, x + 4, branchY)
       ..lineTo(size.width, branchY);
-    if (!isLast) path.lineTo(size.width, size.height);
+    // Non-last replies keep the rail running to the very bottom edge.
+    // Nested comments have no bottom gap, so the next reply's rail joins it.
+    if (!isLast) path.lineTo(x, size.height);
     canvas.drawPath(path, paint);
   }
 
