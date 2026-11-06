@@ -72,15 +72,18 @@ jobs:
             --build-name="$BUILD_NAME" \
             --build-number="$((30000 + BUILD_NUMBER))"
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: zangetsu-android-arm64-release
-          path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
-          retention-days: 14
+      # Give the APK a versioned filename. GitHub Release stores this as a
+      # raw .apk asset; Actions artifacts are ZIP-wrapped, so do not upload it
+      # through upload-artifact.
+      - name: Name versioned APK
+        env:
+          APK_NAME: Zangetsu-v2.5.${{ github.run_number }}-arm64-v8a.apk
+        run: |
+          mv build/app/outputs/flutter-apk/app-release.apk "build/app/outputs/flutter-apk/$APK_NAME"
+          echo "APK_PATH=build/app/outputs/flutter-apk/$APK_NAME" >> "$GITHUB_ENV"
 
-      # Publish every successful workflow build as an in-app update.
+      # Publish the raw APK as a versioned release asset for direct download
+      # and the in-app updater. Keep the stable package ID and signing key.
       - name: Publish in-app update release
         uses: softprops/action-gh-release@v2
         with:
@@ -92,5 +95,5 @@ jobs:
             This pre-release was published after the Android APK build completed successfully.
           prerelease: true
           make_latest: false
-          files: build/app/outputs/flutter-apk/app-release.apk
+          files: ${{ env.APK_PATH }}
           fail_on_unmatched_files: true
