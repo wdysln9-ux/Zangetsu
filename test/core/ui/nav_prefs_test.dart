@@ -61,17 +61,15 @@ void main() {
     test('the default dock has neither Search nor Schedule', () {
       expect(NavPrefs.defaultTabs, [
         DockTab.home,
-        DockTab.myList,
         DockTab.sources,
+        DockTab.history,
+        DockTab.myList,
         DockTab.profile,
       ]);
     });
 
-    // The bar fits five icons and the mode switcher takes one of them
-    // without being a DockTab, so the tab cap has to be four. Picking five
-    // tabs used to draw a sixth icon and squeeze the row.
-    test('the cap leaves a slot for the centre button', () {
-      expect(NavPrefs.maxTabs, 4);
+    test('the five default destinations fit without a mode switcher', () {
+      expect(NavPrefs.maxTabs, 5);
       expect(NavPrefs.defaultTabs.length, NavPrefs.maxTabs);
     });
   });
