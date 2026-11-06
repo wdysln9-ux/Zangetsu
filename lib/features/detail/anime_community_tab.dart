@@ -694,17 +694,25 @@ class _Comment extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.only(left: depth == 0 ? 0 : 3, bottom: depth == 0 ? 2 : 0),
       child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Stack(
           children: [
-          if (depth > 0)
-            SizedBox(
-              width: 17,
-              child: CustomPaint(
-                painter: _CommentThreadLinePainter(isLast: isLast),
+            if (depth > 0)
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _CommentThreadLinePainter(),
+                ),
               ),
-            ),
-          Expanded(
+            if (children.isNotEmpty)
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _CommentThreadRailPainter(x: 15 + (17 * depth)),
+                ),
+              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+              if (depth > 0) const SizedBox(width: 17),
+              Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -797,32 +805,25 @@ class _Comment extends StatelessWidget {
                 ),
                 if (children.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(left: 14),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Stack(
-                        children: [
-                          const Positioned.fill(
-                            child: CustomPaint(painter: _CommentThreadRailPainter()),
+                    // Align the next level's elbow with this comment's avatar.
+                    padding: EdgeInsets.only(left: 11 + (17 * depth)),
+                    child: Column(
+                      children: [
+                        for (var i = 0; i < children.length; i++)
+                          _Comment(
+                            data: children[i],
+                            depth: depth + 1,
+                            rawMode: rawMode,
+                            isLast: i == children.length - 1,
                           ),
-                          Column(
-                            children: [
-                              for (var i = 0; i < children.length; i++)
-                                _Comment(
-                                  data: children[i],
-                                  depth: depth + 1,
-                                  rawMode: rawMode,
-                                  isLast: i == children.length - 1,
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
+                      ],
                     ),
                   ),
               ],
             ),
           ),
+              ],
+            ),
           ],
         ),
       ),
@@ -830,10 +831,11 @@ class _Comment extends StatelessWidget {
   }
 }
 
-/// Draws a continuous vertical rail and a short branch into each reply,
-/// matching the familiar threaded-comment layout.
+/// One trunk per comment level, beginning at the parent's avatar center and
+/// continuing through every descendant. Child elbows are painted over it.
 class _CommentThreadRailPainter extends CustomPainter {
-  const _CommentThreadRailPainter();
+  const _CommentThreadRailPainter({required this.x});
+  final double x;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -841,18 +843,17 @@ class _CommentThreadRailPainter extends CustomPainter {
       ..color = const Color(0xFF555860)
       ..strokeWidth = 1.4
       ..strokeCap = StrokeCap.round;
-    // The reply row has a 3 px left inset and its branch starts at x=7.
-    // Draw one parent-level trunk at x=10 so every branch meets it exactly.
-    canvas.drawLine(const Offset(10, 0), Offset(10, size.height), paint);
+    canvas.drawLine(Offset(x, 15), Offset(x, size.height), paint);
   }
 
   @override
-  bool shouldRepaint(covariant _CommentThreadRailPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _CommentThreadRailPainter oldDelegate) =>
+      oldDelegate.x != x;
 }
 
+/// Draws the elbow across the reply gutter and into the reply avatar center.
 class _CommentThreadLinePainter extends CustomPainter {
-  const _CommentThreadLinePainter({required this.isLast});
-  final bool isLast;
+  const _CommentThreadLinePainter();
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -861,14 +862,13 @@ class _CommentThreadLinePainter extends CustomPainter {
       ..strokeWidth = 1.4
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
-    const x = 7.0;
+    const branchX = 1.0;
     const branchY = 16.0;
-    // Each reply paints only its horizontal elbow. The parent paints the
-    // vertical trunk once across the complete sibling list.
+    const avatarCenterX = 32.0;
     final branch = Path()
-      ..moveTo(x, branchY - 4)
-      ..quadraticBezierTo(x, branchY, x + 4, branchY)
-      ..lineTo(size.width, branchY);
+      ..moveTo(branchX, branchY - 4)
+      ..quadraticBezierTo(branchX, branchY, branchX + 4, branchY)
+      ..lineTo(avatarCenterX, branchY);
     canvas.drawPath(branch, paint);
   }
 
